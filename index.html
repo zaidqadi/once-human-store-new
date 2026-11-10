@@ -213,6 +213,9 @@
                         </select>
                     </div>
 
+                    <!-- Auth Button (تسجيل الدخول / الحساب) -->
+                    <button id="authBtn" type="button" onclick="handleAuthBtn()" class="p-2.5 bg-slate-900 border border-slate-700 hover:border-starlight text-slate-200 rounded-xl transition flex items-center justify-center gap-2 text-xs font-bold"></button>
+
                     <!-- Cart Button -->
                     <button id="cartBtn" onclick="toggleCartDrawer()" class="relative p-2.5 bg-slate-900 border border-slate-700 hover:border-starlight text-slate-200 rounded-xl transition flex items-center justify-center">
                         <i class="fa-solid fa-cart-shopping text-lg text-starlight"></i>
@@ -612,6 +615,7 @@
                 انسخ تفاصيل الطلب وأرسلها في تذكرة على الديسكورد لاستلام طلبك.
             </p>
             <pre id="successSummary" class="text-left bg-slate-900 border border-slate-800 rounded-xl p-3 text-[11px] text-slate-300 whitespace-pre-wrap break-words mb-3 max-h-40 overflow-y-auto" dir="ltr"></pre>
+            <p id="successDbStatus" class="text-[11px] mb-3 leading-relaxed"></p>
             <button type="button" onclick="copyText(document.getElementById('successSummary').innerText, this)" class="w-full mb-3 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold py-2.5 rounded-xl text-xs transition">نسخ تفاصيل الطلب</button>
             <div class="flex flex-col gap-2">
                 <a href="https://discord.gg/vbRgT4vvc" target="_blank" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-xl transition text-xs flex items-center justify-center gap-2">
@@ -621,6 +625,52 @@
                     إغلاق النافذة
                 </button>
             </div>
+        </div>
+    </div>
+
+    <!-- Auth Modal (Google / Apple / Discord) -->
+    <div id="authModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onclick="if(event.target===this) closeAuthModal()">
+        <div class="bg-slate-950 border border-slate-800 rounded-3xl max-w-sm w-full p-6 relative shadow-2xl">
+            <button type="button" onclick="closeAuthModal()" class="absolute top-4 left-4 text-slate-400 hover:text-white p-2" aria-label="إغلاق">
+                <i class="fa-solid fa-xmark text-xl"></i>
+            </button>
+            <h3 class="text-xl font-bold text-white mb-1 flex items-center gap-2">
+                <i class="fa-solid fa-user-shield text-starlight"></i> تسجيل الدخول
+            </h3>
+            <p class="text-xs text-slate-500 mb-4">سجّل الدخول بحسابك لمتابعة طلباتك وإتمام الشراء.</p>
+            <div id="authNotice" class="hidden bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 mb-4 text-xs text-amber-300 font-bold leading-relaxed">
+                <i class="fa-solid fa-circle-info ml-1"></i> يلزم تسجيل الدخول قبل إتمام عملية الشراء.
+            </div>
+            <div class="space-y-3">
+                <button type="button" onclick="signInWith('google')" class="w-full bg-white hover:bg-slate-200 text-slate-900 font-bold py-3 rounded-xl transition flex items-center justify-center gap-3 text-sm">
+                    <i class="fab fa-google"></i> المتابعة عبر Google
+                </button>
+                <button type="button" onclick="signInWith('apple')" class="w-full bg-black hover:bg-slate-900 text-white font-bold py-3 rounded-xl border border-slate-600 transition flex items-center justify-center gap-3 text-sm">
+                    <i class="fab fa-apple"></i> المتابعة عبر Apple
+                </button>
+                <button type="button" onclick="signInWith('discord')" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-xl transition flex items-center justify-center gap-3 text-sm">
+                    <i class="fab fa-discord"></i> المتابعة عبر Discord
+                </button>
+            </div>
+            <p id="authMsg" class="hidden text-[11px] mt-4 leading-relaxed"></p>
+            <p class="text-[10px] text-slate-600 mt-4 leading-relaxed">نحفظ فقط الاسم والبريد وصورة الحساب ومزوّد الدخول لربط طلباتك بك.</p>
+        </div>
+    </div>
+
+    <!-- Account Modal -->
+    <div id="accountModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onclick="if(event.target===this) closeAccountModal()">
+        <div class="bg-slate-950 border border-slate-800 rounded-3xl max-w-md w-full p-6 relative shadow-2xl overflow-y-auto overscroll-contain max-h-[90vh]">
+            <button type="button" onclick="closeAccountModal()" class="absolute top-4 left-4 text-slate-400 hover:text-white p-2" aria-label="إغلاق">
+                <i class="fa-solid fa-xmark text-xl"></i>
+            </button>
+            <div id="accountInfo" class="flex items-center gap-4 mb-5"></div>
+            <h4 class="text-sm font-bold text-white mb-2 flex items-center gap-2">
+                <i class="fa-solid fa-receipt text-starlight"></i> طلباتي الأخيرة
+            </h4>
+            <div id="accountOrders" class="space-y-2 text-xs"></div>
+            <button type="button" onclick="signOutUser()" class="w-full mt-5 bg-slate-900 hover:bg-slate-800 text-red-300 font-bold py-2.5 rounded-xl border border-slate-700 text-xs transition flex items-center justify-center gap-2">
+                <i class="fa-solid fa-right-from-bracket"></i> تسجيل الخروج
+            </button>
         </div>
     </div>
 
@@ -1078,6 +1128,11 @@
                 alert('سلة الشراء فارغة! يرجى إضافة منتجات أولاً.');
                 return;
             }
+            if(!window.currentUser) {
+                toggleCartDrawer();
+                openAuthModal(true);
+                return;
+            }
             toggleCartDrawer();
             document.getElementById('checkoutTotal').innerText = '$' + getCartTotalUSD().toFixed(2) + ' USD';
             selectPayment();
@@ -1225,6 +1280,15 @@
                 'Total: $' + getCartTotalUSD().toFixed(2)
             ].join('\n');
 
+            saveOrderToSupabase({
+                orderId: orderId,
+                methodLabel: methodLabel,
+                reference: reference,
+                info: info,
+                items: cart.map(i => ({ id: i.id, name: i.name, qty: i.qty, price_usd: i.priceUSD })),
+                total: getCartTotalUSD()
+            });
+
             document.getElementById('successOrderId').innerText = orderId;
             document.getElementById('successSummary').innerText = summary;
             document.getElementById('successStatus').innerText = pending
@@ -1295,6 +1359,212 @@
             document.getElementById('successModal').classList.remove('flex');
         }
 
+    </script>
+    <!-- Supabase Auth + حفظ الطلبات (يستخدم supabaseClient الحالي) -->
+    <script>
+        window.currentUser = null;
+        const PROVIDER_LABELS = { google: 'Google', apple: 'Apple', discord: 'Discord' };
+        const ORDER_STATUS_LABELS = { pending: 'قيد المعالجة', paid: 'مدفوع', delivered: 'تم التسليم', cancelled: 'ملغي' };
+
+        function mk(tag, cls, text) {
+            const el = document.createElement(tag);
+            if (cls) el.className = cls;
+            if (text !== undefined) el.textContent = text;
+            return el;
+        }
+
+        function userDisplay(u) {
+            const m = (u && u.user_metadata) || {};
+            return {
+                name: m.full_name || m.name || m.user_name || (u && u.email) || 'حسابي',
+                avatar: m.avatar_url || m.picture || '',
+                provider: (u && u.app_metadata && u.app_metadata.provider) || ''
+            };
+        }
+
+        function updateAuthUI() {
+            const btn = document.getElementById('authBtn');
+            if (!btn) return;
+            btn.innerHTML = '';
+            const u = window.currentUser;
+            if (!u) {
+                btn.appendChild(mk('i', 'fa-solid fa-right-to-bracket text-starlight'));
+                btn.appendChild(mk('span', 'hidden sm:inline', 'دخول'));
+                return;
+            }
+            const d = userDisplay(u);
+            if (d.avatar) {
+                const img = document.createElement('img');
+                img.src = d.avatar;
+                img.alt = '';
+                img.referrerPolicy = 'no-referrer';
+                img.className = 'w-6 h-6 rounded-full object-cover';
+                btn.appendChild(img);
+            } else {
+                btn.appendChild(mk('i', 'fa-solid fa-user text-starlight'));
+            }
+            btn.appendChild(mk('span', 'hidden sm:inline max-w-[90px] truncate', d.name));
+        }
+
+        function handleAuthBtn() {
+            if (window.currentUser) openAccountModal(); else openAuthModal(false);
+        }
+
+        function showModal(id) {
+            const m = document.getElementById(id);
+            m.classList.remove('hidden');
+            m.classList.add('flex');
+        }
+        function hideModal(id) {
+            const m = document.getElementById(id);
+            m.classList.add('hidden');
+            m.classList.remove('flex');
+        }
+
+        function authMsg(text, isError) {
+            const el = document.getElementById('authMsg');
+            if (!text) { el.classList.add('hidden'); return; }
+            el.textContent = text;
+            el.className = 'text-[11px] mt-4 leading-relaxed ' + (isError ? 'text-red-400' : 'text-slate-400');
+        }
+
+        function openAuthModal(loginRequired) {
+            document.getElementById('authNotice').classList.toggle('hidden', !loginRequired);
+            authMsg('');
+            showModal('authModal');
+        }
+        function closeAuthModal() { hideModal('authModal'); }
+        function closeAccountModal() { hideModal('accountModal'); }
+
+        async function signInWith(provider) {
+            if (!supabaseClient) { authMsg('تعذّر تحميل مكتبة Supabase.', true); return; }
+            authMsg('جاري التحويل إلى ' + (PROVIDER_LABELS[provider] || provider) + '…', false);
+            try {
+                const { error } = await supabaseClient.auth.signInWithOAuth({
+                    provider: provider,
+                    options: { redirectTo: window.location.origin + window.location.pathname }
+                });
+                if (error) authMsg('فشل تسجيل الدخول: ' + error.message, true);
+            } catch (e) {
+                authMsg('فشل تسجيل الدخول: ' + ((e && e.message) || e), true);
+            }
+        }
+
+        async function signOutUser() {
+            try { if (supabaseClient) await supabaseClient.auth.signOut(); } catch (e) { console.error('[Auth] signOut:', e); }
+            window.currentUser = null;
+            updateAuthUI();
+            closeAccountModal();
+        }
+
+        async function openAccountModal() {
+            const u = window.currentUser;
+            if (!u) { openAuthModal(false); return; }
+            const d = userDisplay(u);
+
+            const info = document.getElementById('accountInfo');
+            info.innerHTML = '';
+            if (d.avatar) {
+                const img = document.createElement('img');
+                img.src = d.avatar; img.alt = ''; img.referrerPolicy = 'no-referrer';
+                img.className = 'w-14 h-14 rounded-full object-cover border border-slate-700';
+                info.appendChild(img);
+            } else {
+                const box = mk('div', 'w-14 h-14 rounded-full bg-slate-900 border border-slate-700 flex items-center justify-center');
+                box.appendChild(mk('i', 'fa-solid fa-user text-starlight text-xl'));
+                info.appendChild(box);
+            }
+            const txt = mk('div', 'min-w-0');
+            txt.appendChild(mk('div', 'text-white font-bold text-base truncate', d.name));
+            if (u.email) txt.appendChild(mk('div', 'text-xs text-slate-400 truncate', u.email));
+            const meta = [];
+            if (d.provider) meta.push('الدخول عبر ' + (PROVIDER_LABELS[d.provider] || d.provider));
+            if (u.created_at) meta.push('منذ ' + new Date(u.created_at).toLocaleDateString('ar'));
+            if (meta.length) txt.appendChild(mk('div', 'text-[11px] text-slate-500 mt-0.5', meta.join(' • ')));
+            info.appendChild(txt);
+
+            showModal('accountModal');
+
+            const list = document.getElementById('accountOrders');
+            list.innerHTML = '';
+            list.appendChild(mk('p', 'text-slate-500', 'جاري تحميل الطلبات…'));
+            try {
+                const { data, error } = await supabaseClient
+                    .from('orders')
+                    .select('order_code,total_usd,status,created_at')
+                    .order('created_at', { ascending: false })
+                    .limit(10);
+                list.innerHTML = '';
+                if (error) {
+                    list.appendChild(mk('p', 'text-red-400', 'تعذّر تحميل الطلبات: ' + error.message));
+                } else if (!data || data.length === 0) {
+                    list.appendChild(mk('p', 'text-slate-500', 'لا توجد طلبات بعد.'));
+                } else {
+                    data.forEach(o => {
+                        const row = mk('div', 'bg-slate-900 border border-slate-800 rounded-xl p-3 flex items-center justify-between gap-3');
+                        const left = mk('div', 'min-w-0');
+                        left.appendChild(mk('div', 'text-white font-bold font-mono', o.order_code || '—'));
+                        left.appendChild(mk('div', 'text-[11px] text-slate-500', new Date(o.created_at).toLocaleString('ar')));
+                        const right = mk('div', 'text-left shrink-0');
+                        right.appendChild(mk('div', 'text-starlight font-black', '$' + Number(o.total_usd || 0).toFixed(2)));
+                        right.appendChild(mk('div', 'text-[11px] text-slate-400', ORDER_STATUS_LABELS[o.status] || o.status));
+                        row.appendChild(left);
+                        row.appendChild(right);
+                        list.appendChild(row);
+                    });
+                }
+            } catch (e) {
+                list.innerHTML = '';
+                list.appendChild(mk('p', 'text-red-400', 'تعذّر تحميل الطلبات.'));
+            }
+        }
+
+        // حفظ الطلب في جدول orders مرتبطاً بـ user_id (لا يمنع إتمام الطلب إذا فشل الحفظ)
+        async function saveOrderToSupabase(o) {
+            const st = document.getElementById('successDbStatus');
+            const setSt = (text, cls) => { st.textContent = text; st.className = 'text-[11px] mb-3 leading-relaxed ' + cls; };
+            setSt('جاري حفظ الطلب في حسابك…', 'text-slate-400');
+            try {
+                if (!supabaseClient || !window.currentUser) throw new Error('لا توجد جلسة تسجيل دخول نشطة');
+                const { error } = await supabaseClient.from('orders').insert({
+                    user_id: window.currentUser.id,
+                    order_code: o.orderId,
+                    items: o.items,
+                    total_usd: o.total,
+                    payment_method: o.methodLabel,
+                    payment_ref: String(o.reference),
+                    discord_user: o.info.discord,
+                    character_name: o.info.char,
+                    region: o.info.region,
+                    status: 'pending'
+                });
+                if (error) throw error;
+                setSt('تم حفظ الطلب في حسابك ✅', 'text-emerald-400');
+            } catch (e) {
+                console.error('[Orders] فشل حفظ الطلب:', e);
+                setSt('تعذّر حفظ الطلب في الحساب (' + ((e && e.message) || e) + '). انسخ التفاصيل أعلاه وأرسلها في التذكرة.', 'text-amber-400');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            updateAuthUI();
+            if (!supabaseClient) return;
+            supabaseClient.auth.getSession().then(({ data }) => {
+                window.currentUser = data && data.session ? data.session.user : null;
+                updateAuthUI();
+            });
+            supabaseClient.auth.onAuthStateChange((event, session) => {
+                window.currentUser = session ? session.user : null;
+                setTimeout(() => {
+                    updateAuthUI();
+                    if (event === 'SIGNED_IN') closeAuthModal();
+                }, 0);
+            });
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') { closeAuthModal(); closeAccountModal(); }
+        });
     </script>
 </body>
 </html>
