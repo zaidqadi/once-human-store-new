@@ -628,14 +628,14 @@
         </div>
     </div>
 
-    <!-- Auth Modal (Google / Apple / Discord) -->
+    <!-- Auth Modal (Google / Discord / Email & Password / Magic Link) -->
     <div id="authModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onclick="if(event.target===this) closeAuthModal()">
-        <div class="bg-slate-950 border border-slate-800 rounded-3xl max-w-sm w-full p-6 relative shadow-2xl">
+        <div class="bg-slate-950 border border-slate-800 rounded-3xl max-w-sm w-full p-6 relative shadow-2xl overflow-y-auto overscroll-contain max-h-[90vh]">
             <button type="button" onclick="closeAuthModal()" class="absolute top-4 left-4 text-slate-400 hover:text-white p-2" aria-label="إغلاق">
                 <i class="fa-solid fa-xmark text-xl"></i>
             </button>
-            <h3 class="text-xl font-bold text-white mb-1 flex items-center gap-2">
-                <i class="fa-solid fa-user-shield text-starlight"></i> تسجيل الدخول
+            <h3 id="authTitle" class="text-xl font-bold text-white mb-1 flex items-center gap-2">
+                <i class="fa-solid fa-user-shield text-starlight"></i> <span>تسجيل الدخول</span>
             </h3>
             <p class="text-xs text-slate-500 mb-4">سجّل الدخول بحسابك لمتابعة طلباتك وإتمام الشراء.</p>
             <div id="authNotice" class="hidden bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 mb-4 text-xs text-amber-300 font-bold leading-relaxed">
@@ -645,13 +645,45 @@
                 <button type="button" onclick="signInWith('google')" class="w-full bg-white hover:bg-slate-200 text-slate-900 font-bold py-3 rounded-xl transition flex items-center justify-center gap-3 text-sm">
                     <i class="fab fa-google"></i> المتابعة عبر Google
                 </button>
-                <button type="button" onclick="signInWith('apple')" class="w-full bg-black hover:bg-slate-900 text-white font-bold py-3 rounded-xl border border-slate-600 transition flex items-center justify-center gap-3 text-sm">
-                    <i class="fab fa-apple"></i> المتابعة عبر Apple
-                </button>
                 <button type="button" onclick="signInWith('discord')" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-xl transition flex items-center justify-center gap-3 text-sm">
                     <i class="fab fa-discord"></i> المتابعة عبر Discord
                 </button>
             </div>
+
+            <!-- فاصل -->
+            <div class="flex items-center gap-3 my-4">
+                <div class="h-px bg-slate-800 flex-1"></div>
+                <span class="text-[11px] text-slate-500 font-bold">أو بالبريد الإلكتروني</span>
+                <div class="h-px bg-slate-800 flex-1"></div>
+            </div>
+
+            <!-- تبويبات: دخول / حساب جديد -->
+            <div class="grid grid-cols-2 gap-1 bg-slate-900 border border-slate-800 rounded-xl p-1 mb-3">
+                <button type="button" id="authTabLogin" onclick="setAuthMode('login')" class="py-2 rounded-lg text-xs font-bold transition">تسجيل الدخول</button>
+                <button type="button" id="authTabSignup" onclick="setAuthMode('signup')" class="py-2 rounded-lg text-xs font-bold transition">حساب جديد</button>
+            </div>
+
+            <form id="emailAuthForm" onsubmit="return submitEmailAuth(event)" class="space-y-3" novalidate>
+                <div>
+                    <label for="authEmail" class="block text-slate-300 font-bold mb-1 text-xs">البريد الإلكتروني</label>
+                    <input type="email" id="authEmail" dir="ltr" autocomplete="email" inputmode="email" placeholder="name@example.com" class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-starlight outline-none text-sm text-left">
+                </div>
+                <div id="authPasswordWrap">
+                    <label for="authPassword" class="block text-slate-300 font-bold mb-1 text-xs">كلمة المرور</label>
+                    <input type="password" id="authPassword" dir="ltr" autocomplete="current-password" placeholder="••••••••" class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-starlight outline-none text-sm text-left">
+                </div>
+                <div id="authConfirmWrap" class="hidden">
+                    <label for="authPasswordConfirm" class="block text-slate-300 font-bold mb-1 text-xs">تأكيد كلمة المرور</label>
+                    <input type="password" id="authPasswordConfirm" dir="ltr" autocomplete="new-password" placeholder="••••••••" class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-starlight outline-none text-sm text-left">
+                </div>
+                <button type="submit" id="authSubmitBtn" class="w-full bg-starlight hover:bg-cyan-400 text-slate-950 font-black py-3 rounded-xl transition text-sm flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed">
+                    <i class="fa-solid fa-right-to-bracket"></i> <span id="authSubmitText">تسجيل الدخول</span>
+                </button>
+                <button type="button" id="authMagicBtn" onclick="sendMagicLink()" class="w-full bg-slate-900 hover:bg-slate-800 text-slate-200 font-bold py-2.5 rounded-xl border border-slate-700 hover:border-starlight transition text-xs flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed">
+                    <i class="fa-solid fa-wand-magic-sparkles text-starlight"></i> أرسل لي رابط دخول سريع (Magic Link)
+                </button>
+            </form>
+
             <p id="authMsg" class="hidden text-[11px] mt-4 leading-relaxed"></p>
             <p class="text-[10px] text-slate-600 mt-4 leading-relaxed">نحفظ فقط الاسم والبريد وصورة الحساب ومزوّد الدخول لربط طلباتك بك.</p>
         </div>
@@ -1363,7 +1395,7 @@
     <!-- Supabase Auth + حفظ الطلبات (يستخدم supabaseClient الحالي) -->
     <script>
         window.currentUser = null;
-        const PROVIDER_LABELS = { google: 'Google', apple: 'Apple', discord: 'Discord' };
+        const PROVIDER_LABELS = { google: 'Google', discord: 'Discord', email: 'البريد الإلكتروني' };
         const ORDER_STATUS_LABELS = { pending: 'قيد المعالجة', paid: 'مدفوع', delivered: 'تم التسليم', cancelled: 'ملغي' };
 
         function mk(tag, cls, text) {
@@ -1421,16 +1453,17 @@
             m.classList.remove('flex');
         }
 
-        function authMsg(text, isError) {
+        function authMsg(text, isError, isSuccess) {
             const el = document.getElementById('authMsg');
             if (!text) { el.classList.add('hidden'); return; }
             el.textContent = text;
-            el.className = 'text-[11px] mt-4 leading-relaxed ' + (isError ? 'text-red-400' : 'text-slate-400');
+            el.className = 'text-[11px] mt-4 leading-relaxed ' + (isError ? 'text-red-400' : (isSuccess ? 'text-emerald-400' : 'text-slate-400'));
         }
 
         function openAuthModal(loginRequired) {
             document.getElementById('authNotice').classList.toggle('hidden', !loginRequired);
             authMsg('');
+            setAuthMode('login');
             showModal('authModal');
         }
         function closeAuthModal() { hideModal('authModal'); }
@@ -1447,6 +1480,115 @@
                 if (error) authMsg('فشل تسجيل الدخول: ' + error.message, true);
             } catch (e) {
                 authMsg('فشل تسجيل الدخول: ' + ((e && e.message) || e), true);
+            }
+        }
+
+        // ===== تسجيل الدخول بالبريد وكلمة المرور + Magic Link =====
+        let authMode = 'login'; // 'login' | 'signup'
+        let authBusy = false;
+
+        function setAuthMode(mode) {
+            authMode = mode === 'signup' ? 'signup' : 'login';
+            const isSignup = authMode === 'signup';
+            const on = 'py-2 rounded-lg text-xs font-bold transition bg-starlight text-slate-950';
+            const off = 'py-2 rounded-lg text-xs font-bold transition text-slate-400 hover:text-white';
+            document.getElementById('authTabLogin').className = isSignup ? off : on;
+            document.getElementById('authTabSignup').className = isSignup ? on : off;
+            document.getElementById('authConfirmWrap').classList.toggle('hidden', !isSignup);
+            document.getElementById('authSubmitText').textContent = isSignup ? 'إنشاء حساب' : 'تسجيل الدخول';
+            document.querySelector('#authSubmitBtn i').className = isSignup ? 'fa-solid fa-user-plus' : 'fa-solid fa-right-to-bracket';
+            document.querySelector('#authTitle span').textContent = isSignup ? 'إنشاء حساب جديد' : 'تسجيل الدخول';
+            document.getElementById('authPassword').setAttribute('autocomplete', isSignup ? 'new-password' : 'current-password');
+            authMsg('');
+        }
+
+        function setAuthBusy(busy) {
+            authBusy = busy;
+            ['authSubmitBtn', 'authMagicBtn'].forEach(id => { document.getElementById(id).disabled = busy; });
+        }
+
+        function isValidEmail(v) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v); }
+
+        function translateAuthError(err) {
+            const m = String((err && err.message) || err || '').toLowerCase();
+            if (m.includes('invalid login credentials')) return 'البريد الإلكتروني أو كلمة المرور غير صحيحة.';
+            if (m.includes('email not confirmed')) return 'لم يتم تأكيد بريدك بعد. افتح رسالة التأكيد في بريدك ثم حاول مجدداً.';
+            if (m.includes('already registered') || m.includes('already been registered')) return 'هذا البريد مسجّل مسبقاً. جرّب تسجيل الدخول.';
+            if (m.includes('password should be at least') || m.includes('weak password')) return 'كلمة المرور ضعيفة. استخدم 6 أحرف على الأقل.';
+            if (m.includes('rate limit') || m.includes('too many') || m.includes('seconds')) return 'محاولات كثيرة. انتظر قليلاً ثم حاول مرة أخرى.';
+            if (m.includes('signups not allowed') || m.includes('signup is disabled') || m.includes('signups are disabled')) return 'التسجيل بالبريد غير مفعّل حالياً.';
+            if (m.includes('email provider') && m.includes('disabled')) return 'تسجيل الدخول بالبريد غير مفعّل حالياً.';
+            if (m.includes('invalid email') || m.includes('unable to validate email')) return 'صيغة البريد الإلكتروني غير صحيحة.';
+            if (m.includes('failed to fetch') || m.includes('network')) return 'تعذّر الاتصال بالخادم. تحقق من الإنترنت.';
+            return (err && err.message) || 'حدث خطأ غير متوقع.';
+        }
+
+        function authRedirectUrl() { return window.location.origin + window.location.pathname; }
+
+        async function submitEmailAuth(ev) {
+            if (ev) ev.preventDefault();
+            if (authBusy) return false;
+            if (!supabaseClient) { authMsg('تعذّر تحميل مكتبة Supabase.', true); return false; }
+            const email = document.getElementById('authEmail').value.trim();
+            const password = document.getElementById('authPassword').value;
+            if (!isValidEmail(email)) { authMsg('أدخل بريداً إلكترونياً صحيحاً.', true); return false; }
+            if (!password) { authMsg('أدخل كلمة المرور.', true); return false; }
+
+            if (authMode === 'signup') {
+                if (password.length < 6) { authMsg('كلمة المرور يجب أن تكون 6 أحرف على الأقل.', true); return false; }
+                if (password !== document.getElementById('authPasswordConfirm').value) { authMsg('كلمتا المرور غير متطابقتين.', true); return false; }
+            }
+
+            setAuthBusy(true);
+            authMsg(authMode === 'signup' ? 'جاري إنشاء الحساب…' : 'جاري تسجيل الدخول…', false);
+            try {
+                if (authMode === 'signup') {
+                    const { data, error } = await supabaseClient.auth.signUp({
+                        email: email,
+                        password: password,
+                        options: { emailRedirectTo: authRedirectUrl() }
+                    });
+                    if (error) throw error;
+                    if (data && data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+                        authMsg('هذا البريد مسجّل مسبقاً. جرّب تسجيل الدخول.', true);
+                    } else if (data && data.session) {
+                        authMsg('تم إنشاء الحساب وتسجيل دخولك ✅', false, true);
+                    } else {
+                        authMsg('تم إنشاء الحساب. أرسلنا رسالة تأكيد إلى بريدك، افتحها لتفعيل الحساب ثم سجّل الدخول.', false, true);
+                    }
+                } else {
+                    const { error } = await supabaseClient.auth.signInWithPassword({ email: email, password: password });
+                    if (error) throw error;
+                    authMsg('تم تسجيل الدخول ✅', false, true);
+                }
+            } catch (e) {
+                console.error('[Auth] email:', e);
+                authMsg(translateAuthError(e), true);
+            } finally {
+                setAuthBusy(false);
+            }
+            return false;
+        }
+
+        async function sendMagicLink() {
+            if (authBusy) return;
+            if (!supabaseClient) { authMsg('تعذّر تحميل مكتبة Supabase.', true); return; }
+            const email = document.getElementById('authEmail').value.trim();
+            if (!isValidEmail(email)) { authMsg('أدخل بريدك الإلكتروني أولاً لنرسل لك الرابط.', true); return; }
+            setAuthBusy(true);
+            authMsg('جاري إرسال رابط الدخول…', false);
+            try {
+                const { error } = await supabaseClient.auth.signInWithOtp({
+                    email: email,
+                    options: { emailRedirectTo: authRedirectUrl() }
+                });
+                if (error) throw error;
+                authMsg('أرسلنا رابط الدخول إلى ' + email + '. افتح بريدك واضغط على الرابط لإكمال الدخول.', false, true);
+            } catch (e) {
+                console.error('[Auth] magic link:', e);
+                authMsg(translateAuthError(e), true);
+            } finally {
+                setAuthBusy(false);
             }
         }
 
