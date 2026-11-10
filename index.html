@@ -1,0 +1,1277 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>متجر Once Human - خدمات وموارد وانس هيومن الاحترافية</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Supabase JS v2 (يُحمَّل قبل كود التهيئة) -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        // ===== Supabase Initialization =====
+        const SUPABASE_URL = 'https://wtggdadkrfxajujduekw.supabase.co';
+        const SUPABASE_ANON_KEY = 'sb_publishable_J_hmwP__iKTHbBpSl4uZIQ_5n176gr4';
+
+        let supabaseClient = null;
+        if (window.supabase && typeof window.supabase.createClient === 'function') {
+            supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        } else {
+            console.error('[Supabase] فشل تحميل مكتبة Supabase JS من CDN.');
+        }
+
+        // تحديث مؤشر حالة الاتصال أسفل الموقع
+        function setDbStatus(state, text) {
+            const el = document.getElementById('dbStatus');
+            const dot = document.getElementById('dbStatusDot');
+            const txt = document.getElementById('dbStatusText');
+            if (!el || !dot || !txt) return;
+            const colors = { loading: '#fbbf24', success: '#10b981', error: '#ef4444' };
+            const c = colors[state] || colors.loading;
+            el.style.borderColor = c;
+            dot.style.background = c;
+            txt.textContent = text;
+        }
+
+        // دالة اختبار الاتصال (قراءة فقط من جدول products)
+        async function testSupabaseConnection() {
+            setDbStatus('loading', 'جاري الاتصال بقاعدة البيانات…');
+            if (!supabaseClient) {
+                console.error('[Supabase] العميل غير مُهيّأ.');
+                setDbStatus('error', 'فشل الاتصال: العميل غير مُهيّأ (تعذّر تحميل مكتبة Supabase)');
+                return;
+            }
+            try {
+                const { data, error } = await supabaseClient.from('products').select('id').limit(1);
+                if (error) {
+                    console.error('[Supabase] فشل الاتصال:', error.message, error);
+                    setDbStatus('error', 'فشل الاتصال: ' + (error.message || 'خطأ غير معروف'));
+                } else {
+                    console.log('[Supabase] تم الاتصال بنجاح ✅ النتيجة:', data);
+                    setDbStatus('success', 'تم الاتصال بنجاح');
+                }
+            } catch (err) {
+                console.error('[Supabase] خطأ غير متوقع:', err);
+                setDbStatus('error', 'فشل الاتصال: ' + ((err && err.message) || err));
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', testSupabaseConnection);
+    </script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        starlight: '#00f0ff',
+                        starlightDark: '#00a8b3',
+                        aberration: '#ff0055',
+                        deviantYellow: '#fbbf24',
+                        darkBg: '#0b0f19',
+                        cardBg: '#131927',
+                        borderHex: '#1e293b'
+                    },
+                    fontFamily: {
+                        sans: ['Tajawal', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Google Fonts: Tajawal & Montserrat for sleek look -->
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&family=Montserrat:wght@600;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        html { scroll-behavior: smooth; }
+        body {
+            font-family: 'Tajawal', sans-serif;
+            background-color: #080b11;
+            color: #e2e8f0;
+            overflow-x: hidden;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0b0f19;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1e293b;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #00f0ff;
+        }
+
+        /* Glow Effects */
+        .glow-cyan {
+            box-shadow: 0 0 15px rgba(0, 240, 255, 0.25);
+        }
+        .glow-yellow {
+            box-shadow: 0 0 15px rgba(251, 191, 36, 0.25);
+        }
+        .text-glow {
+            text-shadow: 0 0 10px rgba(0, 240, 255, 0.5);
+        }
+        .border-glow {
+            border-color: rgba(0, 240, 255, 0.4);
+        }
+
+        /* Sci-Fi Grid lines overlay */
+        .bg-grid-pattern {
+            background-size: 40px 40px;
+            background-image: 
+                linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+        }
+
+        /* Clip path for futuristic buttons */
+        .clip-btn {
+            clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+        }
+
+        @keyframes cart-bump { 0%,100% { transform: scale(1); } 40% { transform: scale(1.25); } }
+        .cart-bump { animation: cart-bump 0.4s ease; }
+
+        /* Missing utility classes */
+        @keyframes spin-slow { to { transform: rotate(360deg); } }
+        .animate-spin-slow { animation: spin-slow 8s linear infinite; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="bg-darkBg bg-grid-pattern min-h-screen flex flex-col justify-between">
+
+    <!-- Main Navigation Bar -->
+    <header class="sticky top-0 z-40 bg-darkBg border-b border-slate-800">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-20 gap-4">
+                
+                <!-- Logo & Brand -->
+                <div class="flex items-center gap-3">
+                    <div class="relative group cursor-pointer" onclick="filterCategory('all')">
+                        <div class="absolute -inset-1 bg-gradient-to-r from-starlight to-amber-400 rounded-lg blur opacity-40 group-hover:opacity-100 transition duration-300"></div>
+                        <div class="relative w-12 h-12 bg-slate-950 border border-slate-700 rounded-lg flex items-center justify-center">
+                            <i class="fa-solid fa-biohazard text-2xl text-starlight animate-spin-slow"></i>
+                        </div>
+                    </div>
+                    <div>
+                        <h1 class="text-xl sm:text-2xl font-black text-white tracking-wider flex items-center gap-2">
+                            ONCE HUMAN <span class="text-xs bg-cyan-500/10 text-starlight border border-starlight/30 px-2 py-0.5 rounded font-mono">STORE</span>
+                        </h1>
+                        <p class="text-[11px] text-slate-400">متجر خدمات وموارد وانس هيومن</p>
+                    </div>
+                </div>
+
+                <!-- Search Bar -->
+                <div class="hidden md:flex flex-1 max-w-md mx-4">
+                    <div class="relative w-full">
+                        <input type="text" id="searchInput" onkeyup="handleSearch()" placeholder="ابحث عن أسلحة، طاقة Energy Links، مرافقين Deviants..." 
+                            class="w-full bg-slate-900/90 border border-slate-700 text-slate-200 placeholder-slate-500 rounded-xl py-2.5 pr-10 pl-4 focus:outline-none focus:border-starlight focus:ring-1 focus:ring-starlight transition text-sm">
+                        <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-500">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Currency Selector & Cart -->
+                <div class="flex items-center gap-3">
+                    <!-- Currency Selector -->
+                    <div class="relative">
+                        <select id="currencySelector" onchange="changeCurrency(this.value)" class="bg-slate-900 border border-slate-700 text-slate-300 text-xs font-bold rounded-lg px-2.5 py-2 focus:outline-none focus:border-starlight cursor-pointer">
+                            <option value="USD">USD ($)</option>
+                            <option value="SAR">SAR (ر.س)</option>
+                            <option value="EUR">EUR (€)</option>
+                        </select>
+                    </div>
+
+                    <!-- Cart Button -->
+                    <button id="cartBtn" onclick="toggleCartDrawer()" class="relative p-2.5 bg-slate-900 border border-slate-700 hover:border-starlight text-slate-200 rounded-xl transition flex items-center justify-center">
+                        <i class="fa-solid fa-cart-shopping text-lg text-starlight"></i>
+                        <span id="cartBadge" class="absolute -top-2 -right-2 bg-aberration text-white text-[11px] font-bold rounded-full w-5 h-5 flex items-center justify-center shadow-lg border border-darkBg">0</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mobile Search Bar (under navbar on small screens) -->
+        <div class="md:hidden px-4 pb-3">
+            <div class="relative w-full">
+                <input type="text" id="mobileSearchInput" onkeyup="handleSearch(true)" placeholder="ابحث عن المنتجات..." 
+                    class="w-full bg-slate-900 border border-slate-700 text-slate-200 text-xs rounded-lg py-2 pr-9 pl-3 focus:outline-none focus:border-starlight">
+                <div class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-500 text-xs">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero / Banner Section -->
+    <section class="relative py-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full">
+        <div class="relative rounded-3xl overflow-hidden border border-slate-800 bg-gradient-to-r from-slate-950 via-slate-900 to-cyan-950/40 p-6 sm:p-10 shadow-2xl">
+            <!-- Background Image overlay -->
+            <div class="absolute inset-0 opacity-20 bg-cover bg-center mix-blend-overlay" style="background-image: url('https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=1200&q=80');"></div>
+            
+            <div class="relative z-10 max-w-2xl">
+                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-bold mb-4">
+                    <i class="fa-solid fa-fire text-amber-400"></i> الموسم الجديد: Stardust Apocalypse
+                </div>
+                <h2 class="text-3xl sm:text-5xl font-black text-white leading-tight mb-4">
+                    سيطر على العالم الملوث بـ <span class="text-starlight text-glow">Stardust</span>
+                </h2>
+                <p class="text-slate-300 text-sm sm:text-base leading-relaxed mb-6">
+                    احصل على أفضل الأسلحة، مخططات البناء (Blueprints)، الطاقة الكهرومغناطيسية Energy Links، والمساعدين الرقميين Deviants بأعلى المقاييس وأسرع تسليم داخل السيرفر الخاص بك.
+                </p>
+                <div class="flex flex-wrap items-center gap-4">
+                    <a href="#productsSection" class="bg-starlight hover:bg-cyan-400 text-slate-950 font-black px-6 py-3 rounded-xl transition flex items-center gap-2 shadow-lg glow-cyan text-sm clip-btn">
+                        <i class="fa-solid fa-crosshairs"></i> تصفح العروض الحصرية
+                    </a>
+                    <a href="https://discord.gg/vbRgT4vvc" target="_blank" class="bg-slate-900/80 hover:bg-slate-800 text-white font-bold px-6 py-3 rounded-xl border border-slate-700 hover:border-starlight transition flex items-center gap-2 text-sm">
+                        <i class="fab fa-discord text-indigo-400"></i> اطلب عبر الديسكورد
+                    </a>
+                </div>
+            </div>
+
+            <!-- Features Badge Bar -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8 pt-6 border-t border-slate-800/80 text-xs text-slate-400">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-bolt text-starlight text-base"></i>
+                    <span>تسليم آمن وفوري خلال 15 دقيقة</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-shield-halved text-emerald-400 text-base"></i>
+                    <span>حماية 100% بدون أي مخابرة حظر</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-headset text-amber-400 text-base"></i>
+                    <span>دعم فني مباشر 24/7 على ديسكورد</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-globe text-purple-400 text-base"></i>
+                    <span>يدعم جميع السيرفرات (NA, EU, SEA)</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Main Content & Products -->
+    <main id="productsSection" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full flex-grow">
+        
+        <!-- Category Filters -->
+        <div class="flex items-center justify-between mb-6 flex-wrap gap-4">
+            <h3 class="text-xl font-bold text-white flex items-center gap-2">
+                <i class="fa-solid fa-boxes-stacked text-starlight"></i> أقسام المتجر
+            </h3>
+
+            <!-- Server Filter Selector -->
+            <div class="flex items-center gap-2 text-xs text-slate-400">
+                <label for="serverRegion" class="whitespace-nowrap"><i class="fa-solid fa-server"></i> السيرفر:</label>
+                <select id="serverRegion" onchange="filterProducts()" class="bg-slate-900 border border-slate-700 text-slate-200 rounded-lg px-3 py-1.5 focus:border-starlight outline-none">
+                    <option value="all">جميع المناطق (ALL)</option>
+                    <option value="NA">شمال أمريكا (NA)</option>
+                    <option value="EU">أوروبا (EU)</option>
+                    <option value="SEA">جنوب شرق آسيا (SEA)</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Filter Buttons Scrollable Area -->
+        <div class="flex gap-2 overflow-x-auto pb-4 mb-8 no-scrollbar">
+            <button onclick="filterCategory('all')" class="cat-btn active px-4 py-2 rounded-xl text-xs sm:text-sm font-bold border transition whitespace-nowrap bg-starlight text-slate-950 border-starlight" data-cat="all">
+                <i class="fa-solid fa-border-all ml-1"></i> جميع المنتجات
+            </button>
+            <button onclick="filterCategory('weapons')" class="cat-btn px-4 py-2 rounded-xl text-xs sm:text-sm font-bold border transition whitespace-nowrap bg-slate-900 text-slate-300 border-slate-800 hover:border-slate-600" data-cat="weapons">
+                <i class="fa-solid fa-gun ml-1 text-starlight"></i> مخططات أسلحة ودروع
+            </button>
+            <button onclick="filterCategory('currency')" class="cat-btn px-4 py-2 rounded-xl text-xs sm:text-sm font-bold border transition whitespace-nowrap bg-slate-900 text-slate-300 border-slate-800 hover:border-slate-600" data-cat="currency">
+                <i class="fa-solid fa-coins ml-1 text-amber-400"></i> Energy Links & عملات
+            </button>
+            <button onclick="filterCategory('deviants')" class="cat-btn px-4 py-2 rounded-xl text-xs sm:text-sm font-bold border transition whitespace-nowrap bg-slate-900 text-slate-300 border-slate-800 hover:border-slate-600" data-cat="deviants">
+                <i class="fa-solid fa-ghost ml-1 text-purple-400"></i> مرافقين Deviants (Level 5)
+            </button>
+            <button onclick="filterCategory('boosting')" class="cat-btn px-4 py-2 rounded-xl text-xs sm:text-sm font-bold border transition whitespace-nowrap bg-slate-900 text-slate-300 border-slate-800 hover:border-slate-600" data-cat="boosting">
+                <i class="fa-solid fa-bolt-lightning ml-1 text-emerald-400"></i> التلفيل وقتل البوسات
+            </button>
+        </div>
+
+        <!-- Products Grid -->
+        <div id="productsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <!-- Dynamic Content Populated by JavaScript -->
+        </div>
+
+        <!-- Discord Banner Integration -->
+        <div class="mt-16 bg-gradient-to-r from-indigo-950 via-slate-900 to-indigo-900 border border-indigo-500/30 rounded-3xl p-6 sm:p-8 flex flex-col sm:flex-row items-center justify-between gap-6">
+            <div class="flex items-center gap-5 text-center sm:text-right">
+                <div class="w-16 h-16 rounded-2xl bg-indigo-600/20 border border-indigo-500/40 flex items-center justify-center flex-shrink-0 mx-auto sm:mx-0">
+                    <i class="fab fa-discord text-3xl text-indigo-400"></i>
+                </div>
+                <div>
+                    <h4 class="text-xl font-bold text-white mb-1">انضم إلى مجتمع ديسكورد الخاص بنا</h4>
+                    <p class="text-xs text-slate-300 max-w-lg">تواصل مباشر مع الدعم الفني، متابعة طلبات الشراء تلقائياً عبر نظام التذاكر، والحصول على خصومات حصرية للأعضاء!</p>
+                </div>
+            </div>
+            <a href="https://discord.gg/vbRgT4vvc" target="_blank" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-6 py-3 rounded-xl transition whitespace-nowrap text-xs sm:text-sm shadow-lg shadow-indigo-600/20 flex items-center gap-2">
+                <i class="fab fa-discord"></i> دخول مجتمع Discord
+            </a>
+        </div>
+    </main>
+
+    <!-- Footer Section -->
+    <footer class="bg-slate-950 border-t border-slate-800/80 mt-16 py-10 text-slate-400 text-xs">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+                <div>
+                    <h5 class="text-white font-bold text-sm mb-3 flex items-center gap-2">
+                        <i class="fa-solid fa-biohazard text-starlight"></i> ONCE HUMAN STORE
+                    </h5>
+                    <p class="text-slate-500 leading-relaxed">المتجر الأفضل والأسرع لشراء كافة مستلزمات لعبة Once Human بأعلى درجة أمان وموثوقية.</p>
+                </div>
+                <div>
+                    <h6 class="text-white font-bold text-xs uppercase tracking-wider mb-3">روابط سريعة</h6>
+                    <ul class="space-y-2">
+                        <li><a href="#productsSection" onclick="filterCategory('weapons')" class="hover:text-starlight transition">مخطط الأسلحة</a></li>
+                        <li><a href="#productsSection" onclick="filterCategory('currency')" class="hover:text-starlight transition">Energy Links</a></li>
+                        <li><a href="#productsSection" onclick="filterCategory('deviants')" class="hover:text-starlight transition">مرافقين Deviants</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h6 class="text-white font-bold text-xs uppercase tracking-wider mb-3">الدعم والمساعدة</h6>
+                    <ul class="space-y-2">
+                        <li><a href="#" onclick="return openRefundPolicy(event)" class="hover:text-starlight transition">سياسة الاسترجاع والضمان</a></li>
+                        <li><a href="#" onclick="return openDelivery(event)" class="hover:text-starlight transition">كيفية تسليم المنتجات</a></li>
+                        <li><a href="https://discord.gg/vbRgT4vvc" target="_blank" class="hover:text-starlight transition">التواصل عبر ديسكورد</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h6 class="text-white font-bold text-xs uppercase tracking-wider mb-3">طرق الدفع المدعومة</h6>
+                    <div class="flex flex-wrap gap-2 text-xl text-slate-300">
+                        <i class="fab fa-cc-visa" title="Visa"></i>
+                        <i class="fab fa-cc-mastercard" title="MasterCard"></i>
+                        <i class="fab fa-cc-paypal" title="PayPal"></i>
+                        <i class="fab fa-bitcoin" title="Crypto"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="border-t border-slate-900 pt-6 flex flex-col sm:flex-row justify-between items-center gap-4 text-[11px] text-slate-600">
+                <p>© 2026 جميع الحقوق محفوظة لـ Once Human Store.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Shopping Cart Drawer (Slide-Over) -->
+    <div id="cartDrawer" class="fixed inset-0 z-50 overflow-hidden hidden" aria-labelledby="slide-over-title" role="dialog" aria-modal="true">
+        <div class="absolute inset-0 bg-black/70 backdrop-blur-sm transition-opacity" onclick="toggleCartDrawer()"></div>
+
+        <div class="fixed inset-y-0 left-0 max-w-full flex pl-0 sm:pl-10">
+            <div class="w-screen max-w-md bg-slate-950 border-r border-slate-800 text-slate-200 shadow-2xl flex flex-col">
+                <!-- Cart Header -->
+                <div class="p-4 sm:p-6 border-b border-slate-800 flex items-center justify-between">
+                    <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-cart-shopping text-starlight"></i> سلة الشراء
+                    </h3>
+                    <button onclick="toggleCartDrawer()" class="text-slate-400 hover:text-white p-2">
+                        <i class="fa-solid fa-xmark text-xl"></i>
+                    </button>
+                </div>
+
+                <!-- Cart Items List -->
+                <div id="cartItemsContainer" class="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
+                    <!-- Dynamic Cart Items -->
+                </div>
+
+                <!-- Cart Footer & Checkout -->
+                <div class="p-4 sm:p-6 border-t border-slate-800 bg-slate-900/50 space-y-4">
+                    <div class="space-y-1.5 text-xs">
+                        <div class="flex justify-between text-slate-400">
+                            <span>المجموع الفرعي:</span>
+                            <span id="cartSubtotal" class="font-bold text-slate-200">$0.00</span>
+                        </div>
+                        <div class="flex justify-between text-slate-400">
+                            <span>رسوم التسليم الفوري:</span>
+                            <span class="text-emerald-400 font-bold">مجاني ⚡</span>
+                        </div>
+                        <div class="flex justify-between text-sm font-black text-white pt-2 border-t border-slate-800">
+                            <span>الإجمالي النهائي:</span>
+                            <span id="cartTotal" class="text-starlight text-glow">$0.00</span>
+                        </div>
+                    </div>
+
+                    <button id="checkoutBtn" onclick="openCheckoutModal()" class="w-full bg-starlight hover:bg-cyan-400 text-slate-950 font-black py-3 rounded-xl transition text-center flex items-center justify-center gap-2 clip-btn glow-cyan">
+                        متابعة عملية الشراء <i class="fa-solid fa-arrow-left"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delivery Info Modal -->
+    <div id="deliveryModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onclick="if(event.target===this) closeDelivery()">
+        <div class="bg-slate-950 border border-slate-800 rounded-3xl max-w-lg w-full p-6 relative shadow-2xl overflow-y-auto overscroll-contain max-h-[90vh]">
+            <button type="button" onclick="closeDelivery()" class="absolute top-4 left-4 text-slate-400 hover:text-white p-2" aria-label="إغلاق">
+                <i class="fa-solid fa-xmark text-xl"></i>
+            </button>
+            <h3 class="text-xl font-bold text-white mb-1 flex items-center gap-2">
+                <i class="fa-solid fa-truck-fast text-starlight"></i> كيفية تسليم المنتجات
+            </h3>
+            <p class="text-xs text-slate-500 mb-5">خطوات بسيطة من الشراء حتى استلام الطلب داخل اللعبة.</p>
+            <ol class="space-y-4 text-sm text-slate-300 leading-relaxed">
+            <li class="flex gap-3">
+                <span class="w-6 h-6 shrink-0 rounded-full bg-starlight/10 border border-starlight/40 text-starlight text-xs font-black flex items-center justify-center">1</span>
+                <span>أضف المنتجات التي تريدها إلى سلة الشراء، ثم اضغط «متابعة عملية الشراء».</span>
+            </li>
+            <li class="flex gap-3">
+                <span class="w-6 h-6 shrink-0 rounded-full bg-starlight/10 border border-starlight/40 text-starlight text-xs font-black flex items-center justify-center">2</span>
+                <span>اكتب اسم حسابك في الديسكورد، واسم شخصيتك في اللعبة، واختر منطقة السيرفر الصحيحة.</span>
+            </li>
+            <li class="flex gap-3">
+                <span class="w-6 h-6 shrink-0 rounded-full bg-starlight/10 border border-starlight/40 text-starlight text-xs font-black flex items-center justify-center">3</span>
+                <span>ادفع عبر PayPal، أو حوّل مبلغ USDT على الشبكة التي تختارها ثم الصق رقم العملية (TXID).</span>
+            </li>
+            <li class="flex gap-3">
+                <span class="w-6 h-6 shrink-0 rounded-full bg-starlight/10 border border-starlight/40 text-starlight text-xs font-black flex items-center justify-center">4</span>
+                <span>بعد إتمام الطلب تظهر لك تفاصيله. انسخها وادخل إلى سيرفر الديسكورد وافتح تذكرة (Ticket) وأرسلها هناك.</span>
+            </li>
+            <li class="flex gap-3">
+                <span class="w-6 h-6 shrink-0 rounded-full bg-starlight/10 border border-starlight/40 text-starlight text-xs font-black flex items-center justify-center">5</span>
+                <span>يتواصل معك المشرف في التذكرة ويسلّمك طلبك داخل اللعبة. التسليم عادةً خلال 15 دقيقة من تأكيد الدفع، وفي حالة USDT بعد التحقق من التحويل يدوياً.</span>
+            </li>
+            </ol>
+            <div class="mt-5 bg-slate-900 border border-slate-800 rounded-xl p-4 text-xs text-slate-400 leading-relaxed">
+                <i class="fa-solid fa-circle-info text-starlight ml-1"></i>
+                لتسريع التسليم، تأكد من كتابة اسم الشخصية ومنطقة السيرفر بشكل صحيح، وكن متواجداً على الديسكورد بعد الدفع.
+            </div>
+        </div>
+    </div>
+
+    <!-- Refund Policy Modal -->
+    <div id="refundModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onclick="if(event.target===this) closeRefundPolicy()">
+        <div class="bg-slate-950 border border-red-500/30 rounded-3xl max-w-lg w-full p-6 relative shadow-2xl overflow-y-auto overscroll-contain max-h-[90vh]">
+            <button type="button" onclick="closeRefundPolicy()" class="absolute top-4 left-4 text-slate-400 hover:text-white p-2" aria-label="إغلاق">
+                <i class="fa-solid fa-xmark text-xl"></i>
+            </button>
+            <h3 class="text-xl font-bold text-white mb-1 flex items-center gap-2">
+                <i class="fa-solid fa-scale-balanced text-red-400"></i> سياسة الاسترجاع والضمان
+            </h3>
+            <p class="text-xs text-slate-500 mb-4">يرجى قراءة هذه السياسة قبل إتمام أي عملية شراء.</p>
+            <div class="bg-red-500/10 border border-red-500/30 rounded-xl p-4 mb-4 text-sm text-red-300 font-bold leading-relaxed">
+                <i class="fa-solid fa-ban ml-1"></i> لا يمكن استرجاع أي منتج أو خدمة تم دفع ثمنها، أو تم استلامها.
+            </div>
+            <ul class="space-y-3 text-sm text-slate-300 leading-relaxed list-disc pr-5 marker:text-red-400">
+                <li>جميع المبيعات نهائية، ولا يوجد استرجاع للمبلغ ولا استبدال للمنتج بعد إتمام الدفع.</li>
+                <li>بعد تسليم الطلب داخل اللعبة لا يمكن إلغاؤه أو استرجاعه تحت أي ظرف.</li>
+                <li>أنت مسؤول عن صحة بياناتك: اسم الشخصية، ومنطقة السيرفر، وحساب الديسكورد، ونوع المنتج.</li>
+                <li>في حال التحويل عبر USDT، تأكد من الشبكة والعنوان والمبلغ قبل الإرسال، فالتحويلات الخاطئة لا يمكن استرجاعها.</li>
+                <li>بإتمامك عملية الدفع فإنك توافق على هذه السياسة.</li>
+            </ul>
+            <p class="text-xs text-slate-500 mt-4">لأي استفسار قبل الشراء، تواصل معنا عبر الديسكورد.</p>
+        </div>
+    </div>
+
+    <!-- Quick View Product Modal -->
+    <div id="productModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+        <div class="bg-slate-950 border border-slate-800 rounded-3xl max-w-xl w-full p-6 relative shadow-2xl overflow-hidden">
+            <button onclick="closeProductModal()" class="absolute top-4 left-4 text-slate-400 hover:text-white p-2 z-10">
+                <i class="fa-solid fa-xmark text-xl"></i>
+            </button>
+            <div id="modalContent">
+                <!-- Dynamic Modal Data -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Checkout Modal -->
+    <div id="checkoutModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+        <div class="bg-slate-950 border border-slate-800 rounded-3xl max-w-lg w-full p-6 relative shadow-2xl overflow-y-auto max-h-[90vh]">
+            <button onclick="closeCheckoutModal()" class="absolute top-4 left-4 text-slate-400 hover:text-white p-2">
+                <i class="fa-solid fa-xmark text-xl"></i>
+            </button>
+            
+            <h3 class="text-xl font-bold text-white mb-4 flex items-center gap-2 border-b border-slate-800 pb-3">
+                <i class="fa-solid fa-shield-check text-starlight"></i> إتمام الطلب والتحقق من الحساب
+            </h3>
+
+            <form id="checkoutForm" onsubmit="handleCheckout(event)" class="space-y-4 text-xs">
+                <div>
+                    <label class="block text-slate-300 font-bold mb-1">اسم حسابك في الديسكورد (Discord Username) *</label>
+                    <input type="text" required id="discordUser" placeholder="مثال: player_one#0000 أو username" class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-starlight outline-none">
+                    <p class="text-[10px] text-slate-500 mt-1">ضروري لفتح تذكرة وتكليف المشرف بتسليمك الطلب داخل اللعبة.</p>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-slate-300 font-bold mb-1">منطقة السيرفر (Region) *</label>
+                        <select id="checkoutRegion" required class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-starlight outline-none">
+                            <option value="EU">أوروبا (EU)</option>
+                            <option value="NA">شمال أمريكا (NA)</option>
+                            <option value="SEA">جنوب شرق آسيا (SEA)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-slate-300 font-bold mb-1">اسم الشخصية في اللعبة *</label>
+                        <input type="text" required id="charName" placeholder="In-Game Name" class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-starlight outline-none">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-slate-300 font-bold mb-2">اختر طريقة الدفع المناسبة</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <label class="border border-slate-800 bg-slate-900 p-3 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-starlight has-[:checked]:border-starlight has-[:checked]:bg-starlight/10 transition">
+                            <input type="radio" name="payment" value="paypal" checked onchange="selectPayment()" class="hidden">
+                            <i class="fab fa-paypal text-lg text-blue-400 mb-1"></i>
+                            <span class="text-[11px] font-bold">PayPal / بطاقة</span>
+                        </label>
+                        <label class="border border-slate-800 bg-slate-900 p-3 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-starlight has-[:checked]:border-starlight has-[:checked]:bg-starlight/10 transition">
+                            <input type="radio" name="payment" value="usdt" onchange="selectPayment()" class="hidden">
+                            <i class="fa-solid fa-coins text-lg text-emerald-400 mb-1"></i>
+                            <span class="text-[11px] font-bold">USDT / Crypto</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="bg-slate-900/80 border border-slate-800 p-3 rounded-xl flex items-center justify-between text-sm">
+                    <span class="text-slate-400 font-bold">المبلغ الاجمالي للشراء:</span>
+                    <span id="checkoutTotal" class="text-starlight font-black text-lg text-glow">$0.00</span>
+                </div>
+
+                <div id="paypalSection">
+                    <div id="paypal-button-container"></div>
+                    <p class="text-[10px] text-slate-500 mt-2">يتم الدفع بالدولار الأمريكي (USD) عبر PayPal، ويمكنك الدفع بالبطاقة البنكية من نفس النافذة.</p>
+                </div>
+
+                <div id="usdtSection" class="hidden space-y-3">
+                    <div>
+                        <label class="block text-slate-300 font-bold mb-1">اختر شبكة التحويل</label>
+                        <select id="usdtNetworkSelect" onchange="selectPayment()" class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-starlight outline-none">
+                            <option value="trc20">USDT - TRC20 (TRON)</option>
+                            <option value="polygon">USDT - Polygon (POS)</option>
+                        </select>
+                    </div>
+                    <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 space-y-2">
+                        <div class="flex justify-between"><span class="text-slate-400">الشبكة:</span><span id="usdtNetwork" class="text-white font-bold" dir="ltr"></span></div>
+                        <div class="flex justify-between"><span class="text-slate-400">المبلغ:</span><span id="usdtAmount" class="text-starlight font-black" dir="ltr"></span></div>
+                        <div>
+                            <span class="text-slate-400 block mb-1">عنوان المحفظة:</span>
+                            <div class="flex items-center gap-2">
+                                <code id="usdtAddress" class="flex-1 bg-slate-950 border border-slate-800 rounded-lg p-2 text-[11px] text-slate-200 break-all" dir="ltr"></code>
+                                <button type="button" onclick="copyText(document.getElementById('usdtAddress').innerText, this)" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-[11px] font-bold whitespace-nowrap">نسخ</button>
+                            </div>
+                        </div>
+                    </div>
+                    <p id="usdtWarn" class="text-[10px] text-amber-400 leading-relaxed"><i class="fa-solid fa-triangle-exclamation ml-1"></i> أرسل عملة USDT فقط وعلى الشبكة المذكورة بالضبط. الإرسال على شبكة أخرى أو بعملة مختلفة قد يضيّع المبلغ.</p>
+                    <div>
+                        <label class="block text-slate-300 font-bold mb-1">رقم العملية (TXID) بعد التحويل *</label>
+                        <input type="text" id="txHash" placeholder="الصق رقم العملية هنا" oninput="document.getElementById('txError').classList.add('hidden')" class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-starlight outline-none" dir="ltr">
+                        <p id="txError" class="hidden text-[11px] text-red-400 mt-1"></p>
+                    </div>
+                    <button type="submit" class="w-full bg-starlight hover:bg-cyan-400 text-slate-950 font-black py-3.5 rounded-xl transition text-center shadow-lg clip-btn">
+                        تأكيد التحويل وإرسال الطلب <i class="fa-solid fa-check ml-1"></i>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Order Success Notification Modal -->
+    <div id="successModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+        <div class="bg-slate-950 border border-emerald-500/50 rounded-3xl max-w-md w-full p-6 text-center shadow-2xl relative">
+            <div class="w-16 h-16 bg-emerald-500/20 text-emerald-400 rounded-full flex items-center justify-center mx-auto mb-4 border border-emerald-500/40 text-2xl">
+                <i class="fa-solid fa-check animate-bounce"></i>
+            </div>
+            <h3 class="text-xl font-bold text-white mb-2">تم تأكيد الطلب بنجاح! 🎉</h3>
+            <p class="text-slate-300 text-xs leading-relaxed mb-3">
+                رقم الطلب الخاص بك هو <span id="successOrderId" class="font-mono text-starlight font-bold">#OH-9921</span>.
+                <span id="successStatus"></span>
+                انسخ تفاصيل الطلب وأرسلها في تذكرة على الديسكورد لاستلام طلبك.
+            </p>
+            <pre id="successSummary" class="text-left bg-slate-900 border border-slate-800 rounded-xl p-3 text-[11px] text-slate-300 whitespace-pre-wrap break-words mb-3 max-h-40 overflow-y-auto" dir="ltr"></pre>
+            <button type="button" onclick="copyText(document.getElementById('successSummary').innerText, this)" class="w-full mb-3 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold py-2.5 rounded-xl text-xs transition">نسخ تفاصيل الطلب</button>
+            <div class="flex flex-col gap-2">
+                <a href="https://discord.gg/vbRgT4vvc" target="_blank" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-xl transition text-xs flex items-center justify-center gap-2">
+                    <i class="fab fa-discord"></i> التوجه إلى الديسكورد للتسليم
+                </a>
+                <button onclick="closeSuccessModal()" class="w-full bg-slate-900 hover:bg-slate-800 text-slate-400 font-bold py-2.5 rounded-xl text-xs transition">
+                    إغلاق النافذة
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- مؤشر حالة الاتصال بقاعدة بيانات Supabase -->
+    <div id="dbStatus" dir="rtl" style="position:fixed;bottom:8px;right:8px;z-index:45;display:flex;align-items:center;gap:6px;max-width:min(92vw,420px);padding:5px 10px;border-radius:9999px;background:rgba(2,6,23,0.92);border:1px solid #fbbf24;color:#e2e8f0;font-size:11px;line-height:1.4;font-weight:700;pointer-events:none;box-shadow:0 4px 14px rgba(0,0,0,0.4);">
+        <span id="dbStatusDot" style="flex:none;width:8px;height:8px;border-radius:50%;background:#fbbf24;"></span>
+        <span id="dbStatusText" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">جاري الاتصال بقاعدة البيانات…</span>
+    </div>
+
+    <!-- JavaScript Application Logic -->
+    <script>
+        // Sample Products Database
+        const products = [
+            {
+                id: 1,
+                name: "SOCR - Outsider Blueprint (Tier 5)",
+                category: "weapons",
+                priceUSD: 14.99,
+                badge: "Hot",
+                badgeColor: "bg-amber-500",
+                image: "https://images.unsplash.com/photo-1595590424283-b8f17842773f?auto=format&fit=crop&w=600&q=80",
+                description: "بندقية هجومية فتاكة تعتمد على دمج الـ Shrapnel العالي. تجميع كامل Tier 5 ومجربة في أعتى مناطق الـ Hard Zones.",
+                region: "all"
+            },
+            {
+                id: 2,
+                name: "1,000,000 Energy Links (حزمة طاقة ضخمة)",
+                category: "currency",
+                priceUSD: 19.99,
+                badge: "أكثر مبيعاً",
+                badgeColor: "bg-cyan-500",
+                image: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=600&q=80",
+                description: "مليون قطعة من عملة Energy Links لتسريع البناء، الشراء من التجار، وتطوير المعدات بدون عناء التجميع.",
+                region: "all"
+            },
+            {
+                id: 3,
+                name: "Deviant: Chef Dinosaur (Level 5 / Skill 5)",
+                category: "deviants",
+                priceUSD: 24.99,
+                badge: "نادر جداً",
+                badgeColor: "bg-purple-600",
+                image: "https://images.unsplash.com/photo-1563089145-599997674d42?auto=format&fit=crop&w=600&q=80",
+                description: "ديانت طاهي المأكولات بمستوى مهارة كامل 5/5. يزيد من بوفات الأطعمة والـ Crafting Speed بنسبة 45%.",
+                region: "all"
+            },
+            {
+                id: 4,
+                name: "Prime War Nightmare Kill & Loot Run",
+                category: "boosting",
+                priceUSD: 29.99,
+                badge: "خدمة رفع",
+                badgeColor: "bg-emerald-600",
+                image: "https://images.unsplash.com/photo-1579373903781-fd5c0c30c4cd?auto=format&fit=crop&w=600&q=80",
+                description: "إنهاء طور Prime War بمستوى صعوبة Nightmare مع فريق محترف واستلام كامل الـ Mod Chests الفاخرة.",
+                region: "EU"
+            },
+            {
+                id: 5,
+                name: "KVD - Boom! Boom! LMG (Legendary)",
+                category: "weapons",
+                priceUSD: 18.50,
+                badge: "تخفيض",
+                badgeColor: "bg-red-600",
+                image: "https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=600&q=80",
+                description: "رشاش ثقيل أسطوري يقدم دمج الحرق (Burn Status Effect) المستمر. مثالي للقضاء على مجموعات الوحوش.",
+                region: "NA"
+            },
+            {
+                id: 6,
+                name: "500,000 Energy Links (حزمة متوسطة)",
+                category: "currency",
+                priceUSD: 10.99,
+                badge: "سريع",
+                badgeColor: "bg-blue-600",
+                image: "https://images.unsplash.com/photo-1621416894569-0f39ed31d247?auto=format&fit=crop&w=600&q=80",
+                description: "نصف مليون Energy Links تسلم مباشرة عبر Trade Vending Machine داخل القواعد بأمان كامل.",
+                region: "all"
+            },
+            {
+                id: 7,
+                name: "Deviant: Butterfly in a Bottle (Combat 5/5)",
+                category: "deviants",
+                priceUSD: 16.00,
+                badge: "PvP Meta",
+                badgeColor: "bg-indigo-600",
+                image: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=600&q=80",
+                description: "مرافق قتالي أسطوري يزيد نسب الضربة الحرجة (Critical Hit Rate) بنسبة مرتفعة جداً في المعارك.",
+                region: "SEA"
+            },
+            {
+                id: 8,
+                name: "Full Character Level 1 to 50 Boosting",
+                category: "boosting",
+                priceUSD: 45.00,
+                badge: "تلفيل شامل",
+                badgeColor: "bg-amber-600",
+                image: "https://images.unsplash.com/photo-1511512578047-dfb367046420?auto=format&fit=crop&w=600&q=80",
+                description: "رفع مستوى حسابك وشخصيتك من ليفل 1 إلى 50 مع فتح كافة مناطق الخريطة والمناجم الرئسية.",
+                region: "all"
+            }
+        ];
+
+        // Currency Exchange Rates (Base USD)
+        const rates = {
+            USD: { symbol: '$', rate: 1 },
+            SAR: { symbol: 'ر.س', rate: 3.75 },
+            EUR: { symbol: '€', rate: 0.92 }
+        };
+
+        // ===== Payment settings (edit these) =====
+        const PAYPAL_CLIENT_ID = 'YOUR_PAYPAL_CLIENT_ID';
+        const USDT_NETWORKS = {
+            trc20: {
+                label: 'TRC20 (TRON)',
+                address: 'TPrhj1xpbYAo6wKtD3XeBW3GG972bCAeNe',
+                txPattern: /^[0-9a-fA-F]{64}$/
+            },
+            polygon: {
+                label: 'Polygon (POS)',
+                address: '0xc02021ab6ebfe13b79aee1a3b12c69cde14fffcb',
+                txPattern: /^0x[0-9a-fA-F]{64}$/
+            }
+        };
+
+        let currentCurrency = 'USD';
+        let currentCategory = 'all';
+        let cart = [];
+
+        // App Initialization
+        window.onload = function() {
+            renderProducts();
+            updateCartUI();
+        };
+
+        // Render Products Grid
+        function renderProducts() {
+            const grid = document.getElementById('productsGrid');
+            const searchVal = (document.getElementById('searchInput').value || document.getElementById('mobileSearchInput').value || '').toLowerCase();
+            const regionVal = document.getElementById('serverRegion').value;
+
+            const filtered = products.filter(p => {
+                const matchCat = (currentCategory === 'all' || p.category === currentCategory);
+                const matchSearch = p.name.toLowerCase().includes(searchVal) || p.description.toLowerCase().includes(searchVal);
+                const matchRegion = (regionVal === 'all' || p.region === 'all' || p.region === regionVal);
+                return matchCat && matchSearch && matchRegion;
+            });
+
+            if(filtered.length === 0) {
+                grid.innerHTML = `
+                    <div class="col-span-full py-12 text-center text-slate-500">
+                        <i class="fa-solid fa-ghost text-4xl mb-3 text-slate-700"></i>
+                        <p class="text-sm font-bold">لم يتم العثور على أي منتجات مطابقة لخيارات البحث!</p>
+                    </div>
+                `;
+                return;
+            }
+
+            grid.innerHTML = filtered.map(product => {
+                const price = (product.priceUSD * rates[currentCurrency].rate).toFixed(2);
+                return `
+                    <div onclick="addToCart(${product.id}, this.querySelector('img'))" class="cursor-pointer bg-cardBg border border-slate-800 hover:border-starlight/50 rounded-2xl overflow-hidden group flex flex-col justify-between transition-all duration-300 hover:-translate-y-1 shadow-lg">
+                        <div class="relative overflow-hidden h-48">
+                            <img src="${product.image}" alt="${product.name}" class="w-full h-full object-cover group-hover:scale-110 transition duration-500 opacity-90 group-hover:opacity-100">
+                            <span class="absolute top-3 right-3 ${product.badgeColor} text-white text-[10px] font-black px-2.5 py-1 rounded-md shadow-md uppercase">
+                                ${product.badge}
+                            </span>
+                            <span class="absolute bottom-3 left-3 bg-darkBg/90 backdrop-blur-md text-slate-300 text-[10px] font-mono px-2 py-0.5 rounded border border-slate-700">
+                                <i class="fa-solid fa-server text-[9px] text-starlight ml-1"></i> ${product.region === 'all' ? 'جميع السيرفرات' : product.region}
+                            </span>
+                        </div>
+
+                        <div class="p-5 flex-1 flex flex-col justify-between">
+                            <div>
+                                <h4 class="text-white font-bold text-sm mb-2 group-hover:text-starlight transition">${product.name}</h4>
+                                <p class="text-slate-400 text-xs line-clamp-2 mb-4 leading-relaxed">${product.description}</p>
+                            </div>
+
+                            <div class="pt-3 border-t border-slate-800/80 flex items-center justify-between mt-auto">
+                                <div>
+                                    <span class="text-[10px] text-slate-500 block">السعر</span>
+                                    <span class="text-lg font-black text-starlight">${rates[currentCurrency].symbol} ${price}</span>
+                                </div>
+                                
+                                <div class="flex items-center gap-1.5">
+                                    <button onclick="event.stopPropagation(); openProductModal(${product.id})" class="p-2.5 bg-slate-900 hover:bg-slate-800 text-slate-300 rounded-xl border border-slate-700 transition" title="معاينة">
+                                        <i class="fa-solid fa-eye text-xs"></i>
+                                    </button>
+                                    <button onclick="event.stopPropagation(); addToCart(${product.id}, this.closest('.group').querySelector('img'))" class="bg-starlight hover:bg-cyan-400 text-slate-950 font-extrabold px-3 py-2 rounded-xl text-xs flex items-center gap-1.5 transition clip-btn shadow-md">
+                                        <i class="fa-solid fa-cart-plus"></i> إضافة
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Category Filter Handling
+        function filterCategory(category) {
+            currentCategory = category;
+            document.querySelectorAll('.cat-btn').forEach(btn => {
+                if(btn.dataset.cat === category) {
+                    btn.className = "cat-btn active px-4 py-2 rounded-xl text-xs sm:text-sm font-bold border transition whitespace-nowrap bg-starlight text-slate-950 border-starlight";
+                } else {
+                    btn.className = "cat-btn px-4 py-2 rounded-xl text-xs sm:text-sm font-bold border transition whitespace-nowrap bg-slate-900 text-slate-300 border-slate-800 hover:border-slate-600";
+                }
+            });
+            renderProducts();
+        }
+
+        function filterProducts() {
+            renderProducts();
+        }
+
+        function handleSearch(isMobile = false) {
+            if(isMobile) {
+                document.getElementById('searchInput').value = document.getElementById('mobileSearchInput').value;
+            } else {
+                document.getElementById('mobileSearchInput').value = document.getElementById('searchInput').value;
+            }
+            renderProducts();
+        }
+
+        // Currency Selector Handling
+        function changeCurrency(val) {
+            currentCurrency = val;
+            renderProducts();
+            updateCartUI();
+        }
+
+        // Cart Operations
+        function addToCart(productId, sourceImg) {
+            const product = products.find(p => p.id === productId);
+            const item = cart.find(i => i.id === productId);
+            if(item) {
+                item.qty++;
+            } else {
+                cart.push({ ...product, qty: 1 });
+            }
+            updateCartUI();
+            flyToCart(sourceImg);
+            showCartToast(product.name, cart.find(i => i.id === productId).qty);
+        }
+
+        function bumpCart() {
+            const cartBtn = document.getElementById('cartBtn');
+            [cartBtn, document.getElementById('cartBadge')].forEach(el => {
+                el.classList.remove('cart-bump');
+                void el.offsetWidth;
+                el.classList.add('cart-bump');
+            });
+            const r = cartBtn.getBoundingClientRect();
+            if(r.bottom < 0 || r.top > window.innerHeight || !cartBtn.animate) return;
+            const ring = document.createElement('div');
+            ring.style.cssText = 'position:fixed;z-index:70;pointer-events:none;border-radius:50%;border:2px solid #00f0ff;' +
+                'left:' + (r.left + r.width / 2 - 20) + 'px;top:' + (r.top + r.height / 2 - 20) + 'px;width:40px;height:40px;';
+            document.body.appendChild(ring);
+            const anim = ring.animate(
+                [{ transform: 'scale(0.6)', opacity: 0.9 }, { transform: 'scale(2.4)', opacity: 0 }],
+                { duration: 550, easing: 'ease-out' }
+            );
+            anim.onfinish = () => ring.remove();
+        }
+
+        function flyToCart(img) {
+            const cartBtn = document.getElementById('cartBtn');
+            const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            if(!img || reduce || !cartBtn.animate) { bumpCart(); return; }
+
+            const SIZE = 64;
+            const f = img.getBoundingClientRect();
+            const t = cartBtn.getBoundingClientRect();
+            const p0 = { x: f.left + f.width / 2, y: f.top + f.height / 2 };
+            const p2 = { x: t.left + t.width / 2, y: t.top + t.height / 2 };
+            const c = { x: p2.x, y: p0.y - Math.min(120, Math.abs(p0.y - p2.y) * 0.35) };
+
+            const fly = document.createElement('div');
+            fly.style.cssText = 'position:fixed;z-index:70;pointer-events:none;overflow:hidden;border-radius:50%;' +
+                'left:' + (p0.x - SIZE / 2) + 'px;top:' + (p0.y - SIZE / 2) + 'px;width:' + SIZE + 'px;height:' + SIZE + 'px;' +
+                'border:2px solid #00f0ff;box-shadow:0 0 18px rgba(0,240,255,0.75), 0 0 40px rgba(0,240,255,0.35);' +
+                'background:#020617 url("' + img.src + '") center/cover no-repeat;will-change:transform,opacity;';
+            document.body.appendChild(fly);
+
+            const ease = x => x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+            const frames = [];
+            const N = 24;
+            for(let i = 0; i <= N; i++) {
+                const k = i / N;
+                const e = ease(k);
+                const x = (1 - e) * (1 - e) * p0.x + 2 * (1 - e) * e * c.x + e * e * p2.x - p0.x;
+                const y = (1 - e) * (1 - e) * p0.y + 2 * (1 - e) * e * c.y + e * e * p2.y - p0.y;
+                const scale = 1 - 0.78 * e;
+                const rot = 220 * e;
+                frames.push({
+                    transform: 'translate(' + x + 'px,' + y + 'px) scale(' + scale + ') rotate(' + rot + 'deg)',
+                    opacity: k > 0.88 ? 1 - (k - 0.88) / 0.12 * 0.6 : 1,
+                    offset: k
+                });
+            }
+            const anim = fly.animate(frames, { duration: 850, easing: 'linear', fill: 'forwards' });
+            anim.onfinish = () => { fly.remove(); bumpCart(); };
+        }
+
+        let toastTimer = null;
+        function showCartToast(name, qty) {
+            let toast = document.getElementById('cartToast');
+            if(!toast) {
+                toast = document.createElement('div');
+                toast.id = 'cartToast';
+                toast.style.cssText = 'position:fixed;left:50%;bottom:24px;z-index:80;max-width:90vw;pointer-events:none;' +
+                    'background:#0f172a;border:1px solid rgba(0,240,255,0.5);color:#e2e8f0;border-radius:12px;padding:10px 16px;' +
+                    'font-size:12px;font-weight:700;box-shadow:0 8px 30px rgba(0,0,0,0.5);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;' +
+                    'opacity:0;transform:translate(-50%,16px);transition:opacity .25s ease, transform .25s ease;';
+                document.body.appendChild(toast);
+            }
+            toast.textContent = '✓ أُضيف إلى السلة: ' + name + (qty > 1 ? ' (×' + qty + ')' : '');
+            requestAnimationFrame(() => {
+                toast.style.opacity = '1';
+                toast.style.transform = 'translate(-50%,0)';
+            });
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translate(-50%,16px)';
+            }, 1800);
+        }
+
+        function removeFromCart(productId) {
+            cart = cart.filter(i => i.id !== productId);
+            updateCartUI();
+        }
+
+        function updateQty(productId, delta) {
+            const item = cart.find(i => i.id === productId);
+            if(item) {
+                item.qty += delta;
+                if(item.qty <= 0) {
+                    removeFromCart(productId);
+                } else {
+                    updateCartUI();
+                }
+            }
+        }
+
+        function updateCartUI() {
+            const count = cart.reduce((sum, item) => sum + item.qty, 0);
+            document.getElementById('cartBadge').innerText = count;
+
+            const container = document.getElementById('cartItemsContainer');
+            if(cart.length === 0) {
+                container.innerHTML = `
+                    <div class="h-full flex flex-col items-center justify-center text-center text-slate-500 py-12">
+                        <i class="fa-solid fa-basket-shopping text-5xl mb-3 text-slate-800"></i>
+                        <p class="text-sm font-bold">سلة الشراء فارغة حالياً</p>
+                        <p class="text-xs text-slate-600 mt-1">تصفح المنتجات وأضف ما تحتاجه للبدء</p>
+                    </div>
+                `;
+                document.getElementById('cartSubtotal').innerText = `${rates[currentCurrency].symbol} 0.00`;
+                document.getElementById('cartTotal').innerText = `${rates[currentCurrency].symbol} 0.00`;
+                return;
+            }
+
+            let subtotalUSD = 0;
+            container.innerHTML = cart.map(item => {
+                const itemTotalUSD = item.priceUSD * item.qty;
+                subtotalUSD += itemTotalUSD;
+                const convertedPrice = (itemTotalUSD * rates[currentCurrency].rate).toFixed(2);
+
+                return `
+                    <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 flex gap-3 items-center">
+                        <img src="${item.image}" alt="${item.name}" class="w-14 h-14 object-cover rounded-lg">
+                        <div class="flex-1 min-w-0">
+                            <h5 class="text-white font-bold text-xs truncate">${item.name}</h5>
+                            <div class="text-starlight text-xs font-black mt-1">
+                                ${rates[currentCurrency].symbol} ${convertedPrice}
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2 bg-slate-950 border border-slate-800 rounded-lg p-1">
+                            <button onclick="updateQty(${item.id}, -1)" class="w-5 h-5 text-slate-400 hover:text-white flex items-center justify-center font-bold text-xs">-</button>
+                            <span class="text-xs font-bold text-white px-1">${item.qty}</span>
+                            <button onclick="updateQty(${item.id}, 1)" class="w-5 h-5 text-slate-400 hover:text-white flex items-center justify-center font-bold text-xs">+</button>
+                        </div>
+                        <button onclick="removeFromCart(${item.id})" class="text-slate-500 hover:text-red-400 p-1">
+                            <i class="fa-solid fa-trash-can text-xs"></i>
+                        </button>
+                    </div>
+                `;
+            }).join('');
+
+            const totalConverted = (subtotalUSD * rates[currentCurrency].rate).toFixed(2);
+            document.getElementById('cartSubtotal').innerText = `${rates[currentCurrency].symbol} ${totalConverted}`;
+            document.getElementById('cartTotal').innerText = `${rates[currentCurrency].symbol} ${totalConverted}`;
+            document.getElementById('checkoutTotal').innerText = `${rates[currentCurrency].symbol} ${totalConverted}`;
+        }
+
+        // Cart Drawer Toggle
+        function toggleCartDrawer(forceOpen = false) {
+            const drawer = document.getElementById('cartDrawer');
+            if(forceOpen) {
+                drawer.classList.remove('hidden');
+            } else {
+                drawer.classList.toggle('hidden');
+            }
+        }
+
+        // Quick View Modal Logic
+        function openProductModal(productId) {
+            const p = products.find(item => item.id === productId);
+            if(!p) return;
+
+            const price = (p.priceUSD * rates[currentCurrency].rate).toFixed(2);
+
+            document.getElementById('modalContent').innerHTML = `
+                <div class="flex flex-col md:flex-row gap-6">
+                    <img src="${p.image}" class="w-full md:w-1/2 h-56 object-cover rounded-2xl border border-slate-800">
+                    <div class="flex-1 flex flex-col justify-between">
+                        <div>
+                            <span class="${p.badgeColor} text-white text-[10px] font-black px-2 py-0.5 rounded uppercase">
+                                ${p.badge}
+                            </span>
+                            <h3 class="text-xl font-bold text-white mt-2 mb-2">${p.name}</h3>
+                            <p class="text-slate-400 text-xs leading-relaxed mb-4">${p.description}</p>
+                        </div>
+
+                        <div class="space-y-4">
+                            <div class="flex items-center justify-between border-t border-slate-800 pt-3">
+                                <span class="text-xs text-slate-500">السيرفرات المدعومة:</span>
+                                <span class="text-xs text-slate-200 font-bold">${p.region === 'all' ? 'جميع السيرفرات (Global)' : p.region}</span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs text-slate-500">السعر النهائي:</span>
+                                <span class="text-2xl font-black text-starlight">${rates[currentCurrency].symbol} ${price}</span>
+                            </div>
+                            <button onclick="addToCart(${p.id}, document.querySelector('#modalContent img')); closeProductModal();" class="w-full bg-starlight hover:bg-cyan-400 text-slate-950 font-black py-3 rounded-xl transition clip-btn text-xs">
+                                <i class="fa-solid fa-cart-plus ml-1"></i> إضافة لسلة الشراء الآن
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.getElementById('productModal').classList.remove('hidden');
+            document.getElementById('productModal').classList.add('flex');
+        }
+
+        function closeProductModal() {
+            document.getElementById('productModal').classList.add('hidden');
+            document.getElementById('productModal').classList.remove('flex');
+        }
+
+        // Checkout Modal Logic
+        function openCheckoutModal() {
+            if(cart.length === 0) {
+                alert('سلة الشراء فارغة! يرجى إضافة منتجات أولاً.');
+                return;
+            }
+            toggleCartDrawer();
+            document.getElementById('checkoutTotal').innerText = '$' + getCartTotalUSD().toFixed(2) + ' USD';
+            selectPayment();
+            document.getElementById('checkoutModal').classList.remove('hidden');
+            document.getElementById('checkoutModal').classList.add('flex');
+        }
+
+        function closeCheckoutModal() {
+            document.getElementById('checkoutModal').classList.add('hidden');
+            document.getElementById('checkoutModal').classList.remove('flex');
+        }
+
+        function getCartTotalUSD() {
+            return cart.reduce((sum, i) => sum + Math.round(i.priceUSD * 100) * i.qty, 0) / 100;
+        }
+
+        function getOrderInfo() {
+            return {
+                discord: document.getElementById('discordUser').value.trim(),
+                char: document.getElementById('charName').value.trim(),
+                region: document.getElementById('checkoutRegion').value
+            };
+        }
+
+        function copyText(text, btn) {
+            const done = () => {
+                if(!btn) return;
+                const old = btn.innerText;
+                btn.innerText = 'تم النسخ';
+                setTimeout(() => btn.innerText = old, 1500);
+            };
+            if(navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(done).catch(() => alert(text));
+            } else {
+                alert(text);
+            }
+        }
+
+        function selectPayment() {
+            const method = document.querySelector('input[name="payment"]:checked').value;
+            document.getElementById('paypalSection').classList.toggle('hidden', method !== 'paypal');
+            document.getElementById('usdtSection').classList.toggle('hidden', method !== 'usdt');
+            document.getElementById('txHash').required = (method === 'usdt');
+            if(method === 'usdt') {
+                const net = USDT_NETWORKS[document.getElementById('usdtNetworkSelect').value];
+                document.getElementById('usdtNetwork').innerText = net.label;
+                document.getElementById('usdtAddress').innerText = net.address;
+                document.getElementById('usdtAmount').innerText = getCartTotalUSD().toFixed(2) + ' USDT';
+            } else {
+                loadPayPal();
+            }
+        }
+
+        // PayPal
+        let paypalState = 'idle';
+        function loadPayPal() {
+            const box = document.getElementById('paypal-button-container');
+            if(paypalState === 'ready' || paypalState === 'loading') return;
+            if(PAYPAL_CLIENT_ID.startsWith('YOUR_')) {
+                box.innerHTML = '<p class="text-xs text-amber-400">لم يتم إدخال PAYPAL_CLIENT_ID في إعدادات الدفع بعد.</p>';
+                return;
+            }
+            paypalState = 'loading';
+            box.innerHTML = '<p class="text-xs text-slate-400">جاري تحميل PayPal...</p>';
+            const sc = document.createElement('script');
+            sc.src = 'https://www.paypal.com/sdk/js?client-id=' + encodeURIComponent(PAYPAL_CLIENT_ID) + '&currency=USD&intent=capture';
+            sc.onload = () => { paypalState = 'ready'; box.innerHTML = ''; renderPayPalButtons(); };
+            sc.onerror = () => { paypalState = 'idle'; box.innerHTML = '<p class="text-xs text-red-400">تعذر تحميل PayPal. تأكد من الاتصال وحاول مرة أخرى.</p>'; };
+            document.head.appendChild(sc);
+        }
+
+        function renderPayPalButtons() {
+            const form = document.getElementById('checkoutForm');
+            paypal.Buttons({
+                style: { layout: 'vertical', color: 'gold', shape: 'rect', label: 'paypal' },
+                onClick: (data, actions) => {
+                    if(!form.checkValidity()) { form.reportValidity(); return actions.reject(); }
+                    return actions.resolve();
+                },
+                createOrder: (data, actions) => {
+                    const info = getOrderInfo();
+                    const items = cart.map(i => ({
+                        name: i.name.slice(0, 127),
+                        unit_amount: { currency_code: 'USD', value: i.priceUSD.toFixed(2) },
+                        quantity: String(i.qty)
+                    }));
+                    const total = getCartTotalUSD().toFixed(2);
+                    return actions.order.create({
+                        purchase_units: [{
+                            description: ('Once Human | Discord: ' + info.discord + ' | Char: ' + info.char + ' | ' + info.region).slice(0, 127),
+                            amount: {
+                                currency_code: 'USD',
+                                value: total,
+                                breakdown: { item_total: { currency_code: 'USD', value: total } }
+                            },
+                            items: items
+                        }]
+                    });
+                },
+                onApprove: (data, actions) => {
+                    return actions.order.capture().then(details => {
+                        finishOrder('PayPal', details.id, false);
+                    });
+                },
+                onError: () => {
+                    alert('حدث خطأ أثناء الدفع عبر PayPal. لم يتم خصم أي مبلغ، حاول مرة أخرى.');
+                }
+            }).render('#paypal-button-container');
+        }
+
+        // USDT (manual verification)
+        function handleCheckout(event) {
+            event.preventDefault();
+            const method = document.querySelector('input[name="payment"]:checked').value;
+            if(method !== 'usdt') return;
+            const raw = document.getElementById('txHash').value;
+            const netKey = document.getElementById('usdtNetworkSelect').value;
+            const net = USDT_NETWORKS[netKey];
+            const found = raw.match(/(?:0x)?[0-9a-fA-F]{64}/);
+            if(!found) {
+                const err = document.getElementById('txError');
+                err.innerText = 'لم أجد رقم عملية صحيح. الرقم يتكون من 64 حرفاً وأرقاماً (a-f و 0-9)، ويمكنك لصق الرقم أو رابط العملية من المستكشف.';
+                err.classList.remove('hidden');
+                document.getElementById('txHash').focus();
+                return;
+            }
+            const hash = found[0].replace(/^0x/i, '');
+            const tx = (netKey === 'polygon') ? '0x' + hash : hash;
+            finishOrder('USDT ' + net.label, tx, true);
+        }
+
+        function finishOrder(methodLabel, reference, pending) {
+            const info = getOrderInfo();
+            const orderId = '#OH-' + Math.floor(1000 + Math.random() * 9000);
+            const lines = cart.map(i => '- ' + i.name + ' x' + i.qty);
+            const summary = [
+                'Order ' + orderId,
+                'Payment: ' + methodLabel + (pending ? ' (pending verification)' : ' (paid)'),
+                'Ref: ' + reference,
+                'Discord: ' + info.discord,
+                'Character: ' + info.char,
+                'Region: ' + info.region,
+                'Items:',
+                ...lines,
+                'Total: $' + getCartTotalUSD().toFixed(2)
+            ].join('\n');
+
+            document.getElementById('successOrderId').innerText = orderId;
+            document.getElementById('successSummary').innerText = summary;
+            document.getElementById('successStatus').innerText = pending
+                ? 'سيتم التحقق من التحويل يدوياً قبل التسليم.'
+                : 'تم استلام الدفع عبر PayPal.';
+
+            cart = [];
+            updateCartUI();
+            document.getElementById('checkoutForm').reset();
+            closeCheckoutModal();
+
+            document.getElementById('successModal').classList.remove('hidden');
+            document.getElementById('successModal').classList.add('flex');
+        }
+
+        let lockedY = 0;
+        function lockScroll(lock) {
+            const b = document.body;
+            if(lock) {
+                if(b.dataset.locked) return;
+                lockedY = window.scrollY;
+                b.dataset.locked = '1';
+                b.style.position = 'fixed';
+                b.style.top = '-' + lockedY + 'px';
+                b.style.left = '0';
+                b.style.right = '0';
+                b.style.width = '100%';
+            } else {
+                if(!b.dataset.locked) return;
+                delete b.dataset.locked;
+                b.style.position = '';
+                b.style.top = '';
+                b.style.left = '';
+                b.style.right = '';
+                b.style.width = '';
+                window.scrollTo({ top: lockedY, left: 0, behavior: 'instant' });
+            }
+        }
+
+        function showInfoModal(id, event) {
+            if(event) event.preventDefault();
+            const m = document.getElementById(id);
+            m.classList.remove('hidden');
+            m.classList.add('flex');
+            m.scrollTop = 0;
+            lockScroll(true);
+            return false;
+        }
+
+        function hideInfoModal(id) {
+            const m = document.getElementById(id);
+            m.classList.add('hidden');
+            m.classList.remove('flex');
+            lockScroll(false);
+        }
+
+        function openRefundPolicy(event) { return showInfoModal('refundModal', event); }
+        function closeRefundPolicy() { hideInfoModal('refundModal'); }
+        function openDelivery(event) { return showInfoModal('deliveryModal', event); }
+        function closeDelivery() { hideInfoModal('deliveryModal'); }
+
+        document.addEventListener('keydown', (e) => {
+            if(e.key === 'Escape') { closeRefundPolicy(); closeDelivery(); }
+        });
+
+        function closeSuccessModal() {
+            document.getElementById('successModal').classList.add('hidden');
+            document.getElementById('successModal').classList.remove('flex');
+        }
+
+    </script>
+</body>
+</html>
