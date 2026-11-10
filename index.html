@@ -697,7 +697,7 @@
             </button>
             <div id="accountInfo" class="flex items-center gap-4 mb-5"></div>
             <h4 class="text-sm font-bold text-white mb-2 flex items-center gap-2">
-                <i class="fa-solid fa-receipt text-starlight"></i> طلباتي الأخيرة
+                <i class="fa-solid fa-receipt text-starlight"></i> طلباتي
             </h4>
             <div id="accountOrders" class="space-y-2 text-xs"></div>
             <button type="button" onclick="signOutUser()" class="w-full mt-5 bg-slate-900 hover:bg-slate-800 text-red-300 font-bold py-2.5 rounded-xl border border-slate-700 text-xs transition flex items-center justify-center gap-2">
@@ -1396,7 +1396,21 @@
     <script>
         window.currentUser = null;
         const PROVIDER_LABELS = { google: 'Google', discord: 'Discord', email: 'البريد الإلكتروني' };
-        const ORDER_STATUS_LABELS = { pending: 'قيد المعالجة', paid: 'مدفوع', delivered: 'تم التسليم', cancelled: 'ملغي' };
+        const ORDER_STATUS_LABELS = {
+            pending: 'قيد المعالجة', processing: 'قيد التنفيذ', paid: 'مدفوع', completed: 'مكتمل',
+            delivered: 'تم التسليم', cancelled: 'ملغي', canceled: 'ملغي', failed: 'فشل', refunded: 'مسترجع'
+        };
+        const ORDER_STATUS_STYLES = {
+            pending: 'bg-amber-500/10 text-amber-300 border-amber-500/30',
+            processing: 'bg-sky-500/10 text-sky-300 border-sky-500/30',
+            paid: 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30',
+            completed: 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30',
+            delivered: 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30',
+            cancelled: 'bg-red-500/10 text-red-300 border-red-500/30',
+            canceled: 'bg-red-500/10 text-red-300 border-red-500/30',
+            failed: 'bg-red-500/10 text-red-300 border-red-500/30',
+            refunded: 'bg-slate-500/10 text-slate-300 border-slate-500/30'
+        };
 
         function mk(tag, cls, text) {
             const el = document.createElement(tag);
@@ -1627,37 +1641,166 @@
 
             showModal('accountModal');
 
-            const list = document.getElementById('accountOrders');
+            loadMyOrders();
+        }
+
+        // ===== طلباتي: جلب طلبات المستخدم الحالي فقط من orders (+ order_items) =====
+        let ordersReqId = 0;
+
+        function formatMoney(amount, currency) {
+            const n = Number(amount);
+            const val = isFinite(n) ? n : 0;
+            const cur = (currency || '').toString().trim().toUpperCase();
+            if (/^[A-Z]{3}$/.test(cur)) {
+                try { return new Intl.NumberFormat('en-US', { style: 'currency', currency: cur }).format(val); } catch (e) { /* عملة غير معروفة */ }
+            }
+            return val.toFixed(2) + (cur ? ' ' + cur : '');
+        }
+
+        function browseProductsFromOrders() {
+            closeAccountModal();
+            const sec = document.getElementById('productsSection');
+            if (sec) sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        function renderOrdersEmpty(list) {
             list.innerHTML = '';
-            list.appendChild(mk('p', 'text-slate-500', 'جاري تحميل الطلبات…'));
-            try {
-                const { data, error } = await supabaseClient
-                    .from('orders')
-                    .select('order_number,total_usd,status,created_at')
-                    .order('created_at', { ascending: false })
-                    .limit(10);
-                list.innerHTML = '';
-                if (error) {
-                    list.appendChild(mk('p', 'text-red-400', 'تعذّر تحميل الطلبات: ' + error.message));
-                } else if (!data || data.length === 0) {
-                    list.appendChild(mk('p', 'text-slate-500', 'لا توجد طلبات بعد.'));
+            const box = mk('div', 'text-center py-8 px-4 bg-slate-900/60 border border-dashed border-slate-700 rounded-2xl');
+            const ico = mk('div', 'w-14 h-14 mx-auto mb-3 rounded-full bg-slate-900 border border-slate-700 flex items-center justify-center');
+            ico.appendChild(mk('i', 'fa-solid fa-box-open text-starlight text-xl'));
+            box.appendChild(ico);
+            box.appendChild(mk('p', 'text-white font-bold text-sm mb-1', 'لا توجد طلبات حتى الآن'));
+            box.appendChild(mk('p', 'text-[11px] text-slate-500 mb-4 leading-relaxed', 'عندما تُتم أول عملية شراء ستظهر طلباتك هنا.'));
+            const btn = mk('button', 'bg-starlight hover:bg-cyan-400 text-slate-950 font-black px-5 py-2.5 rounded-xl text-xs transition inline-flex items-center gap-2');
+            btn.type = 'button';
+            btn.appendChild(mk('i', 'fa-solid fa-bag-shopping'));
+            btn.appendChild(mk('span', '', 'تصفح المنتجات'));
+            btn.addEventListener('click', browseProductsFromOrders);
+            box.appendChild(btn);
+            list.appendChild(box);
+        }
+
+        function renderOrdersError(list, message) {
+            list.innerHTML = '';
+            const box = mk('div', 'bg-red-500/10 border border-red-500/30 rounded-2xl p-4 text-center');
+            const head = mk('div', 'text-red-300 font-bold text-sm mb-1 flex items-center justify-center gap-2');
+            head.appendChild(mk('i', 'fa-solid fa-triangle-exclamation'));
+            head.appendChild(mk('span', '', 'تعذّر تحميل طلباتك'));
+            box.appendChild(head);
+            box.appendChild(mk('p', 'text-[11px] text-red-200/80 leading-relaxed break-words mb-3', message || 'حدث خطأ غير متوقع.'));
+            const btn = mk('button', 'bg-slate-900 hover:bg-slate-800 text-slate-200 font-bold px-4 py-2 rounded-xl border border-slate-700 text-xs transition inline-flex items-center gap-2');
+            btn.type = 'button';
+            btn.appendChild(mk('i', 'fa-solid fa-rotate-right'));
+            btn.appendChild(mk('span', '', 'إعادة المحاولة'));
+            btn.addEventListener('click', loadMyOrders);
+            box.appendChild(btn);
+            list.appendChild(box);
+        }
+
+        function orderItemParts(it) {
+            const name = it.product_name || it.name || it.title || it.product_title || '—';
+            const qtyRaw = it.quantity !== undefined && it.quantity !== null ? it.quantity : (it.qty !== undefined && it.qty !== null ? it.qty : 1);
+            const priceRaw = [it.unit_price, it.price, it.price_usd, it.amount].find(v => v !== undefined && v !== null);
+            return { name: name, qty: qtyRaw, price: priceRaw };
+        }
+
+        function renderOrderCard(o) {
+            const card = mk('div', 'bg-slate-900 border border-slate-800 rounded-2xl p-3.5');
+
+            // السطر الأول: رقم الطلب + الحالة
+            const top = mk('div', 'flex items-start justify-between gap-3');
+            const left = mk('div', 'min-w-0');
+            left.appendChild(mk('div', 'text-white font-bold font-mono text-sm truncate', o.order_number || '—'));
+            left.appendChild(mk('div', 'text-[11px] text-slate-500 mt-0.5', o.created_at ? new Date(o.created_at).toLocaleString('ar') : '—'));
+            const statusKey = String(o.status || '').toLowerCase();
+            const badge = mk('span', 'shrink-0 text-[11px] font-bold px-2.5 py-1 rounded-lg border ' + (ORDER_STATUS_STYLES[statusKey] || 'bg-slate-800 text-slate-300 border-slate-700'),
+                ORDER_STATUS_LABELS[statusKey] || o.status || '—');
+            top.appendChild(left);
+            top.appendChild(badge);
+            card.appendChild(top);
+
+            // المنتجات (من order_items)
+            if (Array.isArray(o.order_items)) {
+                const wrap = mk('div', 'mt-3 pt-3 border-t border-slate-800 space-y-1.5');
+                if (o.order_items.length === 0) {
+                    wrap.appendChild(mk('p', 'text-[11px] text-slate-500', 'لا توجد تفاصيل منتجات لهذا الطلب.'));
                 } else {
-                    data.forEach(o => {
-                        const row = mk('div', 'bg-slate-900 border border-slate-800 rounded-xl p-3 flex items-center justify-between gap-3');
-                        const left = mk('div', 'min-w-0');
-                        left.appendChild(mk('div', 'text-white font-bold font-mono', o.order_number || '—'));
-                        left.appendChild(mk('div', 'text-[11px] text-slate-500', new Date(o.created_at).toLocaleString('ar')));
-                        const right = mk('div', 'text-left shrink-0');
-                        right.appendChild(mk('div', 'text-starlight font-black', '$' + Number(o.total_usd || 0).toFixed(2)));
-                        right.appendChild(mk('div', 'text-[11px] text-slate-400', ORDER_STATUS_LABELS[o.status] || o.status));
-                        row.appendChild(left);
-                        row.appendChild(right);
-                        list.appendChild(row);
+                    o.order_items.forEach(it => {
+                        const p = orderItemParts(it);
+                        const row = mk('div', 'flex items-center justify-between gap-3 text-xs');
+                        const nm = mk('div', 'min-w-0 text-slate-200 flex items-center gap-1.5');
+                        nm.appendChild(mk('span', 'truncate', p.name));
+                        nm.appendChild(mk('span', 'shrink-0 text-slate-500 font-mono', '×' + p.qty));
+                        row.appendChild(nm);
+                        if (p.price !== undefined) row.appendChild(mk('span', 'shrink-0 text-slate-400 font-mono', formatMoney(p.price, o.currency)));
+                        wrap.appendChild(row);
                     });
                 }
-            } catch (e) {
+                card.appendChild(wrap);
+            } else if (o._itemsError) {
+                card.appendChild(mk('p', 'mt-3 pt-3 border-t border-slate-800 text-[11px] text-amber-400', 'تعذّر تحميل تفاصيل المنتجات لهذا الطلب.'));
+            }
+
+            // الإجمالي
+            const foot = mk('div', 'mt-3 pt-3 border-t border-slate-800 flex items-center justify-between');
+            foot.appendChild(mk('span', 'text-[11px] text-slate-400 font-bold', 'الإجمالي'));
+            foot.appendChild(mk('span', 'text-starlight font-black', formatMoney(o.total, o.currency)));
+            card.appendChild(foot);
+            return card;
+        }
+
+        async function loadMyOrders() {
+            const list = document.getElementById('accountOrders');
+            if (!list) return;
+            const reqId = ++ordersReqId;
+            const u = window.currentUser;
+            list.innerHTML = '';
+            list.appendChild(mk('p', 'text-slate-500', 'جاري تحميل الطلبات…'));
+
+            if (!u) { renderOrdersError(list, 'يجب تسجيل الدخول لعرض طلباتك.'); return; }
+            if (!supabaseClient) { renderOrdersError(list, 'تعذّر تحميل مكتبة Supabase.'); return; }
+
+            const baseCols = 'order_number,total,currency,status,created_at';
+            let itemsFailed = false;
+            try {
+                // الطلبات الخاصة بالمستخدم الحالي فقط + عناصر كل طلب من order_items
+                let res = await supabaseClient
+                    .from('orders')
+                    .select(baseCols + ',order_items(*)')
+                    .eq('user_id', u.id)
+                    .order('created_at', { ascending: false });
+
+                // إن تعذّر ربط order_items بالطلبات نعرض الطلبات وحدها مع تنبيه (وليس "لا توجد طلبات")
+                if (res.error && !/column .* does not exist/i.test(res.error.message || '') &&
+                    (res.error.code === 'PGRST200' || /relationship|order_items/i.test(res.error.message || ''))) {
+                    console.error('[Orders] تعذّر جلب order_items:', res.error);
+                    itemsFailed = true;
+                    res = await supabaseClient
+                        .from('orders')
+                        .select(baseCols)
+                        .eq('user_id', u.id)
+                        .order('created_at', { ascending: false });
+                }
+
+                if (reqId !== ordersReqId || !window.currentUser || window.currentUser.id !== u.id) return;
+
+                if (res.error) {
+                    console.error('[Orders] خطأ الاستعلام:', res.error);
+                    renderOrdersError(list, res.error.message || 'خطأ في الاستعلام.');
+                    return;
+                }
+                const data = res.data || [];
+                if (data.length === 0) { renderOrdersEmpty(list); return; }
+
                 list.innerHTML = '';
-                list.appendChild(mk('p', 'text-red-400', 'تعذّر تحميل الطلبات.'));
+                data.forEach(o => {
+                    if (itemsFailed) o._itemsError = true;
+                    list.appendChild(renderOrderCard(o));
+                });
+            } catch (e) {
+                if (reqId !== ordersReqId) return;
+                console.error('[Orders] خطأ اتصال:', e);
+                renderOrdersError(list, 'تعذّر الاتصال بالخادم. تحقق من الإنترنت ثم أعد المحاولة.');
             }
         }
 
@@ -1672,7 +1815,8 @@
                     user_id: window.currentUser.id,
                     order_number: o.orderId,
                     items: o.items,
-                    total_usd: o.total,
+                    total: o.total,
+                    currency: 'USD',
                     payment_method: o.methodLabel,
                     payment_ref: String(o.reference),
                     discord_user: o.info.discord,
