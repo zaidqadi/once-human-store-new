@@ -213,6 +213,9 @@
                         </select>
                     </div>
 
+                    <!-- زر لوحة الإدارة (يظهر فقط بعد التحقق من public.is_admin()) -->
+                    <button id="adminNavBtn" type="button" onclick="openAdmin()" style="display:none" title="لوحة الإدارة" aria-label="لوحة الإدارة" class="p-2.5 bg-slate-900 border border-amber-500/50 hover:border-amber-400 text-amber-300 rounded-xl transition items-center justify-center gap-2 text-xs font-bold"><i class="fa-solid fa-gauge-high"></i><span class="hidden sm:inline">لوحة الإدارة</span></button>
+
                     <!-- Auth Button (تسجيل الدخول / الحساب) -->
                     <button id="authBtn" type="button" onclick="handleAuthBtn()" class="p-2.5 bg-slate-900 border border-slate-700 hover:border-starlight text-slate-200 rounded-xl transition flex items-center justify-center gap-2 text-xs font-bold"></button>
 
@@ -700,6 +703,9 @@
                 <i class="fa-solid fa-receipt text-starlight"></i> طلباتي
             </h4>
             <div id="accountOrders" class="space-y-2 text-xs"></div>
+            <button type="button" id="adminAccBtn" onclick="openAdmin()" style="display:none" class="w-full mt-5 bg-slate-900 hover:bg-slate-800 text-amber-300 font-bold py-2.5 rounded-xl border border-amber-500/40 text-xs transition items-center justify-center gap-2">
+                <i class="fa-solid fa-gauge-high"></i> لوحة الإدارة
+            </button>
             <button type="button" onclick="signOutUser()" class="w-full mt-5 bg-slate-900 hover:bg-slate-800 text-red-300 font-bold py-2.5 rounded-xl border border-slate-700 text-xs transition flex items-center justify-center gap-2">
                 <i class="fa-solid fa-right-from-bracket"></i> تسجيل الخروج
             </button>
@@ -718,6 +724,7 @@
         const products = [
             {
                 id: 1,
+                slug: "socr-outsider-blueprint-t5",
                 name: "SOCR - Outsider Blueprint (Tier 5)",
                 category: "weapons",
                 priceUSD: 14.99,
@@ -729,6 +736,7 @@
             },
             {
                 id: 2,
+                slug: "energy-links-1m",
                 name: "1,000,000 Energy Links (حزمة طاقة ضخمة)",
                 category: "currency",
                 priceUSD: 19.99,
@@ -740,6 +748,7 @@
             },
             {
                 id: 3,
+                slug: "deviant-chef-dinosaur",
                 name: "Deviant: Chef Dinosaur (Level 5 / Skill 5)",
                 category: "deviants",
                 priceUSD: 24.99,
@@ -751,6 +760,7 @@
             },
             {
                 id: 4,
+                slug: "prime-war-nightmare-run",
                 name: "Prime War Nightmare Kill & Loot Run",
                 category: "boosting",
                 priceUSD: 29.99,
@@ -762,6 +772,7 @@
             },
             {
                 id: 5,
+                slug: "kvd-boom-boom-lmg",
                 name: "KVD - Boom! Boom! LMG (Legendary)",
                 category: "weapons",
                 priceUSD: 18.50,
@@ -773,6 +784,7 @@
             },
             {
                 id: 6,
+                slug: "energy-links-500k",
                 name: "500,000 Energy Links (حزمة متوسطة)",
                 category: "currency",
                 priceUSD: 10.99,
@@ -784,6 +796,7 @@
             },
             {
                 id: 7,
+                slug: "deviant-butterfly-bottle",
                 name: "Deviant: Butterfly in a Bottle (Combat 5/5)",
                 category: "deviants",
                 priceUSD: 16.00,
@@ -795,6 +808,7 @@
             },
             {
                 id: 8,
+                slug: "boost-level-1-50",
                 name: "Full Character Level 1 to 50 Boosting",
                 category: "boosting",
                 priceUSD: 45.00,
@@ -832,10 +846,46 @@
         let currentCategory = 'all';
         let cart = [];
 
+        // الكتالوج: السعر والمخزون والمعرّف تأتي من قاعدة البيانات (ربط بالـ slug).
+        // الواجهة تعرض فقط؛ السعر الذي يُحاسَب به العميل يُحسب على الخادم داخل create_order.
+        let catalogReady = false;
+        async function loadCatalog() {
+            if(!supabaseClient) return;
+            try {
+                const { data, error } = await supabaseClient.from('products')
+                    .select('id,slug,price,currency,stock_quantity,status');
+                if(error) { console.error('[Catalog]', error.message); return; }
+                const bySlug = {};
+                (data || []).forEach(r => { bySlug[r.slug] = r; });
+                products.forEach(p => {
+                    const r = bySlug[p.slug];
+                    if(r && r.currency === 'USD') {
+                        p.dbId = r.id; p.priceUSD = Number(r.price); p.stock = Number(r.stock_quantity) || 0;
+                    } else { p.dbId = null; p.stock = 0; }
+                });
+                catalogReady = true;
+                cart.forEach(i => {
+                    const p = products.find(x => x.id === i.id);
+                    if(p) { i.dbId = p.dbId; i.priceUSD = p.priceUSD; i.stock = p.stock; }
+                });
+                cart = cart.filter(i => i.dbId && i.stock > 0);
+                cart.forEach(i => { if(i.qty > i.stock) i.qty = i.stock; });
+                renderProducts();
+                updateCartUI();
+            } catch(e) { console.error('[Catalog]', e); }
+        }
+        function stockLabel(p) {
+            if(!catalogReady) return '';
+            if(!p.dbId || !(p.stock > 0)) return '<span class="text-[10px] text-red-400 font-bold block">نفد المخزون</span>';
+            if(p.stock <= 5) return '<span class="text-[10px] text-amber-400 font-bold block">متبقي ' + p.stock + ' فقط</span>';
+            return '';
+        }
+
         // App Initialization
         window.onload = function() {
             renderProducts();
             updateCartUI();
+            loadCatalog();
         };
 
         // Render Products Grid
@@ -885,6 +935,7 @@
                                 <div>
                                     <span class="text-[10px] text-slate-500 block">السعر</span>
                                     <span class="text-lg font-black text-starlight">${rates[currentCurrency].symbol} ${price}</span>
+                                    ${stockLabel(product)}
                                 </div>
                                 
                                 <div class="flex items-center gap-1.5">
@@ -938,7 +989,11 @@
         // Cart Operations
         function addToCart(productId, sourceImg) {
             const product = products.find(p => p.id === productId);
+            if(!product) return;
+            if(!catalogReady) { alert('جاري تحميل المخزون، حاول بعد لحظات.'); return; }
+            if(!product.dbId || !(product.stock > 0)) { alert('هذا المنتج غير متوفر حالياً (نفد المخزون).'); return; }
             const item = cart.find(i => i.id === productId);
+            if(item && item.qty >= product.stock) { alert('وصلت إلى أقصى كمية متاحة في المخزون (' + product.stock + ').'); return; }
             if(item) {
                 item.qty++;
             } else {
@@ -1040,6 +1095,7 @@
         function updateQty(productId, delta) {
             const item = cart.find(i => i.id === productId);
             if(item) {
+                if(delta > 0 && item.stock !== undefined && item.qty >= item.stock) { alert('وصلت إلى أقصى كمية متاحة في المخزون.'); return; }
                 item.qty += delta;
                 if(item.qty <= 0) {
                     removeFromCart(productId);
@@ -1236,47 +1292,125 @@
             document.head.appendChild(sc);
         }
 
+        // ===== الدفع: كل شيء يمر عبر دوال الخادم. المتصفح لا يحدد السعر ولا الحالة ولا تأكيد الدفع =====
+        const ERR_MSG = {
+            insufficient_stock: 'الكمية المطلوبة غير متوفرة في المخزون. حدّث السلة وحاول مرة أخرى.',
+            product_unavailable: 'أحد المنتجات لم يعد متاحاً.',
+            too_many_pending_orders: 'لديك طلبات كثيرة بانتظار الدفع. أكمل أو ألغِ طلباً سابقاً أولاً.',
+            invalid_delivery_info: 'تحقق من بيانات التسليم (ديسكورد، اسم الشخصية، السيرفر).',
+            order_expired: 'انتهت مهلة حجز الطلب (10 دقائق). أعد إنشاء الطلب.',
+            order_not_payable: 'هذا الطلب لم يعد قابلاً للدفع. أعد إنشاء الطلب.',
+            reference_already_used: 'رقم العملية هذا مستخدم من قبل.',
+            payment_proof_required: 'أدخل رقم العملية.',
+            not_authenticated: 'يجب تسجيل الدخول أولاً.',
+            payment_under_review: 'لا يمكن إلغاء طلب دفعته قيد المراجعة.',
+            paypal_order_mismatch: 'تعذّر التحقق من عملية PayPal.',
+            mixed_currency: 'لا يمكن الجمع بين عملات مختلفة في طلب واحد.'
+        };
+        function friendlyError(e) {
+            const m = (e && (e.message || e.error)) || String(e || '');
+            for (const k in ERR_MSG) { if (m.indexOf(k) !== -1) return ERR_MSG[k]; }
+            return 'تعذّر إتمام العملية: ' + m;
+        }
+        async function fnError(error, fallback) {
+            try {
+                if (error && error.context && typeof error.context.json === 'function') {
+                    const j = await error.context.json();
+                    if (j && j.error) return friendlyError({ message: j.error });
+                }
+            } catch (_) {}
+            return fallback || friendlyError(error);
+        }
+
+        let checkoutBusy = false, idemSig = null, idemKey = null;
+        function cartPayload() { return cart.map(i => ({ product_id: i.dbId, quantity: i.qty })); }
+        function checkoutReady() {
+            if (!supabaseClient || !window.currentUser) { openAuthModal(true); return false; }
+            if (!catalogReady || cart.length === 0 || cart.some(i => !i.dbId)) {
+                alert('تعذّر التحقق من المنتجات. حدّث الصفحة وحاول مرة أخرى.'); return false;
+            }
+            return true;
+        }
+        async function createServerOrder(method) {
+            const info = getOrderInfo();
+            const sig = method + JSON.stringify(cartPayload());
+            if (idemSig !== sig) {
+                idemSig = sig;
+                idemKey = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : (Date.now() + '-' + Math.random().toString(36).slice(2));
+            }
+            const { data, error } = await supabaseClient.rpc('create_order', {
+                p_items: cartPayload(),
+                p_payment_method: method,
+                p_delivery: { discord: info.discord, character: info.char, region: info.region },
+                p_idempotency_key: idemKey
+            });
+            if (error) { idemSig = null; throw error; }
+            return data;
+        }
+        async function tryCancelOrder(orderId) {
+            try { await supabaseClient.rpc('cancel_my_order', { p_order_id: orderId }); } catch (_) {}
+            idemSig = null;
+            loadCatalog();
+        }
+
         function renderPayPalButtons() {
             const form = document.getElementById('checkoutForm');
+            let current = null;
             paypal.Buttons({
                 style: { layout: 'vertical', color: 'gold', shape: 'rect', label: 'paypal' },
                 onClick: (data, actions) => {
-                    if(!form.checkValidity()) { form.reportValidity(); return actions.reject(); }
+                    if (!form.checkValidity()) { form.reportValidity(); return actions.reject(); }
+                    if (checkoutBusy || !checkoutReady()) return actions.reject();
                     return actions.resolve();
                 },
-                createOrder: (data, actions) => {
-                    const info = getOrderInfo();
-                    const items = cart.map(i => ({
-                        name: i.name.slice(0, 127),
-                        unit_amount: { currency_code: 'USD', value: i.priceUSD.toFixed(2) },
-                        quantity: String(i.qty)
-                    }));
-                    const total = getCartTotalUSD().toFixed(2);
-                    return actions.order.create({
-                        purchase_units: [{
-                            description: ('Once Human | Discord: ' + info.discord + ' | Char: ' + info.char + ' | ' + info.region).slice(0, 127),
-                            amount: {
-                                currency_code: 'USD',
-                                value: total,
-                                breakdown: { item_total: { currency_code: 'USD', value: total } }
-                            },
-                            items: items
-                        }]
-                    });
+                createOrder: async () => {
+                    checkoutBusy = true;
+                    try {
+                        const ord = await createServerOrder('paypal');   // السعر والحجز من الخادم
+                        current = ord;
+                        const { data, error } = await supabaseClient.functions.invoke('paypal-checkout', {
+                            body: { action: 'create', order_id: ord.order_id }
+                        });
+                        if (error || !data || !data.paypal_order_id) {
+                            const msg = await fnError(error, 'تعذّر بدء الدفع عبر PayPal.');
+                            await tryCancelOrder(ord.order_id);
+                            throw new Error(msg);
+                        }
+                        return data.paypal_order_id;
+                    } catch (e) { checkoutBusy = false; throw e; }
                 },
-                onApprove: (data, actions) => {
-                    return actions.order.capture().then(details => {
-                        finishOrder('PayPal', details.id, false);
-                    });
+                onApprove: async (data) => {
+                    try {
+                        const { data: res, error } = await supabaseClient.functions.invoke('paypal-checkout', {
+                            body: { action: 'capture', order_id: current.order_id, paypal_order_id: data.orderID }
+                        });
+                        if (error || !res) throw new Error(await fnError(error, 'تعذّر تأكيد الدفع.'));
+                        if (res.result === 'confirmed' || (res.result === 'already_processed' && ['paid','processing','completed'].includes(res.order_status))) {
+                            finishOrder({ methodLabel: 'PayPal', reference: data.orderID, pending: false, orderNumber: current.order_number, total: current.total });
+                        } else if (res.result === 'needs_admin_review') {
+                            finishOrder({ methodLabel: 'PayPal', reference: data.orderID, pending: true, review: true, orderNumber: current.order_number, total: current.total });
+                        } else {
+                            throw new Error('حالة دفع غير متوقعة، تواصل مع الدعم برقم الطلب ' + current.order_number);
+                        }
+                    } catch (e) {
+                        alert((e && e.message) || 'حدث خطأ أثناء تأكيد الدفع. إن خُصم المبلغ تواصل مع الدعم.');
+                    } finally { checkoutBusy = false; }
                 },
-                onError: () => {
-                    alert('حدث خطأ أثناء الدفع عبر PayPal. لم يتم خصم أي مبلغ، حاول مرة أخرى.');
+                onCancel: async () => {
+                    if (current) await tryCancelOrder(current.order_id);
+                    current = null; checkoutBusy = false;
+                },
+                onError: async (err) => {
+                    // إن كان الدفع قيد المراجعة فالخادم يرفض الإلغاء ويبقى المخزون محجوزاً
+                    if (current) await tryCancelOrder(current.order_id);
+                    checkoutBusy = false;
+                    alert((err && err.message) || 'حدث خطأ أثناء الدفع عبر PayPal.');
                 }
             }).render('#paypal-button-container');
         }
 
-        // USDT (manual verification)
-        function handleCheckout(event) {
+        // USDT (تحقق يدوي): يُنشأ الطلب ثم تُرسل الدفعة بحالة under_review ويبقى المخزون محجوزاً حتى يراجعها الأدمن
+        async function handleCheckout(event) {
             event.preventDefault();
             const method = document.querySelector('input[name="payment"]:checked').value;
             if(method !== 'usdt') return;
@@ -1293,44 +1427,51 @@
             }
             const hash = found[0].replace(/^0x/i, '');
             const tx = (netKey === 'polygon') ? '0x' + hash : hash;
-            finishOrder('USDT ' + net.label, tx, true);
+            if (checkoutBusy || !checkoutReady()) return;
+            checkoutBusy = true;
+            try {
+                const ord = await createServerOrder('manual');
+                const { error } = await supabaseClient.rpc('submit_manual_payment', {
+                    p_order_id: ord.order_id, p_reference: net.label + ': ' + tx
+                });
+                if (error) { await tryCancelOrder(ord.order_id); throw error; }
+                finishOrder({ methodLabel: 'USDT ' + net.label, reference: tx, pending: true, orderNumber: ord.order_number, total: ord.total });
+            } catch (e) {
+                alert(friendlyError(e));
+            } finally { checkoutBusy = false; }
         }
 
-        function finishOrder(methodLabel, reference, pending) {
+        function finishOrder(o) {
             const info = getOrderInfo();
-            const orderId = '#OH-' + Math.floor(1000 + Math.random() * 9000);
             const lines = cart.map(i => '- ' + i.name + ' x' + i.qty);
             const summary = [
-                'Order ' + orderId,
-                'Payment: ' + methodLabel + (pending ? ' (pending verification)' : ' (paid)'),
-                'Ref: ' + reference,
+                'Order ' + o.orderNumber,
+                'Payment: ' + o.methodLabel + (o.pending ? ' (pending verification)' : ' (paid)'),
+                'Ref: ' + o.reference,
                 'Discord: ' + info.discord,
                 'Character: ' + info.char,
                 'Region: ' + info.region,
                 'Items:',
                 ...lines,
-                'Total: $' + getCartTotalUSD().toFixed(2)
+                'Total: $' + Number(o.total).toFixed(2)
             ].join('\n');
 
-            saveOrderToSupabase({
-                orderId: orderId,
-                methodLabel: methodLabel,
-                reference: reference,
-                info: info,
-                items: cart.map(i => ({ id: i.id, name: i.name, qty: i.qty, price_usd: i.priceUSD })),
-                total: getCartTotalUSD()
-            });
-
-            document.getElementById('successOrderId').innerText = orderId;
+            document.getElementById('successOrderId').innerText = o.orderNumber;
             document.getElementById('successSummary').innerText = summary;
-            document.getElementById('successStatus').innerText = pending
-                ? 'سيتم التحقق من التحويل يدوياً قبل التسليم.'
-                : 'تم استلام الدفع عبر PayPal.';
+            document.getElementById('successStatus').innerText = o.review
+                ? 'تم استلام الدفع وهو قيد المراجعة اليدوية من الإدارة.'
+                : (o.pending ? 'سيتم التحقق من التحويل يدوياً قبل التسليم. المخزون محجوز لك حتى المراجعة.'
+                             : 'تم تأكيد الدفع عبر PayPal من الخادم.');
+            const st = document.getElementById('successDbStatus');
+            st.textContent = 'تم حفظ الطلب في حسابك ✅';
+            st.className = 'text-[11px] mb-3 leading-relaxed text-emerald-400';
 
             cart = [];
+            idemSig = null;
             updateCartUI();
             document.getElementById('checkoutForm').reset();
             closeCheckoutModal();
+            loadCatalog();
 
             document.getElementById('successModal').classList.remove('hidden');
             document.getElementById('successModal').classList.add('flex');
@@ -1397,10 +1538,12 @@
         window.currentUser = null;
         const PROVIDER_LABELS = { google: 'Google', discord: 'Discord', email: 'البريد الإلكتروني' };
         const ORDER_STATUS_LABELS = {
-            pending: 'قيد المعالجة', processing: 'قيد التنفيذ', paid: 'مدفوع', completed: 'مكتمل',
+            pending_payment: 'بانتظار الدفع', under_review: 'قيد مراجعة الدفع', pending: 'قيد المعالجة', processing: 'قيد التنفيذ', paid: 'مدفوع', completed: 'مكتمل',
             delivered: 'تم التسليم', cancelled: 'ملغي', canceled: 'ملغي', failed: 'فشل', refunded: 'مسترجع'
         };
         const ORDER_STATUS_STYLES = {
+            pending_payment: 'bg-amber-500/10 text-amber-300 border-amber-500/30',
+            under_review: 'bg-sky-500/10 text-sky-300 border-sky-500/30',
             pending: 'bg-amber-500/10 text-amber-300 border-amber-500/30',
             processing: 'bg-sky-500/10 text-sky-300 border-sky-500/30',
             paid: 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30',
@@ -1712,7 +1855,9 @@
             const left = mk('div', 'min-w-0');
             left.appendChild(mk('div', 'text-white font-bold font-mono text-sm truncate', o.order_number || '—'));
             left.appendChild(mk('div', 'text-[11px] text-slate-500 mt-0.5', o.created_at ? new Date(o.created_at).toLocaleString('ar') : '—'));
-            const statusKey = String(o.status || '').toLowerCase();
+            let statusKey = String(o.status || '').toLowerCase();
+            const underReview = statusKey === 'pending_payment' && Array.isArray(o.payments) && o.payments.some(p => p.status === 'under_review');
+            if (underReview) statusKey = 'under_review';
             const badge = mk('span', 'shrink-0 text-[11px] font-bold px-2.5 py-1 rounded-lg border ' + (ORDER_STATUS_STYLES[statusKey] || 'bg-slate-800 text-slate-300 border-slate-700'),
                 ORDER_STATUS_LABELS[statusKey] || o.status || '—');
             top.appendChild(left);
@@ -1746,6 +1891,20 @@
             foot.appendChild(mk('span', 'text-[11px] text-slate-400 font-bold', 'الإجمالي'));
             foot.appendChild(mk('span', 'text-starlight font-black', formatMoney(o.total, o.currency)));
             card.appendChild(foot);
+
+            if (String(o.status).toLowerCase() === 'pending_payment' && !underReview && o.id) {
+                const cb = mk('button', 'mt-3 w-full text-[11px] font-bold py-2 rounded-xl border border-red-500/40 text-red-300 hover:bg-red-500/10 transition', 'إلغاء الطلب وإعادة المخزون');
+                cb.type = 'button';
+                cb.addEventListener('click', async () => {
+                    if (!confirm('إلغاء هذا الطلب؟')) return;
+                    cb.disabled = true;
+                    const { error } = await supabaseClient.rpc('cancel_my_order', { p_order_id: o.id });
+                    if (error) { alert(friendlyError(error)); cb.disabled = false; return; }
+                    loadMyOrders();
+                    if (typeof loadCatalog === 'function') loadCatalog();
+                });
+                card.appendChild(cb);
+            }
             return card;
         }
 
@@ -1760,7 +1919,7 @@
             if (!u) { renderOrdersError(list, 'يجب تسجيل الدخول لعرض طلباتك.'); return; }
             if (!supabaseClient) { renderOrdersError(list, 'تعذّر تحميل مكتبة Supabase.'); return; }
 
-            const baseCols = 'order_number,total,currency,status,created_at';
+            const baseCols = 'id,order_number,total,currency,status,created_at,expires_at,payments(status)';
             let itemsFailed = false;
             try {
                 // الطلبات الخاصة بالمستخدم الحالي فقط + عناصر كل طلب من order_items
@@ -1804,34 +1963,6 @@
             }
         }
 
-        // حفظ الطلب في جدول orders مرتبطاً بـ user_id (لا يمنع إتمام الطلب إذا فشل الحفظ)
-        async function saveOrderToSupabase(o) {
-            const st = document.getElementById('successDbStatus');
-            const setSt = (text, cls) => { st.textContent = text; st.className = 'text-[11px] mb-3 leading-relaxed ' + cls; };
-            setSt('جاري حفظ الطلب في حسابك…', 'text-slate-400');
-            try {
-                if (!supabaseClient || !window.currentUser) throw new Error('لا توجد جلسة تسجيل دخول نشطة');
-                const { error } = await supabaseClient.from('orders').insert({
-                    user_id: window.currentUser.id,
-                    order_number: o.orderId,
-                    items: o.items,
-                    total: o.total,
-                    currency: 'USD',
-                    payment_method: o.methodLabel,
-                    payment_ref: String(o.reference),
-                    discord_user: o.info.discord,
-                    character_name: o.info.char,
-                    region: o.info.region,
-                    status: 'pending'
-                });
-                if (error) throw error;
-                setSt('تم حفظ الطلب في حسابك ✅', 'text-emerald-400');
-            } catch (e) {
-                console.error('[Orders] فشل حفظ الطلب:', e);
-                setSt('تعذّر حفظ الطلب في الحساب (' + ((e && e.message) || e) + '). انسخ التفاصيل أعلاه وأرسلها في التذكرة.', 'text-amber-400');
-            }
-        }
-
         document.addEventListener('DOMContentLoaded', () => {
             updateAuthUI();
             if (!supabaseClient) return;
@@ -1851,6 +1982,329 @@
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') { closeAuthModal(); closeAccountModal(); }
         });
+    </script>
+    <!-- لوحة الإدارة -->
+    <script>
+(function () {
+    // ===== لوحة الإدارة: كل الصلاحيات الحقيقية تتحقق منها قاعدة البيانات (RLS + public.is_admin()) =====
+    const $ = id => document.getElementById(id);
+    const HID = /^(payload|secret|password|token|api_key|private_key|secret_key)$/i;   // أعمدة سرية: لا تُجلب في القوائم
+    const NOFORM = new Set(['id', 'created_at', 'updated_at', 'user_id']);
+    const CLS = 'w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-2.5 text-xs focus:border-starlight outline-none';
+    const BTN = 'px-3 py-1.5 rounded-lg border text-[11px] font-bold transition ';
+    const SECTIONS = [
+        { id: 'products', label: 'المنتجات', icon: 'fa-box', tables: ['products'], add: 1, edit: 1, del: 1 },
+        { id: 'orders', label: 'الطلبات', icon: 'fa-receipt', tables: ['orders'], status: ['pending_payment', 'paid', 'processing', 'completed', 'cancelled', 'refunded'], items: 1 },
+        { id: 'customers', label: 'العملاء', icon: 'fa-users', tables: ['profiles'] },
+        { id: 'payments', label: 'المدفوعات والشحن', icon: 'fa-wallet', tables: ['payments', 'payment_requests', 'topup_requests', 'recharge_requests', 'charge_requests', 'deposits'], status: ['pending', 'approved', 'paid', 'completed', 'rejected', 'failed', 'cancelled', 'refunded'] },
+        { id: 'coupons', label: 'الكوبونات', icon: 'fa-ticket', tables: ['coupons', 'discount_codes', 'promo_codes'], add: 1, edit: 1, del: 1 },
+        { id: 'inventory', label: 'المخزون والتسليمات', icon: 'fa-key', tables: ['digital_assets', 'deliveries', 'order_deliveries', 'digital_deliveries'], add: 1, edit: 1, reveal: 1, status: ['available', 'reserved', 'sold', 'delivered', 'used', 'pending'] },
+        { id: 'support', label: 'رسائل الدعم', icon: 'fa-headset', tables: ['support_messages', 'support_tickets', 'tickets', 'contact_messages'], status: ['open', 'pending', 'resolved', 'closed'] }
+    ];
+    const S = { sec: 'orders', tbl: null, rows: [], avail: [], extra: {}, q: '', tok: 0 };
+    const found = {};
+
+    // ---------- التحقق من الصلاحية عبر public.is_admin() ----------
+    async function isAdmin() {
+        try {
+            if (!supabaseClient) return false;
+            const s = await supabaseClient.auth.getSession();
+            if (!s.data || !s.data.session) return false;
+            const { data, error } = await supabaseClient.rpc('is_admin');
+            if (error) console.warn('[Admin] تعذّر استدعاء public.is_admin():', error.message);
+            return !error && data === true;
+        } catch (e) { console.warn('[Admin] is_admin:', e); return false; }
+    }
+    async function refreshAdmin() {
+        const ok = await isAdmin();
+        ['adminNavBtn', 'adminAccBtn'].forEach(id => { const b = $(id); if (b) b.style.display = ok ? 'flex' : 'none'; });
+        if (!ok) closeAdmin();
+    }
+    async function guard() {            // يُستدعى قبل كل عملية كتابة
+        if (await isAdmin()) return true;
+        msg('انتهت صلاحية الإدارة أو لا تملكها.', 'err'); closeAdmin(); return false;
+    }
+
+    // ---------- واجهة ----------
+    function msg(text, kind) {
+        const el = $('adminMsg'); if (!el) return;
+        el.textContent = text || '';
+        el.className = 'text-xs mb-3 ' + (text ? ({ ok: 'text-emerald-400', err: 'text-red-400', warn: 'text-amber-400' }[kind] || 'text-slate-400') : 'hidden');
+    }
+    function cfg() { return SECTIONS.find(s => s.id === S.sec); }
+    function custom() { return !cfg().tables.includes(S.tbl); }          // جدول أدخله المدير يدوياً → قراءة فقط
+    function can(flag) { return !!cfg()[flag] && !custom(); }
+    function build() {
+        if ($('adminPanel')) return;
+        const p = mk('div', 'fixed inset-0 z-[60] bg-slate-950 text-slate-200 overflow-y-auto overscroll-contain');
+        p.id = 'adminPanel'; p.dir = 'rtl'; p.style.display = 'none';
+        p.innerHTML =
+            '<div class="sticky top-0 z-10 bg-slate-950/95 backdrop-blur border-b border-slate-800">' +
+            '<div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-3">' +
+            '<h2 class="text-base sm:text-lg font-black text-white flex items-center gap-2"><i class="fa-solid fa-gauge-high text-starlight"></i> لوحة الإدارة</h2>' +
+            '<button type="button" id="adminClose" class="' + BTN + 'bg-slate-900 border-slate-700 text-slate-300 hover:border-starlight"><i class="fa-solid fa-xmark ml-1"></i> إغلاق</button></div>' +
+            '<div id="adminTabs" class="max-w-6xl mx-auto px-4 pb-3 flex gap-2 overflow-x-auto"></div></div>' +
+            '<div class="max-w-6xl mx-auto px-4 py-4">' +
+            '<div id="adminSubs" class="flex gap-2 overflow-x-auto mb-3"></div>' +
+            '<div class="flex flex-wrap items-center gap-2 mb-3">' +
+            '<input id="adminSearch" type="search" placeholder="بحث في النتائج…" class="' + CLS + ' flex-1 min-w-[140px]">' +
+            '<button type="button" id="adminRefresh" class="' + BTN + 'bg-slate-900 border-slate-700 text-slate-200 hover:border-starlight"><i class="fa-solid fa-rotate-right ml-1"></i> تحديث</button>' +
+            '<button type="button" id="adminAdd" class="' + BTN + 'bg-starlight border-starlight text-slate-950 hidden"><i class="fa-solid fa-plus ml-1"></i> إضافة</button>' +
+            '<button type="button" id="adminOther" class="' + BTN + 'bg-slate-900 border-slate-700 text-slate-400 hover:border-starlight">جدول آخر</button></div>' +
+            '<p id="adminMsg" class="hidden"></p>' +
+            '<div id="adminList" class="overflow-x-auto rounded-2xl border border-slate-800"></div></div>' +
+            '<div id="adminModal" class="fixed inset-0 z-[70] hidden items-center justify-center p-4 bg-black/80" dir="rtl"></div>';
+        document.body.appendChild(p);
+        $('adminClose').onclick = closeAdmin;
+        $('adminRefresh').onclick = () => { delete found[S.tbl]; selectSection(S.sec); };
+        $('adminAdd').onclick = () => openForm(null);
+        $('adminSearch').oninput = e => { S.q = e.target.value.toLowerCase(); render(); };
+        $('adminOther').onclick = () => {
+            const n = (prompt('اكتب اسم الجدول في Supabase:') || '').trim();
+            if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(n)) { if (n) msg('اسم جدول غير صالح.', 'err'); return; }
+            (S.extra[S.sec] = S.extra[S.sec] || []).push(n); S.tbl = n; selectSection(S.sec);
+        };
+        $('adminModal').onclick = e => { if (e.target.id === 'adminModal') closeModal(); };
+    }
+    window.openAdmin = async function () {
+        if (!(await isAdmin())) { alert('ليست لديك صلاحية الوصول إلى لوحة الإدارة.'); refreshAdmin(); return; }
+        build();
+        if (typeof closeAccountModal === 'function') closeAccountModal();
+        $('adminPanel').style.display = ''; document.body.style.overflow = 'hidden';
+        selectSection(S.sec);
+    };
+    function closeAdmin() {
+        const p = $('adminPanel'); if (!p || p.style.display === 'none') return;
+        closeModal(); p.style.display = 'none'; document.body.style.overflow = '';
+        S.rows = []; $('adminList').innerHTML = '';   // لا نُبقي بيانات في الصفحة بعد الإغلاق
+    }
+    function closeModal() { const m = $('adminModal'); if (m) { m.classList.add('hidden'); m.classList.remove('flex'); m.innerHTML = ''; } }
+    function modal(title, body, buttons) {
+        const m = $('adminModal'); m.innerHTML = '';
+        const box = mk('div', 'bg-slate-950 border border-slate-800 rounded-3xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-5 relative');
+        box.appendChild(mk('h3', 'text-white font-bold mb-3 pl-8', title));
+        const x = mk('button', 'absolute top-4 left-4 text-slate-400 hover:text-white'); x.type = 'button';
+        x.appendChild(mk('i', 'fa-solid fa-xmark text-xl')); x.onclick = closeModal; box.appendChild(x);
+        box.appendChild(body);
+        if (buttons) { const f = mk('div', 'flex gap-2 mt-4'); buttons.forEach(b => f.appendChild(b)); box.appendChild(f); }
+        m.appendChild(box); m.classList.remove('hidden'); m.classList.add('flex');
+    }
+    function btn(text, cls, fn) { const b = mk('button', BTN + cls, text); b.type = 'button'; b.onclick = fn; return b; }
+
+    // ---------- الأقسام والجداول ----------
+    function isMissing(e) { return e && (e.code === 'PGRST205' || e.code === '42P01' || /could not find the table|does not exist/i.test(e.message || '')); }
+    async function probe(t) {
+        if (found[t]) return found[t];
+        const { data, error } = await supabaseClient.from(t).select('*').limit(1);
+        if (error) return (found[t] = isMissing(error) ? { ok: false } : { ok: true, keys: [], err: error.message });
+        return (found[t] = { ok: true, keys: data && data[0] ? Object.keys(data[0]) : [] });
+    }
+    async function selectSection(id) {
+        S.sec = id; S.q = ''; $('adminSearch').value = '';
+        const tok = ++S.tok, c = cfg();
+        renderTabs(); msg('جاري التحميل…');
+        const names = c.tables.concat(S.extra[id] || []);
+        const res = await Promise.all(names.map(probe));
+        if (tok !== S.tok) return;
+        S.avail = names.filter((n, i) => res[i].ok);
+        renderSubs();
+        if (!S.avail.length) { S.rows = []; $('adminList').innerHTML = ''; msg('لم أجد جدولاً لهذا القسم (جرّبت: ' + names.join('، ') + '). استخدم «جدول آخر» لإدخال اسم الجدول الصحيح.', 'warn'); return; }
+        if (!S.avail.includes(S.tbl)) S.tbl = S.avail[0];
+        load();
+    }
+    function renderTabs() {
+        const box = $('adminTabs'); box.innerHTML = '';
+        SECTIONS.forEach(s => {
+            const on = s.id === S.sec;
+            const b = btn('', on ? 'bg-starlight border-starlight text-slate-950 whitespace-nowrap' : 'bg-slate-900 border-slate-700 text-slate-300 hover:border-starlight whitespace-nowrap', () => selectSection(s.id));
+            b.appendChild(mk('i', 'fa-solid ' + s.icon + ' ml-1')); b.appendChild(document.createTextNode(s.label)); box.appendChild(b);
+        });
+    }
+    function renderSubs() {
+        const box = $('adminSubs'); box.innerHTML = '';
+        if (S.avail.length < 2) return;
+        S.avail.forEach(t => box.appendChild(btn(t, t === S.tbl ? 'bg-slate-800 border-starlight text-starlight font-mono' : 'bg-slate-900 border-slate-700 text-slate-400 font-mono', () => { S.tbl = t; renderSubs(); load(); })));
+    }
+    async function load() {
+        const t = S.tbl, info = found[t], tok = ++S.tok;
+        $('adminAdd').classList.toggle('hidden', !can('add'));
+        msg('جاري تحميل ' + t + '…');
+        const sel = info.keys.length ? info.keys.filter(k => !HID.test(k)).join(',') : '*';   // لا نجلب الأعمدة السرية
+        const q = ord => { let x = supabaseClient.from(t).select(sel); if (ord) x = x.order('created_at', { ascending: false }); return x.limit(500); };
+        let r = await q(info.keys.includes('created_at'));
+        if (r.error && /created_at/.test(r.error.message || '')) r = await q(false);
+        if (tok !== S.tok) return;
+        if (r.error) { S.rows = []; $('adminList').innerHTML = ''; msg('تعذّر تحميل الجدول ' + t + ': ' + r.error.message, 'err'); return; }
+        S.rows = (r.data || []).map(o => { Object.keys(o).forEach(k => { if (HID.test(k)) delete o[k]; }); return o; });
+        msg(info.err ? 'تنبيه: ' + info.err : '');
+        render();
+    }
+
+    // ---------- عرض الجدول ----------
+    function fmt(k, v) {
+        if (v === null || v === undefined) return '—';
+        if (typeof v === 'boolean') return v ? '✓' : '✗';
+        if (typeof v === 'object') return JSON.stringify(v);
+        v = String(v);
+        if (/_at$/.test(k) && !isNaN(Date.parse(v))) return new Date(v).toLocaleString('ar');
+        if (/^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(v)) return v.slice(0, 8) + '…';
+        return v.length > 40 ? v.slice(0, 40) + '…' : v;
+    }
+    function statusSelect(row, c) {
+        const opts = Array.from(new Set(c.status.concat(S.rows.map(r => r.status).filter(Boolean), [row.status].filter(Boolean))));
+        const s = mk('select', 'bg-slate-900 border border-slate-700 text-slate-200 rounded-lg px-2 py-1 text-[11px] font-bold');
+        opts.forEach(o => { const op = mk('option', '', o); op.value = o; s.appendChild(op); });
+        s.value = row.status || '';
+        s.onchange = async () => {
+            if (!(await guard())) return;
+            // الطلبات: تغيير الحالة عبر دالة الخادم فقط (تُعيد المخزون وتتحقق من الانتقال)
+            const r = S.tbl === 'orders'
+                ? await supabaseClient.rpc('admin_set_order_status', { p_order_id: row.id, p_status: s.value }).then(x => x.error ? x : { data: [1] })
+                : await supabaseClient.from(S.tbl).update({ status: s.value }).eq('id', row.id).select();
+            if (r.error || !r.data || !r.data.length) { msg('تعذّر تحديث الحالة: ' + (r.error ? r.error.message : 'لم يُعدَّل أي سجل (تحقق من الصلاحيات).'), 'err'); s.value = row.status || ''; return; }
+            row.status = s.value; msg('تم تحديث الحالة ✅', 'ok');
+        };
+        return s;
+    }
+    function render() {
+        const c = cfg(), box = $('adminList'); box.innerHTML = '';
+        const q = S.q, rows = q ? S.rows.filter(r => JSON.stringify(r).toLowerCase().includes(q)) : S.rows;
+        if (!rows.length) { box.appendChild(mk('p', 'p-6 text-center text-xs text-slate-500', S.rows.length ? 'لا نتائج مطابقة للبحث.' : 'لا توجد بيانات في هذا الجدول.')); return; }
+        const keys = []; S.rows.slice(0, 50).forEach(r => Object.keys(r).forEach(k => { if (!keys.includes(k) && k !== 'updated_at') keys.push(k); }));
+        let cols = keys.slice(0, 8); const hasId = keys.includes('id');
+        if (S.tbl === 'products') cols = ['name', 'slug', 'price', 'stock_quantity', 'status', 'is_featured'].filter(k => keys.includes(k));
+        if (keys.includes('status') && !cols.includes('status')) cols[cols.length - 1] = 'status';
+        const tbl = mk('table', 'w-full text-xs text-right whitespace-nowrap'), hd = mk('tr', 'bg-slate-900 text-slate-400');
+        cols.concat(['']).forEach(k => hd.appendChild(mk('th', 'p-2.5 font-bold', k)));
+        tbl.appendChild(mk('thead')).appendChild(hd);
+        const tb = mk('tbody'); tbl.appendChild(tb);
+        rows.forEach(row => {
+            const tr = mk('tr', 'border-t border-slate-800 hover:bg-slate-900/60');
+            cols.forEach(k => {
+                const td = mk('td', 'p-2.5 max-w-[220px] truncate');
+                if (k === 'status' && can('status') && hasId && S.tbl !== 'payments') td.appendChild(statusSelect(row, c)); else { td.textContent = fmt(k, row[k]); td.title = typeof row[k] === 'object' ? '' : String(row[k] ?? ''); }
+                tr.appendChild(td);
+            });
+            const act = mk('td', 'p-2.5 flex gap-1.5');
+            act.appendChild(btn('تفاصيل', 'bg-slate-900 border-slate-700 text-slate-200 hover:border-starlight', () => openDetails(row)));
+            if (S.tbl === 'products' && hasId && !custom()) act.appendChild(btn('المخزون', 'bg-slate-900 border-emerald-500/40 text-emerald-300', () => openStock(row)));
+            if (S.tbl === 'payments' && row.status === 'under_review' && row.method === 'manual' && hasId) {
+                act.appendChild(btn('قبول', 'bg-slate-900 border-emerald-500/40 text-emerald-300', () => reviewPayment(row, true)));
+                act.appendChild(btn('رفض', 'bg-slate-900 border-red-500/40 text-red-300', () => reviewPayment(row, false)));
+            }
+            if (can('edit') && hasId) act.appendChild(btn('تعديل', 'bg-slate-900 border-slate-700 text-starlight hover:border-starlight', () => openForm(row)));
+            if (can('reveal') && hasId && found[S.tbl].keys.some(k => HID.test(k))) act.appendChild(btn('عرض السرّي', 'bg-slate-900 border-amber-500/40 text-amber-300', () => reveal(row)));
+            if (can('del') && hasId) act.appendChild(btn('حذف', 'bg-slate-900 border-red-500/40 text-red-300', () => remove(row)));
+            tr.appendChild(act); tb.appendChild(tr);
+        });
+        box.appendChild(tbl);
+    }
+
+    // ---------- تفاصيل / إضافة وتعديل / حذف / كشف السرّي ----------
+    async function openDetails(row) {
+        const body = mk('div', 'space-y-1.5 text-xs'), c = cfg();
+        Object.keys(row).forEach(k => { const d = mk('div', 'flex gap-2 justify-between border-b border-slate-800 pb-1.5'); d.appendChild(mk('span', 'text-slate-500 shrink-0', k)); d.appendChild(mk('span', 'text-slate-200 break-all text-left', typeof row[k] === 'object' && row[k] !== null ? JSON.stringify(row[k]) : String(row[k] ?? '—'))); body.appendChild(d); });
+        modal('تفاصيل السجل', body, [btn('إغلاق', 'bg-slate-900 border-slate-700 text-slate-300', closeModal)]);
+        if (c.items && row.id !== undefined) {     // منتجات الطلب عبر العلاقة order_items
+            body.appendChild(mk('h4', 'text-white font-bold pt-3', 'منتجات الطلب'));
+            const holder = mk('div', 'text-xs text-slate-500', 'جاري التحميل…'); body.appendChild(holder);
+            const r = await supabaseClient.from('orders').select('order_items(*)').eq('id', row.id).maybeSingle();
+            holder.textContent = '';
+            if (r.error) { holder.className = 'text-xs text-red-400'; holder.textContent = 'تعذّر تحميل order_items: ' + r.error.message; return; }
+            const its = (r.data && r.data.order_items) || [];
+            if (!its.length) { holder.textContent = 'لا توجد عناصر لهذا الطلب.'; return; }
+            its.forEach(it => { const line = Object.keys(it).filter(k => !HID.test(k) && !/(^id$|_id$|_at$)/.test(k)).map(k => k + ': ' + (it[k] ?? '—')).join(' • '); holder.appendChild(mk('div', 'bg-slate-900 border border-slate-800 rounded-lg p-2 mb-1.5 text-slate-200 break-words', line)); });
+        }
+    }
+    function openForm(row) {
+        const info = found[S.tbl], tpl = row || S.rows[0] || null, form = mk('div', 'space-y-3'), inputs = [];
+        const keys = info.keys.length ? info.keys : (tpl ? Object.keys(tpl) : []);
+        if (!keys.length) {   // جدول فارغ لا نعرف أعمدته: إدخال JSON
+            const ta = mk('textarea', CLS + ' font-mono h-40'); ta.placeholder = '{"column": "value"}'; form.appendChild(mk('p', 'text-[11px] text-slate-500', 'لا أعرف أعمدة هذا الجدول (فارغ). أدخل السجل بصيغة JSON بأسماء أعمدته الفعلية.')); form.appendChild(ta); inputs.push({ json: ta });
+        }
+        keys.filter(k => !NOFORM.has(k) && !(S.tbl === 'products' && row && k === 'stock_quantity')).forEach(k => {
+            const secret = HID.test(k), v = row && !secret ? row[k] : (tpl && !secret ? tpl[k] : null), lab = mk('label', 'block');
+            lab.appendChild(mk('span', 'block text-[11px] text-slate-400 font-bold mb-1', k + (secret ? ' (سرّي — اتركه فارغاً لعدم التغيير)' : '')));
+            let el, t = 's';
+            if (typeof v === 'boolean') { el = mk('input', 'w-5 h-5 accent-cyan-400'); el.type = 'checkbox'; el.checked = !!v; t = 'b'; /* في الإضافة: القيمة الافتراضية من سجل موجود وتظهر للمدير صراحةً */ }
+            else if (v !== null && typeof v === 'object') { el = mk('textarea', CLS + ' font-mono h-24'); el.value = row ? JSON.stringify(row[k], null, 2) : ''; t = 'j'; }
+            else if (secret || String(v ?? '').length > 80) { el = mk('textarea', CLS + ' h-24'); el.value = row && !secret ? (row[k] ?? '') : ''; t = secret ? 'h' : 's'; }
+            else { el = mk('input', CLS); el.value = row ? (row[k] ?? '') : ''; if (typeof v === 'number') t = 'n'; }
+            lab.appendChild(el); form.appendChild(lab); inputs.push({ k, el, t });
+        });
+        const save = btn(row ? 'حفظ التعديلات' : 'إضافة', 'bg-starlight border-starlight text-slate-950 flex-1', async () => {
+            const out = {};
+            try {
+                inputs.forEach(i => {
+                    if (i.json) { Object.assign(out, JSON.parse(i.json.value || '{}')); return; }
+                    let v, orig = row ? row[i.k] : undefined;
+                    if (i.t === 'b') v = i.el.checked;
+                    else if (i.t === 'j') { if (!i.el.value.trim()) return; v = JSON.parse(i.el.value); }
+                    else if (i.t === 'n') { if (i.el.value === '') { if (row && orig !== null) v = null; else return; } else v = Number(i.el.value); }
+                    else { if (i.t === 'h' && !i.el.value) return; if (i.el.value === '' && (!row || orig === null || orig === undefined)) return; v = i.el.value; }
+                    if (!row || JSON.stringify(v) !== JSON.stringify(orig)) out[i.k] = v;
+                });
+            } catch (e) { msg('قيمة JSON غير صالحة: ' + e.message, 'err'); return; }
+            if (!Object.keys(out).length) { closeModal(); return; }
+            if (!(await guard())) return;
+            const r = row ? await supabaseClient.from(S.tbl).update(out).eq('id', row.id).select() : await supabaseClient.from(S.tbl).insert(out).select();
+            if (r.error || !r.data || !r.data.length) { msg('فشل الحفظ: ' + (r.error ? r.error.message : 'لم يُحفظ أي سجل (تحقق من الصلاحيات).'), 'err'); return; }
+            closeModal(); msg('تم الحفظ ✅', 'ok'); delete found[S.tbl]; await probe(S.tbl); load();
+        });
+        modal(row ? 'تعديل سجل' : 'إضافة سجل', form, [save, btn('إلغاء', 'bg-slate-900 border-slate-700 text-slate-300', closeModal)]);
+    }
+    // تعديل المخزون: عبر دالة الخادم admin_set_stock (تتحقق من is_admin داخل قاعدة البيانات)
+    function openStock(row) {
+        const body = mk('div', 'space-y-3');
+        body.appendChild(mk('p', 'text-xs text-slate-400', (row.name || '') + ' — المخزون الحالي المتاح: ' + row.stock_quantity));
+        const inp = mk('input', CLS); inp.type = 'number'; inp.min = '0'; inp.step = '1'; inp.value = row.stock_quantity;
+        body.appendChild(inp);
+        const save = btn('حفظ المخزون', 'bg-starlight border-starlight text-slate-950 flex-1', async () => {
+            const n = Number(inp.value);
+            if (!Number.isInteger(n) || n < 0) { msg('أدخل رقماً صحيحاً (0 أو أكثر).', 'err'); return; }
+            if (!(await guard())) return;
+            const r = await supabaseClient.rpc('admin_set_stock', { p_product_id: row.id, p_quantity: n });
+            if (r.error) { msg('تعذّر تحديث المخزون: ' + r.error.message, 'err'); return; }
+            closeModal(); msg('تم تحديث المخزون ✅', 'ok'); load();
+        });
+        modal('تعديل المخزون', body, [save, btn('إلغاء', 'bg-slate-900 border-slate-700 text-slate-300', closeModal)]);
+    }
+    async function reviewPayment(row, approve) {
+        const note = approve ? null : (prompt('سبب الرفض (اختياري):') || null);
+        if (!confirm(approve ? 'قبول هذه الدفعة وإكمال الطلب؟' : 'رفض الدفعة؟ سيُلغى الطلب ويُعاد المخزون.')) return;
+        if (!(await guard())) return;
+        const r = await supabaseClient.rpc('admin_review_manual_payment', { p_payment_id: row.id, p_approve: approve, p_note: note });
+        if (r.error) { msg('تعذّرت المراجعة: ' + r.error.message, 'err'); return; }
+        msg(approve ? 'تم قبول الدفعة ✅' : 'تم رفض الدفعة وإعادة المخزون ✅', 'ok'); load();
+    }
+    async function remove(row) {
+        if (!confirm('حذف هذا السجل نهائياً؟ لا يمكن التراجع.')) return;
+        if (!(await guard())) return;
+        const r = await supabaseClient.from(S.tbl).delete().eq('id', row.id).select();
+        if (r.error || !r.data || !r.data.length) { msg('تعذّر الحذف: ' + (r.error ? r.error.message : 'لم يُحذف أي سجل (تحقق من الصلاحيات).'), 'err'); return; }
+        msg('تم الحذف ✅', 'ok'); load();
+    }
+    async function reveal(row) {
+        if (!(await guard())) return;
+        const cols = found[S.tbl].keys.filter(k => HID.test(k)).join(',');
+        const r = await supabaseClient.from(S.tbl).select(cols).eq('id', row.id).maybeSingle();
+        if (r.error || !r.data) { msg('تعذّر جلب القيمة السرّية: ' + (r.error ? r.error.message : 'غير متاحة'), 'err'); return; }
+        const pre = mk('pre', 'bg-slate-900 border border-slate-800 rounded-xl p-3 text-xs text-amber-200 whitespace-pre-wrap break-all', Object.keys(r.data).map(k => k + ':\n' + (typeof r.data[k] === 'object' ? JSON.stringify(r.data[k], null, 2) : r.data[k])).join('\n\n'));
+        modal('بيانات سرّية — للمدير فقط', pre, [btn('إغلاق', 'bg-slate-900 border-slate-700 text-slate-300', closeModal)]);
+    }
+
+    // ---------- ربط الجلسة ----------
+    document.addEventListener('DOMContentLoaded', () => {
+        if (!supabaseClient) return;
+        refreshAdmin();
+        supabaseClient.auth.onAuthStateChange(() => { setTimeout(refreshAdmin, 0); });
+    });
+    document.addEventListener('keydown', e => {
+        if (e.key !== 'Escape') return;
+        const m = $('adminModal');
+        if (m && !m.classList.contains('hidden')) closeModal(); else closeAdmin();
+    });
+})();
     </script>
 </body>
 </html>
