@@ -1633,7 +1633,7 @@
             try {
                 const { data, error } = await supabaseClient
                     .from('orders')
-                    .select('order_code,total_usd,status,created_at')
+                    .select('order_number,total_usd,status,created_at')
                     .order('created_at', { ascending: false })
                     .limit(10);
                 list.innerHTML = '';
@@ -1645,7 +1645,7 @@
                     data.forEach(o => {
                         const row = mk('div', 'bg-slate-900 border border-slate-800 rounded-xl p-3 flex items-center justify-between gap-3');
                         const left = mk('div', 'min-w-0');
-                        left.appendChild(mk('div', 'text-white font-bold font-mono', o.order_code || '—'));
+                        left.appendChild(mk('div', 'text-white font-bold font-mono', o.order_number || '—'));
                         left.appendChild(mk('div', 'text-[11px] text-slate-500', new Date(o.created_at).toLocaleString('ar')));
                         const right = mk('div', 'text-left shrink-0');
                         right.appendChild(mk('div', 'text-starlight font-black', '$' + Number(o.total_usd || 0).toFixed(2)));
@@ -1670,7 +1670,7 @@
                 if (!supabaseClient || !window.currentUser) throw new Error('لا توجد جلسة تسجيل دخول نشطة');
                 const { error } = await supabaseClient.from('orders').insert({
                     user_id: window.currentUser.id,
-                    order_code: o.orderId,
+                    order_number: o.orderId,
                     items: o.items,
                     total_usd: o.total,
                     payment_method: o.methodLabel,
