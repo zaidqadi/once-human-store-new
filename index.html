@@ -5,10 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>متجر Once Human - خدمات وموارد وانس هيومن الاحترافية</title>
     <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.tailwindcss.com/3.4.17"></script>
 
     <!-- Supabase JS v2 (يُحمَّل قبل كود التهيئة) -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
     <script>
         // ===== Supabase Initialization =====
         const SUPABASE_URL = 'https://wtggdadkrfxajujduekw.supabase.co';
@@ -27,7 +27,7 @@
             const dot = document.getElementById('dbStatusDot');
             const txt = document.getElementById('dbStatusText');
             if (!el || !dot || !txt) return;
-            const colors = { loading: '#fbbf24', success: '#10b981', error: '#ef4444' };
+            const colors = { loading: '#fbbf24', success: '#10b981', warning: '#f97316', error: '#ef4444' };
             const c = colors[state] || colors.loading;
             el.style.borderColor = c;
             dot.style.background = c;
@@ -43,13 +43,36 @@
                 return;
             }
             try {
-                const { data, error } = await supabaseClient.from('products').select('id').limit(1);
+                const { data, error, count } = await supabaseClient
+                    .from('products')
+                    .select('id', { count: 'exact' })
+                    .limit(1000);
+
                 if (error) {
                     console.error('[Supabase] فشل الاتصال:', error.message, error);
-                    setDbStatus('error', 'فشل الاتصال: ' + (error.message || 'خطأ غير معروف'));
+                    const msg = String(error.message || '');
+                    const code = String(error.code || '');
+                    if (code === '42501' || /row-level security|permission denied/i.test(msg)) {
+                        setDbStatus('error', 'الاتصال ناجح لكن القراءة ممنوعة بسبب RLS: أضف سياسة SELECT لجدول products (' + msg + ')');
+                    } else if (code === '42P01' || code === 'PGRST205' || /does not exist|schema cache/i.test(msg)) {
+                        setDbStatus('error', 'جدول products غير موجود أو اسمه مختلف (' + msg + ')');
+                    } else if (/column .* does not exist/i.test(msg) || code === '42703') {
+                        setDbStatus('error', 'الجدول موجود لكن عمود id غير موجود (' + msg + ')');
+                    } else if (/invalid api key|apikey/i.test(msg)) {
+                        setDbStatus('error', 'فشل الاتصال: مفتاح API غير صحيح (' + msg + ')');
+                    } else {
+                        setDbStatus('error', 'فشل الاتصال: ' + (msg || 'خطأ غير معروف'));
+                    }
+                    return;
+                }
+
+                const rows = Array.isArray(data) ? data.length : 0;
+                if (rows === 0) {
+                    console.warn('[Supabase] الاتصال ناجح لكن لم تُقرأ أي منتجات.');
+                    setDbStatus('warning', 'الاتصال ناجح، لكن لم تُقرأ أي منتجات (0). الجدول فارغ، أو أن RLS يحجب القراءة بصمت بسبب عدم وجود سياسة SELECT');
                 } else {
-                    console.log('[Supabase] تم الاتصال بنجاح ✅ النتيجة:', data);
-                    setDbStatus('success', 'تم الاتصال بنجاح');
+                    console.log('[Supabase] تم الاتصال بنجاح ✅ عدد المنتجات المقروءة:', rows, '| العدد الكلي المتاح:', count);
+                    setDbStatus('success', 'تم الاتصال بنجاح — عدد المنتجات المقروءة: ' + rows);
                 }
             } catch (err) {
                 console.error('[Supabase] خطأ غير متوقع:', err);
@@ -602,9 +625,9 @@
     </div>
 
     <!-- مؤشر حالة الاتصال بقاعدة بيانات Supabase -->
-    <div id="dbStatus" dir="rtl" style="position:fixed;bottom:8px;right:8px;z-index:45;display:flex;align-items:center;gap:6px;max-width:min(92vw,420px);padding:5px 10px;border-radius:9999px;background:rgba(2,6,23,0.92);border:1px solid #fbbf24;color:#e2e8f0;font-size:11px;line-height:1.4;font-weight:700;pointer-events:none;box-shadow:0 4px 14px rgba(0,0,0,0.4);">
+    <div id="dbStatus" dir="rtl" style="position:fixed;bottom:8px;right:8px;z-index:45;display:flex;align-items:center;gap:6px;max-width:min(92vw,420px);padding:5px 10px;border-radius:14px;background:rgba(2,6,23,0.92);border:1px solid #fbbf24;color:#e2e8f0;font-size:11px;line-height:1.4;font-weight:700;pointer-events:none;box-shadow:0 4px 14px rgba(0,0,0,0.4);">
         <span id="dbStatusDot" style="flex:none;width:8px;height:8px;border-radius:50%;background:#fbbf24;"></span>
-        <span id="dbStatusText" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">جاري الاتصال بقاعدة البيانات…</span>
+        <span id="dbStatusText" style="white-space:normal;word-break:break-word;">جاري الاتصال بقاعدة البيانات…</span>
     </div>
 
     <!-- JavaScript Application Logic -->
