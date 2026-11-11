@@ -2261,18 +2261,69 @@
     // تعديل المخزون: عبر دالة الخادم admin_set_stock (تتحقق من is_admin داخل قاعدة البيانات)
     function openStock(row) {
         const body = mk('div', 'space-y-3');
-        body.appendChild(mk('p', 'text-xs text-slate-400', (row.name || '') + ' — المخزون الحالي المتاح: ' + row.stock_quantity));
-        const inp = mk('input', CLS); inp.type = 'number'; inp.min = '0'; inp.step = '1'; inp.value = row.stock_quantity;
-        body.appendChild(inp);
+        body.appendChild(mk('p', 'text-xs text-slate-400',
+            (row.name || 'المنتج') + ' — المخزون الحالي المتاح: ' + (Number(row.stock_quantity) || 0)
+        ));
+
+        const label = mk('label', 'block text-xs font-bold text-slate-300', 'الكمية الجديدة');
+        const inp = mk('input', CLS);
+        inp.type = 'number';
+        inp.min = '0';
+        inp.step = '1';
+        inp.inputMode = 'numeric';
+        inp.value = String(Number(row.stock_quantity) || 0);
+        inp.setAttribute('aria-label', 'كمية المخزون الجديدة');
+        label.appendChild(inp);
+        body.appendChild(label);
+        body.appendChild(mk('p', 'text-[11px] text-slate-500',
+            'أدخل صفراً لإيقاف توفر المنتج مؤقتاً، أو أدخل العدد المتاح للبيع.'
+        ));
+
         const save = btn('حفظ المخزون', 'bg-starlight border-starlight text-slate-950 flex-1', async () => {
-            const n = Number(inp.value);
-            if (!Number.isInteger(n) || n < 0) { msg('أدخل رقماً صحيحاً (0 أو أكثر).', 'err'); return; }
+            const raw = inp.value.trim();
+            const n = Number(raw);
+
+            if (raw === '' || !Number.isSafeInteger(n) || n < 0) {
+                msg('أدخل كمية صحيحة كعدد صحيح يساوي صفراً أو أكبر.', 'err');
+                inp.focus();
+                return;
+            }
+            if (!row || !row.id) {
+                msg('تعذّر تحديد المنتج لتحديث مخزونه.', 'err');
+                return;
+            }
             if (!(await guard())) return;
-            const r = await supabaseClient.rpc('admin_set_stock', { p_product_id: row.id, p_quantity: n });
-            if (r.error) { msg('تعذّر تحديث المخزون: ' + r.error.message, 'err'); return; }
-            closeModal(); msg('تم تحديث المخزون ✅', 'ok'); load();
+
+            save.disabled = true;
+            save.textContent = 'جارٍ حفظ المخزون…';
+            try {
+                const { data, error } = await supabaseClient.rpc('admin_set_stock', {
+                    p_product_id: row.id,
+                    p_quantity: n
+                });
+
+                if (error) {
+                    msg('تعذّر تحديث المخزون: ' + error.message, 'err');
+                    return;
+                }
+
+                row.stock_quantity = n;
+                closeModal();
+                msg('تم تحديث المخزون بنجاح ✅', 'ok');
+                await load();
+                if (typeof loadCatalog === 'function') await loadCatalog();
+            } catch (e) {
+                msg('حدث خطأ أثناء تحديث المخزون: ' + ((e && e.message) || e), 'err');
+            } finally {
+                save.disabled = false;
+                save.textContent = 'حفظ المخزون';
+            }
         });
-        modal('تعديل المخزون', body, [save, btn('إلغاء', 'bg-slate-900 border-slate-700 text-slate-300', closeModal)]);
+
+        modal('تعديل مخزون المنتج', body, [
+            save,
+            btn('إلغاء', 'bg-slate-900 border-slate-700 text-slate-300', closeModal)
+        ]);
     }
     async function reviewPayment(row, approve) {
         const note = approve ? null : (prompt('سبب الرفض (اختياري):') || null);
