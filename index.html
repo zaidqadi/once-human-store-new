@@ -557,7 +557,7 @@ body.english-mode #accountModal > div > button {
             </li>
             <li class="flex gap-3">
                 <span class="w-6 h-6 shrink-0 rounded-full bg-starlight/10 border border-starlight/40 text-starlight text-xs font-black flex items-center justify-center">3</span>
-                <span>ادفع عبر PayPal، أو حوّل مبلغ USDT على الشبكة التي تختارها ثم الصق رقم العملية (TXID).</span>
+                <span>ادفع عبر PayPal، أو اختر شبكة USDT وأنشئ الطلب ثم حوّل المبلغ إلى عنوان الإيداع الظاهر لك.</span>
             </li>
             <li class="flex gap-3">
                 <span class="w-6 h-6 shrink-0 rounded-full bg-starlight/10 border border-starlight/40 text-starlight text-xs font-black flex items-center justify-center">4</span>
@@ -673,30 +673,43 @@ body.english-mode #accountModal > div > button {
                 <div id="usdtSection" class="hidden space-y-3">
                     <div>
                         <label class="block text-slate-300 font-bold mb-1">اختر شبكة التحويل</label>
-                        <select id="usdtNetworkSelect" onchange="selectPayment()" class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-starlight outline-none">
+                        <select id="usdtNetworkSelect" onchange="usdtOnNetworkChange()" class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-starlight outline-none">
                             <option value="trc20">USDT - TRC20 (TRON)</option>
-                            <option value="polygon">USDT - Polygon (POS)</option>
+                            <option value="bsc">USDT - BSC (BEP20)</option>
+                            <option value="polygon">USDT - Polygon POS</option>
+                            <option value="solana">USDT - Solana</option>
                         </select>
                     </div>
                     <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 space-y-2">
+                        <div id="usdtOrderNumberRow" class="hidden flex justify-between"><span class="text-slate-400">رقم الطلب:</span><span id="usdtOrderNumber" class="text-white font-mono font-bold" dir="ltr"></span></div>
                         <div class="flex justify-between"><span class="text-slate-400">الشبكة:</span><span id="usdtNetwork" class="text-white font-bold" dir="ltr"></span></div>
                         <div class="flex justify-between"><span class="text-slate-400">المبلغ:</span><span id="usdtAmount" class="text-starlight font-black" dir="ltr"></span></div>
                         <div>
-                            <span class="text-slate-400 block mb-1">عنوان المحفظة:</span>
+                            <span class="text-slate-400 block mb-1">عنوان الإيداع:</span>
                             <div class="flex items-center gap-2">
-                                <code id="usdtAddress" class="flex-1 bg-slate-950 border border-slate-800 rounded-lg p-2 text-[11px] text-slate-200 break-all" dir="ltr"></code>
-                                <button type="button" onclick="copyText(document.getElementById('usdtAddress').innerText, this)" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-[11px] font-bold whitespace-nowrap">نسخ</button>
+                                <code id="usdtAddress" class="flex-1 bg-slate-950 border border-slate-800 rounded-lg p-2 text-[11px] text-slate-200 break-all" dir="ltr">—</code>
+                                <button type="button" id="usdtCopyBtn" onclick="usdtCopyAddress(this)" disabled class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-[11px] font-bold whitespace-nowrap disabled:opacity-40 disabled:cursor-not-allowed">نسخ</button>
                             </div>
+                        </div>
+                        <div id="usdtQrWrap" class="hidden flex justify-center pt-1">
+                            <div id="usdtQr" class="bg-white p-2 rounded-xl inline-flex items-center justify-center min-w-[176px] min-h-[176px] max-w-full" dir="ltr"></div>
+                        </div>
+                        <div class="flex justify-between items-center border-t border-slate-800 pt-2">
+                            <span class="text-slate-400">الوقت المتبقي للدفع:</span>
+                            <span id="usdtCountdown" class="text-white font-mono font-black text-sm" dir="ltr">--:--</span>
+                        </div>
+                        <div id="usdtGraceRow" class="hidden flex justify-between items-start gap-3">
+                            <span class="text-slate-400 whitespace-nowrap">يُراقَب التحويل حتى:</span>
+                            <span id="usdtGraceUntil" class="text-slate-300 text-left text-[11px]" dir="ltr"></span>
+                        </div>
+                        <div class="flex justify-between items-start gap-3">
+                            <span class="text-slate-400 whitespace-nowrap">حالة الدفع:</span>
+                            <span id="usdtPaymentStatus" class="text-slate-300 font-bold text-left leading-relaxed">لم يتم إنشاء الطلب بعد</span>
                         </div>
                     </div>
                     <p id="usdtWarn" class="text-[10px] text-amber-400 leading-relaxed"><i class="fa-solid fa-triangle-exclamation ml-1"></i> أرسل عملة USDT فقط وعلى الشبكة المذكورة بالضبط. الإرسال على شبكة أخرى أو بعملة مختلفة قد يضيّع المبلغ.</p>
-                    <div>
-                        <label class="block text-slate-300 font-bold mb-1">رقم العملية (TXID) بعد التحويل *</label>
-                        <input type="text" id="txHash" placeholder="الصق رقم العملية هنا" oninput="document.getElementById('txError').classList.add('hidden')" class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-starlight outline-none" dir="ltr">
-                        <p id="txError" class="hidden text-[11px] text-red-400 mt-1"></p>
-                    </div>
-                    <button type="submit" class="w-full bg-starlight hover:bg-cyan-400 text-slate-950 font-black py-3.5 rounded-xl transition text-center shadow-lg clip-btn">
-                        تأكيد التحويل وإرسال الطلب <i class="fa-solid fa-check ml-1"></i>
+                    <button type="button" id="usdtCreateOrderBtn" onclick="usdtCreateOrder()" class="w-full bg-starlight hover:bg-cyan-400 text-slate-950 font-black py-3.5 rounded-xl transition text-center shadow-lg clip-btn disabled:opacity-60 disabled:cursor-not-allowed">
+                        إنشاء الطلب وعرض عنوان الدفع <i class="fa-solid fa-wallet ml-1"></i>
                     </button>
                 </div>
             </form>
@@ -958,17 +971,12 @@ body.english-mode #accountModal > div > button {
 
         // ===== Payment settings (edit these) =====
         const PAYPAL_CLIENT_ID = 'YOUR_PAYPAL_CLIENT_ID';
+        // شبكات USDT المدعومة: تسميات للعرض فقط. عناوين الإيداع تأتي من الخادم (Supabase) بعد إنشاء الطلب ولا تُكتب هنا.
         const USDT_NETWORKS = {
-            trc20: {
-                label: 'TRC20 (TRON)',
-                address: 'TPrhj1xpbYAo6wKtD3XeBW3GG972bCAeNe',
-                txPattern: /^[0-9a-fA-F]{64}$/
-            },
-            polygon: {
-                label: 'Polygon (POS)',
-                address: '0xc02021ab6ebfe13b79aee1a3b12c69cde14fffcb',
-                txPattern: /^0x[0-9a-fA-F]{64}$/
-            }
+            trc20:   { label: 'TRC20 (TRON)' },
+            bsc:     { label: 'BSC (BEP20)' },
+            polygon: { label: 'Polygon POS' },
+            solana:  { label: 'Solana' }
         };
 
         let currentCurrency = 'USD';
@@ -1406,12 +1414,8 @@ body.english-mode #accountModal > div > button {
             const method = document.querySelector('input[name="payment"]:checked').value;
             document.getElementById('paypalSection').classList.toggle('hidden', method !== 'paypal');
             document.getElementById('usdtSection').classList.toggle('hidden', method !== 'usdt');
-            document.getElementById('txHash').required = (method === 'usdt');
             if(method === 'usdt') {
-                const net = USDT_NETWORKS[document.getElementById('usdtNetworkSelect').value];
-                document.getElementById('usdtNetwork').innerText = net.label;
-                document.getElementById('usdtAddress').innerText = net.address;
-                document.getElementById('usdtAmount').innerText = getCartTotalUSD().toFixed(2) + ' USDT';
+                usdtOnShow();
             } else {
                 loadPayPal();
             }
@@ -1474,6 +1478,10 @@ body.english-mode #accountModal > div > button {
         function cartPayload() { return cart.map(i => ({ product_id: i.dbId, quantity: i.qty })); }
         function checkoutReady() {
             if (!supabaseClient || !window.currentUser) { openAuthModal(true); return false; }
+            if (usdtState.order || usdtState.busy) {
+                alert('لديك طلب USDT قيد الانتظار. أكمل دفعه أو انتظر انتهاء مهلته قبل إنشاء طلب جديد.');
+                return false;
+            }
             if (!catalogReady || cart.length === 0 || cart.some(i => !i.dbId)) {
                 alert('تعذّر التحقق من المنتجات. حدّث الصفحة وحاول مرة أخرى.'); return false;
             }
@@ -1562,40 +1570,355 @@ body.english-mode #accountModal > div > button {
             }).render('#paypal-button-container');
         }
 
-        // USDT (تحقق يدوي): يُنشأ الطلب ثم تُرسل الدفعة بحالة under_review ويبقى المخزون محجوزاً حتى يراجعها الأدمن
-        async function handleCheckout(event) {
-            event.preventDefault();
-            const method = document.querySelector('input[name="payment"]:checked').value;
-            if(method !== 'usdt') return;
-            const raw = document.getElementById('txHash').value;
-            const netKey = document.getElementById('usdtNetworkSelect').value;
-            const net = USDT_NETWORKS[netKey];
-            const found = raw.match(/(?:0x)?[0-9a-fA-F]{64}/);
-            if(!found) {
-                const err = document.getElementById('txError');
-                err.innerText = 'لم أجد رقم عملية صحيح. الرقم يتكون من 64 حرفاً وأرقاماً (a-f و 0-9)، ويمكنك لصق الرقم أو رابط العملية من المستكشف.';
-                err.classList.remove('hidden');
-                document.getElementById('txHash').focus();
-                return;
-            }
-            const hash = found[0].replace(/^0x/i, '');
-            const tx = (netKey === 'polygon') ? '0x' + hash : hash;
-            if (checkoutBusy || !checkoutReady()) return;
-            checkoutBusy = true;
+        // ===== USDT: واجهة الدفع + الربط مع الخادم (المرحلة 2) =====
+        // الواجهة تعرض فقط ما يعيده الخادم. لا عناوين ثابتة، ولا إدخال TXID، ولا تغيير لحالة الطلب من المتصفح.
+        // الإنشاء: create_usdt_order داخل requestUsdtOrder(). التحقق: verify-usdt-payment ثم قراءة orders.status. لا تسليم تلقائي.
+        const USDT_STATUS = {
+            idle:     { text: 'لم يتم إنشاء الطلب بعد', cls: 'text-slate-300' },
+            creating: { text: 'جاري إنشاء الطلب...', cls: 'text-sky-300' },
+            waiting:  { text: 'بانتظار التحويل', cls: 'text-amber-300' },
+            review:   { text: 'وصلت بيانات دفع تحتاج إلى مراجعة الإدارة. لا ترسل دفعة أخرى.', cls: 'text-sky-300' },
+            expired:  { text: 'انتهت مهلة الدفع بعد التحقق من الخادم. أنشئ طلباً جديداً عند الحاجة.', cls: 'text-red-400' },
+            error:    { text: 'تعذّر إنشاء الطلب', cls: 'text-red-400' },
+            grace:    { text: 'انتهى الوقت الأساسي. ما زال الخادم يتحقق من أي تحويل وصل.', cls: 'text-amber-300' }
+        };
+        const USDT_POLL_MS = 10000;
+        // paid = الحالات التي يعدّها كود PayPal الحالي دفعاً مؤكداً (أي أن الطلب تجاوز pending_payment).
+        const USDT_PAID_STATUSES = ['paid', 'processing', 'completed'];
+        const usdtState = { order: null, networkKey: null, timer: null, busy: false, qrToken: 0,
+                            pollTimer: null, polling: false, snapshot: null, graceMs: NaN, expiresMs: NaN, ownerId: null };
+
+        function usdtEl(id) { return document.getElementById(id); }
+        function usdtFormatTime(sec) {
+            sec = Math.max(0, sec);
+            return String(Math.floor(sec / 60)).padStart(2, '0') + ':' + String(sec % 60).padStart(2, '0');
+        }
+        function usdtSetStatus(key, customText) {
+            const s = USDT_STATUS[key] || USDT_STATUS.idle;
+            const el = usdtEl('usdtPaymentStatus');
+            el.textContent = customText || s.text;
+            el.className = 'font-bold text-left leading-relaxed ' + s.cls;
+            el.dataset.state = key;
+        }
+        function usdtStopTimer() {
+            if (usdtState.timer) { clearInterval(usdtState.timer); usdtState.timer = null; }
+        }
+        function usdtStopPolling() {
+            if (usdtState.pollTimer) { clearTimeout(usdtState.pollTimer); usdtState.pollTimer = null; }
+            usdtState.polling = false;
+            usdtState.pollGen = (usdtState.pollGen || 0) + 1;   // يُبطل أي استدعاء جارٍ
+        }
+        function usdtUpdateButtons() {
+            const hasOrder = !!usdtState.order;
+            const btn = usdtEl('usdtCreateOrderBtn');
+            btn.disabled = usdtState.busy || hasOrder;
+            usdtEl('usdtNetworkSelect').disabled = usdtState.busy || hasOrder;
+            usdtEl('usdtCopyBtn').disabled = !hasOrder;
+            // أثناء انتظار طلب USDT نُقفل تبديل طريقة الدفع حتى لا يُنشأ طلب ثانٍ بالخطأ.
+            const lock = usdtState.busy || hasOrder;
+            document.querySelectorAll('input[name="payment"]').forEach(r => {
+                r.disabled = lock;
+                if (r.parentElement) {
+                    const dim = lock && r.value !== 'usdt';
+                    r.parentElement.classList.toggle('opacity-50', dim);
+                    r.parentElement.classList.toggle('pointer-events-none', dim);
+                }
+            });
+        }
+        // يعيد العرض لحالة ما قبل الإنشاء. لا ينشئ طلباً ولا يتصل بالخادم.
+        function usdtResetView() {
+            usdtStopTimer();
+            usdtStopPolling();
+            usdtState.order = null;
+            usdtState.networkKey = null;
+            usdtState.snapshot = null;
+            usdtState.ownerId = null;
+            usdtState.graceMs = NaN;
+            usdtState.expiresMs = NaN;
+            usdtState.qrToken++;
+            usdtEl('usdtOrderNumberRow').classList.add('hidden');
+            usdtEl('usdtGraceRow').classList.add('hidden');
+            const key = usdtEl('usdtNetworkSelect').value;
+            const net = USDT_NETWORKS[key] || USDT_NETWORKS.trc20;
+            usdtEl('usdtNetwork').textContent = net.label;
+            usdtEl('usdtAmount').textContent = '—';   // المبلغ الحقيقي يأتي من الخادم بعد إنشاء الطلب
+            usdtEl('usdtAddress').textContent = '—';
+            usdtEl('usdtQr').innerHTML = '';
+            usdtEl('usdtQrWrap').classList.add('hidden');
+            usdtEl('usdtCountdown').textContent = '--:--';   // المهلة الحقيقية تأتي من payment_expires_at بعد إنشاء الطلب
+            usdtEl('usdtCountdown').classList.remove('text-red-400');
+            usdtSetStatus('idle');
+            usdtUpdateButtons();
+        }
+        // مالك الطلب تغيّر (خروج/دخول بحساب آخر): نوقف المتابعة ونمسح العرض.
+        function usdtAbortForOwner() {
+            usdtStopTimer();
+            usdtStopPolling();
+            idemSig = null;
+            usdtResetView();
+        }
+        function usdtOnShow() {
+            if (usdtState.order && (!window.currentUser || window.currentUser.id !== usdtState.ownerId)) usdtAbortForOwner();
+            if (!usdtState.order && !usdtState.busy) usdtResetView();
+        }
+        // تغيير الشبكة يحدّث العرض فقط، ولا ينشئ طلباً.
+        function usdtOnNetworkChange() {
+            if (usdtState.order || usdtState.busy) return;
+            usdtResetView();
+        }
+        function usdtCopyAddress(btn) {
+            if (!usdtState.order) return;
+            copyText(usdtEl('usdtAddress').textContent, btn);
+        }
+        function usdtRenderQr(address) {
+            const box = usdtEl('usdtQr');
+            const token = ++usdtState.qrToken;
+            box.innerHTML = '';
+            usdtEl('usdtQrWrap').classList.remove('hidden');
+            const draw = () => {
+                if (token !== usdtState.qrToken) return;
+                box.innerHTML = '';
+                new QRCode(box, { text: address, width: 160, height: 160, colorDark: '#000000', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.M });
+            };
+            const fail = () => {
+                if (token !== usdtState.qrToken) return;
+                box.innerHTML = '<span class="text-[11px] text-slate-700 p-3 text-center">تعذّر تحميل رمز QR. استخدم عنوان الإيداع أعلاه.</span>';
+            };
+            if (window.QRCode) { try { draw(); } catch (_) { fail(); } return; }
+            const sc = document.createElement('script');
+            sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';
+            sc.onload = () => { try { draw(); } catch (_) { fail(); } };
+            sc.onerror = fail;
+            document.head.appendChild(sc);
+        }
+        function usdtFormatDate(ms) {
+            try { return new Date(ms).toLocaleString('en-GB', { hour12: false }); } catch (_) { return ''; }
+        }
+        // ينتهي العدّاد عند payment_expires_at. بعده يستمر التحقق من الخادم حتى grace_until (إن وُجد) ثم تُغلق الواجهة.
+        function usdtStartCountdown(expiresAtMs) {
+            usdtStopTimer();
+            const tick = () => {
+                const left = Math.ceil((expiresAtMs - Date.now()) / 1000);
+                usdtEl('usdtCountdown').textContent = usdtFormatTime(left);
+                if (left > 0) return;
+                usdtStopTimer();
+                usdtEl('usdtCountdown').classList.add('text-red-400');
+                // لا يقرر المتصفح انتهاء الطلب اعتماداً على الساعة المحلية.
+                // يستمر التحقق حتى يعيد الخادم الحالة النهائية بعد فحص Binance.
+                usdtSetStatus('grace');
+            };
+            tick();
+            if (usdtState.order && !usdtState.timer && usdtEl('usdtCountdown').textContent !== '00:00') usdtState.timer = setInterval(tick, 1000);
+        }
+        // انتهت المهلة (وفترة السماح إن وُجدت) دون تأكيد من الخادم: نوقف التحقق ونسمح بإنشاء طلب جديد.
+        function usdtExpireView() {
+            usdtStopTimer();
+            usdtStopPolling();
+            usdtSetStatus('expired');
+            usdtState.order = null;
+            usdtState.snapshot = null;
+            usdtState.ownerId = null;
+            idemSig = null;   // مفتاح جديد للطلب التالي حتى لا يُعاد الطلب المنتهي نفسه
+            usdtUpdateButtons();
+        }
+        // يقرأ حالة الطلب من الخادم (جدول orders بنفس طريقة "طلباتي") ولا يعتمد على شكل ردّ verify-usdt-payment.
+        async function usdtFetchOrderStatus(orderId, ownerId) {
+            const u = window.currentUser;
+            if (!supabaseClient || !u || !ownerId || u.id !== ownerId) return null;   // المستخدم الحالي يجب أن يكون صاحب الطلب
+            const { data, error } = await supabaseClient.from('orders')
+                .select('id,status,user_id')
+                .eq('id', orderId).eq('user_id', ownerId).maybeSingle();
+            if (error || !data || data.id !== orderId || data.user_id !== ownerId) return null;
+            return data.status;
+        }
+        async function usdtPollOnce(gen) {
+            const order = usdtState.order;
+            if (!order || gen !== usdtState.pollGen || usdtState.polling) return;
+            usdtState.polling = true;
             try {
-                const ord = await createServerOrder('manual');
-                const { error } = await supabaseClient.rpc('submit_manual_payment', {
-                    p_order_id: ord.order_id, p_reference: net.label + ': ' + tx
-                });
-                if (error) { await tryCancelOrder(ord.order_id); throw error; }
-                finishOrder({ methodLabel: 'USDT ' + net.label, reference: tx, pending: true, orderNumber: ord.order_number, total: ord.total });
+                const me = window.currentUser;
+                if (!me || me.id !== usdtState.ownerId) { usdtAbortForOwner(); return; }
+                // جسم الطلب: { order_id } فقط.
+                const { data: verifyData, error } = await supabaseClient.functions.invoke('verify-usdt-payment', { body: { order_id: order.order_id } });
+                if (error) console.warn('[USDT] verify-usdt-payment:', error.message || error);
+                // نجاح الدفع لا يُستنتج من رد Edge Function؛ نقرأ حالة الطلب من قاعدة البيانات.
+                const status = await usdtFetchOrderStatus(order.order_id, usdtState.ownerId);
+                if (gen !== usdtState.pollGen || usdtState.order !== order) return;
+                if (USDT_PAID_STATUSES.indexOf(status) !== -1) { usdtOnPaid(order, status); return; }
+                // حالة المراجعة ليست نجاحاً ولا تمسح السلة؛ مصدرها رد الخادم الموثق.
+                if (!error && verifyData && verifyData.status === 'under_review') {
+                    usdtStopTimer();
+                    usdtStopPolling();
+                    usdtSetStatus('review');
+                    return;
+                }
+                // انتهاء الطلب يُقبل فقط من الخادم بعد معالجة سجل Binance.
+                if (!error && verifyData && verifyData.status === 'expired' && status === 'expired') {
+                    usdtExpireView();
+                    return;
+                }
             } catch (e) {
-                alert(friendlyError(e));
-            } finally { checkoutBusy = false; }
+                console.warn('[USDT] تعذّر التحقق هذه المرة:', e && e.message ? e.message : e);
+            } finally {
+                if (gen === usdtState.pollGen) usdtState.polling = false;
+            }
+            if (gen !== usdtState.pollGen || usdtState.order !== order) return;
+            // لا نوقف المتابعة محلياً عند انتهاء الوقت؛ الخادم وحده يقرر expired
+            // بعد فحص سجل Binance. أخطاء الشبكة لا تحوّل الطلب إلى منتهي أو مدفوع.
+            usdtState.pollTimer = setTimeout(() => usdtPollOnce(gen), USDT_POLL_MS);
+        }
+        function usdtStartPolling() {
+            usdtStopPolling();
+            const gen = usdtState.pollGen;
+            usdtState.pollTimer = setTimeout(() => usdtPollOnce(gen), 3000);
+        }
+        // لا يُستدعى finishOrder إلا من هنا، وبعد أن قرأ المتصفح من جدول orders (لصاحب الطلب) حالة مدفوعة.
+        // الإجمالي والعملة من نتيجة create_usdt_order، ولا يُستخدم payment_id كدليل دفع أو مرجع.
+        function usdtOnPaid(order, verifiedStatus) {
+            if (!usdtState.order || usdtState.order !== order) return;
+            if (USDT_PAID_STATUSES.indexOf(verifiedStatus) === -1) return;
+            const snap = usdtState.snapshot || {};
+            const networkKey = usdtState.networkKey;
+            const orderNumber = String(order.order_number);
+            usdtStopTimer();
+            usdtStopPolling();
+            usdtState.order = null;
+            usdtState.snapshot = null;
+            usdtState.ownerId = null;
+            usdtUpdateButtons();
+            finishOrder({
+                methodLabel: 'USDT - ' + (USDT_NETWORKS[networkKey] ? USDT_NETWORKS[networkKey].label : order.network),
+                reference: orderNumber,
+                pending: false,
+                orderNumber: orderNumber,
+                total: snap.total,
+                currency: snap.currency,
+                items: snap.items
+            });
+            usdtResetView();
+        }
+        // يتحقق من ردّ create_usdt_order قبل عرض أي شيء. يرمي usdt_network_mismatch أو usdt_invalid_order_response.
+        // لا يوجد أي قيمة افتراضية: إن غاب حقل مطلوب يُرفض الطلب كاملاً.
+        function usdtValidateOrder(res, networkKey) {
+            const bad = (why) => { console.error('[USDT] ردّ مرفوض:', why); return new Error('usdt_invalid_order_response'); };
+            if (!res || typeof res !== 'object') throw bad('no_response');
+            const present = (v) => v !== null && v !== undefined && String(v).trim() !== '';
+            const missing = ['order_id', 'order_number', 'payment_id', 'deposit_address', 'usdt_amount', 'payment_expires_at', 'grace_until', 'total', 'currency']
+                .filter(k => !present(res[k]));
+            if (missing.length) throw bad('missing: ' + missing.join(','));
+
+            // الشبكة: يجب أن تطابق المختارة تماماً (بعد trim وأحرف صغيرة). غيابها يُرفض أيضاً.
+            const srvNet = typeof res.network === 'string' ? res.network.trim().toLowerCase() : '';
+            if (!srvNet || srvNet !== networkKey) {
+                console.error('[USDT] الشبكة المُعادة لا تطابق المختارة:', srvNet || '(فارغة)', '≠', networkKey);
+                throw new Error('usdt_network_mismatch');
+            }
+
+            const address = typeof res.deposit_address === 'string' ? res.deposit_address.trim() : '';
+            if (!address) throw bad('deposit_address');
+            const rawAmount = res.usdt_amount;
+            const amountText = (typeof rawAmount === 'string' || typeof rawAmount === 'number') ? String(rawAmount).trim() : '';
+            if (amountText === '' || !isFinite(Number(amountText)) || Number(amountText) <= 0) throw bad('usdt_amount');   // تحقق فقط، العرض بالنص الأصلي
+
+            const exp = new Date(res.payment_expires_at).getTime();
+            const grace = new Date(res.grace_until).getTime();
+            if (!isFinite(exp)) throw bad('payment_expires_at');
+            if (!isFinite(grace) || grace < exp) throw bad('grace_until');
+
+            if (typeof res.total === 'boolean' || !isFinite(Number(res.total)) || Number(res.total) <= 0) throw bad('total');
+            if (typeof res.currency !== 'string' || !res.currency.trim()) throw bad('currency');
+
+            return { address: address, amountText: amountText, expMs: exp, graceMs: grace, net: USDT_NETWORKS[networkKey] };
+        }
+        // يعرض نتيجة create_usdt_order كما أعادها الخادم، دون أي تعديل على usdt_amount.
+        function usdtApplyOrder(res, networkKey, itemsSnapshot, ownerId) {
+            const v = usdtValidateOrder(res, networkKey);   // يرمي قبل أي تعديل على الحالة أو الواجهة
+            if (!ownerId) throw new Error('usdt_invalid_order_response');
+            usdtState.order = res;
+            usdtState.networkKey = networkKey;
+            usdtState.ownerId = ownerId;
+            usdtState.snapshot = { items: itemsSnapshot || [], total: res.total, currency: res.currency };   // من الخادم، لا من السلة
+            usdtEl('usdtOrderNumber').textContent = String(res.order_number);
+            usdtEl('usdtOrderNumberRow').classList.remove('hidden');
+            usdtEl('usdtNetwork').textContent = v.net.label;
+            usdtEl('usdtAmount').textContent = v.amountText + ' USDT';
+            usdtEl('usdtAddress').textContent = v.address;
+            usdtRenderQr(v.address);
+            usdtSetStatus('waiting');
+            usdtUpdateButtons();
+            usdtState.expiresMs = v.expMs;   // من الخادم فقط
+            usdtState.graceMs = v.graceMs;
+            usdtEl('usdtGraceUntil').textContent = usdtFormatDate(v.graceMs);
+            usdtEl('usdtGraceRow').classList.remove('hidden');
+            usdtStartCountdown(usdtState.expiresMs);
+            usdtStartPolling();
+        }
+        // create_usdt_order(p_items jsonb, p_delivery jsonb, p_idempotency_key text, p_network text)
+        // p_network يُرسل كما هو بأحرف صغيرة: trc20 | bsc | polygon | solana.
+        async function requestUsdtOrder(networkKey) {
+            const info = getOrderInfo();
+            const items = cartPayload();
+            const delivery = { discord: info.discord, character: info.char, region: info.region };
+            // أي تغيير في الشبكة أو السلة أو بيانات التسليم يولّد مفتاحاً جديداً؛ التكرار بنفس القيم يعيد المفتاح نفسه.
+            const sig = JSON.stringify({ m: 'usdt', network: networkKey, items: items, delivery: delivery });
+            if (idemSig !== sig) {
+                idemSig = sig;
+                idemKey = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : (Date.now() + '-' + Math.random().toString(36).slice(2));
+            }
+            const { data, error } = await supabaseClient.rpc('create_usdt_order', {
+                p_items: items,
+                p_delivery: delivery,
+                p_idempotency_key: idemKey,
+                p_network: networkKey
+            });
+            if (error) { idemSig = null; throw error; }
+            return Array.isArray(data) ? data[0] : data;   // دالة قد تعيد صفاً واحداً داخل مصفوفة أو كائناً
+        }
+        async function usdtCreateOrder() {
+            if (usdtState.busy || usdtState.order) return;
+            const form = document.getElementById('checkoutForm');
+            if (!form.checkValidity()) { form.reportValidity(); return; }
+            if (checkoutBusy || !checkoutReady()) return;
+            const networkKey = usdtEl('usdtNetworkSelect').value;
+            if (!USDT_NETWORKS[networkKey]) return;
+            usdtState.busy = true; checkoutBusy = true;
+            usdtSetStatus('creating');
+            usdtUpdateButtons();
+            try {
+                // لقطة من السلة لاستخدامها في ملخص النجاح بعد تأكيد الدفع.
+                const itemsSnapshot = cart.map(i => ({ name: i.name, qty: i.qty }));
+                const ownerId = window.currentUser && window.currentUser.id;
+                const res = await requestUsdtOrder(networkKey);
+                if (!window.currentUser || window.currentUser.id !== ownerId) throw new Error('usdt_owner_changed');
+                usdtApplyOrder(res, networkKey, itemsSnapshot, ownerId);
+            } catch (e) {
+                const msg = (e && e.message) || '';
+                if (msg === 'usdt_invalid_order_response' || msg === 'usdt_network_mismatch' || msg.includes('usdt_idempotency_network_mismatch')) {
+                    // لا نلغي أي طلب من المتصفح هنا؛ قد تكون الاستجابة مرتبطة بطلب سابق صالح.
+                    // تُجبر المحاولة التالية على مفتاح idempotency جديد دون تغيير حالة الطلب القديم.
+                    idemSig = null;
+                }
+                if (msg === 'usdt_network_mismatch' || msg.includes('usdt_idempotency_network_mismatch')) usdtSetStatus('error', 'مفتاح الطلب السابق مرتبط بشبكة مختلفة. لم يتم إنشاء طلب جديد ولم يتم إلغاء الطلب السابق. ابدأ محاولة جديدة بعد مراجعة طلباتك.');
+                else if (msg === 'usdt_invalid_order_response') usdtSetStatus('error', 'استجابة غير صالحة من الخادم. حاول مرة أخرى.');
+                else if (msg === 'usdt_owner_changed') usdtSetStatus('error', 'تغيّر الحساب أثناء إنشاء الطلب. راجع «طلباتي» بعد تسجيل الدخول بالحساب الأصلي.');
+                else usdtSetStatus('error', friendlyError(e));
+            } finally {
+                usdtState.busy = false; checkoutBusy = false;
+                usdtUpdateButtons();
+            }
+        }
+
+        // PayPal يُنشأ ويُؤكَّد من أزراره. نموذج الدفع لا يرسل شيئاً بنفسه (USDT يعمل بزر إنشاء الطلب).
+        function handleCheckout(event) {
+            event.preventDefault();
         }
 
         function finishOrder(o) {
             const info = getOrderInfo();
+            const totalNum = Number(o.total);
+            const totalText = (o.total === undefined || o.total === null || o.total === '' || !isFinite(totalNum))
+                ? '—'
+                : (o.currency ? totalNum.toFixed(2) + ' ' + String(o.currency).toUpperCase() : '$' + totalNum.toFixed(2));
             const lines = Array.isArray(o.items) ? o.items.map(i => '- ' + i.name + ' x' + i.qty) : cart.map(i => '- ' + i.name + ' x' + i.qty);
             const summary = [
                 'Order ' + o.orderNumber,
@@ -1606,7 +1929,7 @@ body.english-mode #accountModal > div > button {
                 'Region: ' + info.region,
                 'Items:',
                 ...lines,
-                'Total: $' + Number(o.total).toFixed(2)
+                'Total: ' + totalText
             ].join('\n');
 
             document.getElementById('successOrderId').innerText = o.orderNumber;
@@ -1614,7 +1937,7 @@ body.english-mode #accountModal > div > button {
             document.getElementById('successStatus').innerText = o.review
                 ? 'تم استلام الدفع وهو قيد المراجعة اليدوية من الإدارة.'
                 : (o.pending ? 'سيتم التحقق من التحويل يدوياً قبل التسليم. المخزون محجوز لك حتى المراجعة.'
-                             : 'تم تأكيد الدفع عبر PayPal من الخادم.');
+                             : 'تم تأكيد الدفع عبر ' + o.methodLabel + ' من الخادم.');
             const st = document.getElementById('successDbStatus');
             st.textContent = 'تم حفظ الطلب في حسابك ✅';
             st.className = 'text-[11px] mb-3 leading-relaxed text-emerald-400';
@@ -2197,7 +2520,7 @@ body.english-mode #accountModal > div > button {
             left.appendChild(mk('div', 'text-white font-bold font-mono text-sm truncate', o.order_number || '—'));
             left.appendChild(mk('div', 'text-[11px] text-slate-500 mt-0.5', o.created_at ? new Date(o.created_at).toLocaleString('ar') : '—'));
             let statusKey = String(o.status || '').toLowerCase();
-            const underReview = statusKey === 'pending_payment' && Array.isArray(o.payments) && o.payments.some(p => p.status === 'under_review');
+            const underReview = ['pending_payment', 'expired', 'cancelled'].includes(statusKey) && Array.isArray(o.payments) && o.payments.some(p => p.status === 'under_review');
             if (underReview) statusKey = 'under_review';
             const badge = mk('span', 'shrink-0 text-[11px] font-bold px-2.5 py-1 rounded-lg border ' + (ORDER_STATUS_STYLES[statusKey] || 'bg-slate-800 text-slate-300 border-slate-700'),
                 ORDER_STATUS_LABELS[statusKey] || o.status || '—');
@@ -2725,8 +3048,8 @@ body.english-mode #accountModal > div > button {
             act.appendChild(btn('تفاصيل', 'bg-slate-900 border-slate-700 text-slate-200 hover:border-starlight', () => openDetails(row)));
             if (S.tbl === 'orders' && hasId && !custom()) act.appendChild(btn('سجل الطلب', 'bg-slate-900 border-cyan-500/40 text-cyan-300 hover:border-cyan-300', () => openOrderAudit(row)));
             if (S.tbl === 'products' && hasId && !custom()) act.appendChild(btn('المخزون', 'bg-slate-900 border-emerald-500/40 text-emerald-300', () => openStock(row)));
-            if (S.tbl === 'payments' && row.status === 'under_review' && row.method === 'manual' && hasId) {
-                act.appendChild(btn('قبول', 'bg-slate-900 border-emerald-500/40 text-emerald-300', () => reviewPayment(row, true)));
+            if (S.tbl === 'payments' && row.status === 'under_review' && ['manual', 'usdt'].includes(String(row.method || '').toLowerCase()) && hasId) {
+                act.appendChild(btn(row.method === 'usdt' ? 'قبول USDT (تسليم يدوي)' : 'قبول', 'bg-slate-900 border-emerald-500/40 text-emerald-300', () => reviewPayment(row, true)));
                 act.appendChild(btn('رفض', 'bg-slate-900 border-red-500/40 text-red-300', () => reviewPayment(row, false)));
             }
             if (can('edit') && hasId) act.appendChild(btn('تعديل', 'bg-slate-900 border-slate-700 text-starlight hover:border-starlight', () => openForm(row)));
@@ -2977,12 +3300,38 @@ body.english-mode #accountModal > div > button {
         ]);
     }
     async function reviewPayment(row, approve) {
-        const note = approve ? null : (prompt('سبب الرفض (اختياري):') || null);
-        if (!confirm(approve ? 'قبول هذه الدفعة وإكمال الطلب؟' : 'رفض الدفعة؟ سيُلغى الطلب ويُعاد المخزون.')) return;
         if (!(await guard())) return;
-        const r = await supabaseClient.rpc('admin_review_manual_payment', { p_payment_id: row.id, p_approve: approve, p_note: note });
+        const isUsdt = String(row.method || '').toLowerCase() === 'usdt';
+        let evidenceText = '';
+        if (isUsdt) {
+            const evidence = await supabaseClient.rpc('admin_get_usdt_review_details', { p_payment_id: row.id });
+            if (evidence.error || !evidence.data) {
+                msg('تعذّر جلب تفاصيل مراجعة USDT: ' + (evidence.error ? evidence.error.message : 'لا توجد تفاصيل'), 'err');
+                return;
+            }
+            const d = evidence.data;
+            const candidates = Array.isArray(d.review_candidates) ? d.review_candidates : [];
+            evidenceText = '\n\nتفاصيل USDT:' +
+                '\nالشبكة: ' + (d.network || '—') +
+                '\nالمبلغ المطلوب: ' + (d.target_amount || '—') +
+                '\nالعنوان: ' + (d.deposit_address || '—') +
+                '\nسبب المراجعة: ' + (d.review_reason || '—') +
+                '\nعدد الإيداعات المرشحة: ' + candidates.length +
+                (candidates.length ? '\nالمرشحات: ' + candidates.map((c, i) =>
+                    (i + 1) + ') ' + [c.network, c.amount, c.txId, c.insertTime ? new Date(Number(c.insertTime)).toISOString() : ''].filter(Boolean).join(' | ')
+                ).join('\n') : '');
+        }
+        const note = approve ? null : (prompt('سبب الرفض (اختياري):' + evidenceText) || null);
+        const confirmText = isUsdt
+            ? (approve ? 'اعتماد دفعة USDT؟ سيتم تحويل الطلب إلى مدفوع وإنشاء تسليم يدوي pending فقط، دون تسليم رقمي تلقائي.' : 'رفض دفعة USDT؟' ) + evidenceText
+            : (approve ? 'قبول هذه الدفعة وإكمال الطلب؟' : 'رفض الدفعة؟ سيُلغى الطلب ويُعاد المخزون.');
+        if (!confirm(confirmText)) return;
+        // USDT المتأخر له RPC منفصل: لا يستدعي _mark_order_paid ولا التسليم الرقمي التلقائي.
+        const reviewRpc = isUsdt ? 'admin_review_usdt_payment' : 'admin_review_manual_payment';
+        const r = await supabaseClient.rpc(reviewRpc, { p_payment_id: row.id, p_approve: approve, p_note: note });
         if (r.error) { msg('تعذّرت المراجعة: ' + r.error.message, 'err'); return; }
-        msg(approve ? 'تم قبول الدفعة ✅' : 'تم رفض الدفعة وإعادة المخزون ✅', 'ok'); load();
+        msg(approve ? (isUsdt ? 'تم اعتماد USDT للتسليم اليدوي ✅' : 'تم قبول الدفعة ✅') : 'تم رفض الدفعة وإعادة المخزون ✅', 'ok');
+        load();
     }
     async function remove(row) {
         if (!confirm('حذف هذا السجل نهائياً؟ لا يمكن التراجع.')) return;
@@ -3018,6 +3367,14 @@ body.english-mode #accountModal > div > button {
 /* ================= ONCE HUMAN STORE: Arabic / English ================= */
 (() => {
   const translations = {
+    'عنوان الإيداع:':'Deposit Address:','الوقت المتبقي للدفع:':'Time left to pay:','حالة الدفع:':'Payment Status:',
+    'لم يتم إنشاء الطلب بعد':'Order not created yet','جاري إنشاء الطلب...':'Creating order...','بانتظار التحويل':'Awaiting transfer',
+    'وصلت بيانات دفع تحتاج إلى مراجعة الإدارة. لا ترسل دفعة أخرى.':'Payment details require admin review. Do not send another payment.',
+    'انتهت مهلة الدفع. أنشئ طلباً جديداً.':'Payment window expired. Create a new order.','تعذّر إنشاء الطلب':'Could not create the order',
+    'الدفع عبر USDT غير مفعّل بعد.':'USDT payment is not enabled yet.','إنشاء الطلب وعرض عنوان الدفع':'Create Order & Show Payment Address',
+    'اختر شبكة التحويل':'Choose transfer network','تعذّر تحميل رمز QR. استخدم عنوان الإيداع أعلاه.':'Could not load the QR code. Use the deposit address above.',
+    'استجابة غير صالحة من الخادم. حاول مرة أخرى.':'Invalid server response. Please try again.',
+    'الشبكة المُعادة من الخادم لا تطابق الشبكة المختارة. لم يُعتمد الطلب، لا تحوّل أي مبلغ. حاول مرة أخرى.':'The network returned by the server does not match the selected network. The order was not accepted; do not send any funds. Please try again.',
     'متجر Once Human - خدمات وموارد وانس هيومن الاحترافية':'Once Human Store - Premium Services & Resources',
     'متجر خدمات وموارد وانس هيومن':'Once Human Services & Resources',
     'SAR (ر.س)':'SAR (ر.س)',
@@ -3043,7 +3400,7 @@ body.english-mode #accountModal > div > button {
     'متابعة عملية الشراء':'Proceed to Checkout','خطوات بسيطة من الشراء حتى استلام الطلب داخل اللعبة.':'A few simple steps from purchase to in-game delivery.',
     'أضف المنتجات التي تريدها إلى سلة الشراء، ثم اضغط «متابعة عملية الشراء».':'Add your products to the cart, then click “Proceed to Checkout”.',
     'اكتب اسم حسابك في الديسكورد، واسم شخصيتك في اللعبة، واختر منطقة السيرفر الصحيحة.':'Enter your Discord username and in-game character name, then select your server region.',
-    'ادفع عبر PayPal، أو حوّل مبلغ USDT على الشبكة التي تختارها ثم الصق رقم العملية (TXID).':'Pay with PayPal, or send USDT on your chosen network and enter the transaction ID (TXID).',
+    'ادفع عبر PayPal، أو اختر شبكة USDT وأنشئ الطلب ثم حوّل المبلغ إلى عنوان الإيداع الظاهر لك.':'Pay with PayPal, or choose a USDT network, create the order, then send the amount to the deposit address shown.',
     'بعد إتمام الطلب تظهر لك تفاصيله. انسخها وادخل إلى سيرفر الديسكورد وافتح تذكرة (Ticket) وأرسلها هناك.':'After placing your order, copy its details, join our Discord server, open a ticket, and send them there.',
     'يتواصل معك المشرف في التذكرة ويسلّمك طلبك داخل اللعبة. التسليم عادةً خلال 15 دقيقة من تأكيد الدفع، وفي حالة USDT بعد التحقق من التحويل يدوياً.':'A moderator will contact you in the ticket and deliver your order in-game. Delivery usually takes 15 minutes after payment confirmation. USDT transfers require manual verification.',
     'لتسريع التسليم، تأكد من كتابة اسم الشخصية ومنطقة السيرفر بشكل صحيح، وكن متواجداً على الديسكورد بعد الدفع.':'For faster delivery, enter your character name and server region correctly, and stay available on Discord after payment.',
@@ -3447,7 +3804,7 @@ body.english-mode #accountModal > div > button {
               ['status','كيف أعرف طلباتي وحالتها؟','يمكنك مراجعة طلباتك ومعرفة حالتها من الملف الشخصي:\n1. اضغط على زر حسابك في أعلى المتجر (سجّل الدخول أولًا إن لم تكن مسجّلًا).\n2. افتح الملف الشخصي.\n3. ستجد قسم «طلباتي» يعرض جميع طلباتك، وحالة كل طلب وتفاصيله.']
             ]},
             {id:'payment',icon:'fa-wallet',label:'الدفع',desc:'طرق الدفع ومراجعة التحويل',items:[
-              ['methods','ما طرق الدفع المتاحة؟','الطرق المتاحة حاليًا:\n• PayPal / بطاقة بنكية: الدفع بالدولار الأمريكي (USD) ويتم تأكيده تلقائيًا.\n• USDT على شبكة TRC20 (TRON).\n• USDT على شبكة Polygon (POS).\n\nاختر طريقة الدفع في صفحة إتمام الطلب. وعند التحويل بـ USDT أرسل على الشبكة المحددة فقط ثم الصق رقم العملية (TXID).'],
+              ['methods','ما طرق الدفع المتاحة؟','الطرق المتاحة حاليًا:\n• PayPal / بطاقة بنكية: الدفع بالدولار الأمريكي (USD) ويتم تأكيده تلقائيًا.\n• USDT على شبكات TRC20 (TRON) وBSC (BEP20) وPolygon POS وSolana.\n\nاختر طريقة الدفع في صفحة إتمام الطلب. وعند الدفع بـ USDT أنشئ الطلب ثم أرسل المبلغ إلى عنوان الإيداع الظاهر على الشبكة المحددة فقط.'],
               ['review','كيف تتم مراجعة التحويل؟','تتم مراجعة التحويل عن طريق Discord. ادخل سيرفر الديسكورد وافتح تذكرة (Ticket)، ثم أرسل رقم الطلب ورقم العملية (TXID) أو إثبات التحويل ليتم التحقق منه. لا ترسل تحويلًا ثانيًا قبل التواصل مع الدعم.'],
               ['rejected','تم رفض عملية الدفع','تواصل مع الدعم عبر Discord وأرسل رقم الطلب وإثبات التحويل ومرجعه لمعرفة سبب الرفض ومراجعته.'],
               ['notupdated','حوّلت المبلغ لكن الحالة لم تتغير','أرسل رقم الطلب وإثبات التحويل إلى الدعم عبر Discord ليتم التحقق من العملية.']
@@ -3470,7 +3827,7 @@ body.english-mode #accountModal > div > button {
           title:'Frequently Asked Questions',subtitle:'Choose a question to view its answer',kicker:'HELP CENTER',back:'Back',faq:'Frequently Asked Questions',faqDesc:'Choose a topic and then a question to see its answer',discord:'Contact support on Discord',discordDesc:'Open the support server to talk to our team',satisfied:'This helped me',rating:'Rate this answer',ratingThanks:'Thanks for your rating',contact:'Contact support on Discord',
           categories:[
             {id:'orders',icon:'fa-receipt',label:'Orders',desc:'View your orders and their status',items:[['status','How can I view my orders and their status?','You can review your orders and their status from your Profile:\n1. Tap your account button at the top of the store (sign in first if needed).\n2. Open your Profile.\n3. Under “My Orders” you will see all your orders, the status of each one, and its details.']]},
-            {id:'payment',icon:'fa-wallet',label:'Payments',desc:'Payment methods and verification',items:[['methods','Which payment methods are available?','Currently available methods:\n• PayPal / bank card: paid in USD and confirmed automatically.\n• USDT on the TRC20 (TRON) network.\n• USDT on the Polygon (POS) network.\n\nChoose your method on the checkout page. For USDT, send only on the selected network, then paste the transaction ID (TXID).'],['review','How is a transfer reviewed?','Transfers are reviewed through Discord. Join our Discord server and open a ticket, then send your order number and the transaction ID (TXID) or transfer receipt for verification. Do not send a second transfer before contacting support.'],['rejected','My payment was rejected','Contact support on Discord and provide your order number, transfer receipt, and transaction reference so the team can review it.'],['notupdated','I paid but the status has not changed','Send your order number and transfer receipt to support on Discord so the payment can be checked.']]},
+            {id:'payment',icon:'fa-wallet',label:'Payments',desc:'Payment methods and verification',items:[['methods','Which payment methods are available?','Currently available methods:\n• PayPal / bank card: paid in USD and confirmed automatically.\n• USDT on TRC20 (TRON), BSC (BEP20), Polygon POS and Solana.\n\nChoose your method on the checkout page. For USDT, create the order, then send the amount to the deposit address shown, only on the selected network.'],['review','How is a transfer reviewed?','Transfers are reviewed through Discord. Join our Discord server and open a ticket, then send your order number and the transaction ID (TXID) or transfer receipt for verification. Do not send a second transfer before contacting support.'],['rejected','My payment was rejected','Contact support on Discord and provide your order number, transfer receipt, and transaction reference so the team can review it.'],['notupdated','I paid but the status has not changed','Send your order number and transfer receipt to support on Discord so the payment can be checked.']]},
             {id:'delivery',icon:'fa-gamepad',label:'In-game delivery',desc:'Delivery steps and requirements',items:[['how','How do I receive my products?','Products are received through Discord. After placing your order, copy its details, join our Discord server, and open a ticket to send them. A moderator will contact you and deliver your order in-game.'],['data','How do I prepare my delivery details?','Contact the delivery team on Discord. They will tell you which details are needed to complete the in-game delivery.'],['late','My product delivery is delayed','Contact the delivery team on Discord and provide your order number to check and follow up on delivery.'],['wrong','I sent incorrect delivery details','Contact the delivery team on Discord immediately with your order number and the corrected details.']]},
             {id:'account',icon:'fa-user',label:'Account and sign-in',desc:'Open your profile or sign in',action:'account'},
             {id:'technical',icon:'fa-lightbulb',label:'Suggestions & Errors',desc:'Send a suggestion or describe an issue',form:'issue'},
