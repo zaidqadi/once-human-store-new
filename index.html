@@ -166,7 +166,17 @@
         .animate-spin-slow { animation: spin-slow 8s linear infinite; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-    </style>
+    
+        /* English layout adjustments */
+        html[dir="ltr"] body { font-family: 'Montserrat', Arial, sans-serif; }
+        html[dir="ltr"] .text-right { text-align: left !important; }
+        html[dir="ltr"] #searchInput, html[dir="ltr"] #mobileSearchInput { direction:ltr; text-align:left; padding-left:2.5rem; padding-right:1rem; }
+        html[dir="ltr"] #searchInput + div, html[dir="ltr"] #mobileSearchInput + div { left:0; right:auto; padding-left:.75rem; padding-right:0; }
+        html[dir="ltr"] .english-mode { direction:ltr; }
+        html[dir="ltr"] .ml-1 { margin-left:0; margin-right:.25rem; }
+        html[dir="ltr"] .mr-1 { margin-right:0; margin-left:.25rem; }
+        html[dir="ltr"] #dbStatus { right:auto !important; left:8px !important; }
+</style>
 </head>
 <body class="bg-darkBg bg-grid-pattern min-h-screen flex flex-col justify-between">
 
@@ -204,6 +214,13 @@
 
                 <!-- Currency Selector & Cart -->
                 <div class="flex items-center gap-3">
+                    <!-- Language Selector: same style as currency selector -->
+                    <div class="relative">
+                        <select id="languageSelector" aria-label="Language" class="bg-slate-900 border border-slate-700 text-slate-300 text-xs font-bold rounded-lg px-2.5 py-2 focus:outline-none focus:border-starlight cursor-pointer">
+                            <option value="ar">العربية</option>
+                            <option value="en">English</option>
+                        </select>
+                    </div>
                     <!-- Currency Selector -->
                     <div class="relative">
                         <select id="currencySelector" onchange="changeCurrency(this.value)" class="bg-slate-900 border border-slate-700 text-slate-300 text-xs font-bold rounded-lg px-2.5 py-2 focus:outline-none focus:border-starlight cursor-pointer">
@@ -874,10 +891,13 @@
                 updateCartUI();
             } catch(e) { console.error('[Catalog]', e); }
         }
+        function isOutOfStock(p) {
+            return catalogReady && (!p.dbId || !(Number(p.stock) > 0));
+        }
+
         function stockLabel(p) {
-            if(!catalogReady) return '';
-            if(!p.dbId || !(p.stock > 0)) return '<span class="text-[10px] text-red-400 font-bold block">نفد المخزون</span>';
-            if(p.stock <= 5) return '<span class="text-[10px] text-amber-400 font-bold block">متبقي ' + p.stock + ' فقط</span>';
+            if(!catalogReady || isOutOfStock(p)) return '';
+            if(p.stock <= 5) return '<span class="text-[10px] text-amber-400 font-bold block mt-1">متبقي ' + p.stock + ' فقط</span>';
             return '';
         }
 
@@ -913,10 +933,18 @@
 
             grid.innerHTML = filtered.map(product => {
                 const price = (product.priceUSD * rates[currentCurrency].rate).toFixed(2);
+                const soldOut = isOutOfStock(product);
                 return `
-                    <div onclick="addToCart(${product.id}, this.querySelector('img'))" class="cursor-pointer bg-cardBg border border-slate-800 hover:border-starlight/50 rounded-2xl overflow-hidden group flex flex-col justify-between transition-all duration-300 hover:-translate-y-1 shadow-lg">
+                    <div onclick="addToCart(${product.id}, this.querySelector('img'))" class="cursor-pointer bg-cardBg border ${soldOut ? 'border-red-500/30' : 'border-slate-800 hover:border-starlight/50'} rounded-2xl overflow-hidden group flex flex-col justify-between transition-all duration-300 hover:-translate-y-1 shadow-lg">
                         <div class="relative overflow-hidden h-48">
-                            <img src="${product.image}" alt="${product.name}" class="w-full h-full object-cover group-hover:scale-110 transition duration-500 opacity-90 group-hover:opacity-100">
+                            <img src="${product.image}" alt="${product.name}" class="w-full h-full object-cover ${soldOut ? 'opacity-40 grayscale' : 'group-hover:scale-110 opacity-90 group-hover:opacity-100'} transition duration-500">
+                            ${soldOut ? `
+                                <div class="absolute inset-0 flex items-center justify-center bg-slate-950/25">
+                                    <span class="inline-flex items-center gap-2 bg-red-950/95 text-red-100 border border-red-400/60 px-5 py-3 rounded-xl shadow-2xl font-black text-sm tracking-wide">
+                                        <i class="fa-solid fa-box-open"></i> نفد المخزون
+                                    </span>
+                                </div>
+                            ` : ''}
                             <span class="absolute top-3 right-3 ${product.badgeColor} text-white text-[10px] font-black px-2.5 py-1 rounded-md shadow-md uppercase">
                                 ${product.badge}
                             </span>
@@ -942,8 +970,8 @@
                                     <button onclick="event.stopPropagation(); openProductModal(${product.id})" class="p-2.5 bg-slate-900 hover:bg-slate-800 text-slate-300 rounded-xl border border-slate-700 transition" title="معاينة">
                                         <i class="fa-solid fa-eye text-xs"></i>
                                     </button>
-                                    <button onclick="event.stopPropagation(); addToCart(${product.id}, this.closest('.group').querySelector('img'))" class="bg-starlight hover:bg-cyan-400 text-slate-950 font-extrabold px-3 py-2 rounded-xl text-xs flex items-center gap-1.5 transition clip-btn shadow-md">
-                                        <i class="fa-solid fa-cart-plus"></i> إضافة
+                                    <button ${soldOut ? 'disabled' : ''} onclick="event.stopPropagation(); addToCart(${product.id}, this.closest('.group').querySelector('img'))" class="${soldOut ? 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700' : 'bg-starlight hover:bg-cyan-400 text-slate-950 shadow-md'} font-extrabold px-3 py-2 rounded-xl text-xs flex items-center gap-1.5 transition clip-btn">
+                                        <i class="${soldOut ? 'fa-solid fa-ban' : 'fa-solid fa-cart-plus'}"></i> ${soldOut ? 'غير متوفر' : 'إضافة'}
                                     </button>
                                 </div>
                             </div>
@@ -991,7 +1019,7 @@
             const product = products.find(p => p.id === productId);
             if(!product) return;
             if(!catalogReady) { alert('جاري تحميل المخزون، حاول بعد لحظات.'); return; }
-            if(!product.dbId || !(product.stock > 0)) { alert('هذا المنتج غير متوفر حالياً (نفد المخزون).'); return; }
+            if(!product.dbId || !(product.stock > 0)) return;
             const item = cart.find(i => i.id === productId);
             if(item && item.qty >= product.stock) { alert('وصلت إلى أقصى كمية متاحة في المخزون (' + product.stock + ').'); return; }
             if(item) {
@@ -1172,6 +1200,7 @@
             if(!p) return;
 
             const price = (p.priceUSD * rates[currentCurrency].rate).toFixed(2);
+            const soldOut = isOutOfStock(p);
 
             document.getElementById('modalContent').innerHTML = `
                 <div class="flex flex-col md:flex-row gap-6">
@@ -1183,6 +1212,7 @@
                             </span>
                             <h3 class="text-xl font-bold text-white mt-2 mb-2">${p.name}</h3>
                             <p class="text-slate-400 text-xs leading-relaxed mb-4">${p.description}</p>
+                            ${soldOut ? '<div class="inline-flex items-center gap-2 bg-red-950/70 text-red-300 border border-red-500/40 px-3 py-2 rounded-lg text-xs font-black mb-4"><i class="fa-solid fa-box-open"></i> نفد المخزون</div>' : ''}
                         </div>
 
                         <div class="space-y-4">
@@ -1194,8 +1224,8 @@
                                 <span class="text-xs text-slate-500">السعر النهائي:</span>
                                 <span class="text-2xl font-black text-starlight">${rates[currentCurrency].symbol} ${price}</span>
                             </div>
-                            <button onclick="addToCart(${p.id}, document.querySelector('#modalContent img')); closeProductModal();" class="w-full bg-starlight hover:bg-cyan-400 text-slate-950 font-black py-3 rounded-xl transition clip-btn text-xs">
-                                <i class="fa-solid fa-cart-plus ml-1"></i> إضافة لسلة الشراء الآن
+                            <button ${soldOut ? 'disabled' : ''} onclick="addToCart(${p.id}, document.querySelector('#modalContent img')); closeProductModal();" class="w-full ${soldOut ? 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700' : 'bg-starlight hover:bg-cyan-400 text-slate-950'} font-black py-3 rounded-xl transition clip-btn text-xs">
+                                <i class="${soldOut ? 'fa-solid fa-ban' : 'fa-solid fa-cart-plus'} ml-1"></i> ${soldOut ? 'نفد المخزون' : 'إضافة لسلة الشراء الآن'}
                             </button>
                         </div>
                     </div>
@@ -2362,5 +2392,372 @@
     });
 })();
     </script>
+
+<script>
+/* ================= ONCE HUMAN STORE: Arabic / English ================= */
+(() => {
+  const translations = {
+    'متجر Once Human - خدمات وموارد وانس هيومن الاحترافية':'Once Human Store - Premium Services & Resources',
+    'متجر خدمات وموارد وانس هيومن':'Once Human Services & Resources',
+    'SAR (ر.س)':'SAR (ر.س)',
+    'لوحة الإدارة':'Admin Panel','ابحث عن أسلحة، طاقة Energy Links، مرافقين Deviants...':'Search weapons, Energy Links, Deviants...',
+    'ابحث عن المنتجات...':'Search products...','الموسم الجديد: Stardust Apocalypse':'NEW SEASON: Stardust Apocalypse',
+    'سيطر على العالم الملوث بـ':'Conquer the contaminated world of',
+    'احصل على أفضل الأسلحة، مخططات البناء (Blueprints)، الطاقة الكهرومغناطيسية Energy Links، والمساعدين الرقميين Deviants بأعلى المقاييس وأسرع تسليم داخل السيرفر الخاص بك.':'Get the best weapons, blueprints, Energy Links, and Deviants with premium quality and fast delivery on your server.',
+    'تصفح العروض الحصرية':'Browse Exclusive Offers','اطلب عبر الديسكورد':'Order via Discord',
+    'تسليم آمن وفوري خلال 15 دقيقة':'Safe delivery within 15 minutes','حماية 100% بدون أي مخابرة حظر':'100% safe service with no ban risk',
+    'دعم فني مباشر 24/7 على ديسكورد':'24/7 live support on Discord','يدعم جميع السيرفرات (NA, EU, SEA)':'Supports all regions (NA, EU, SEA)',
+    'أقسام المتجر':'Store Categories','السيرفر:':'Server:','جميع المناطق (ALL)':'All Regions (ALL)',
+    'شمال أمريكا (NA)':'North America (NA)','أوروبا (EU)':'Europe (EU)','جنوب شرق آسيا (SEA)':'Southeast Asia (SEA)',
+    'جميع المنتجات':'All Products','مخططات أسلحة ودروع':'Weapons & Armor Blueprints','Energy Links & عملات':'Energy Links & Currency',
+    'مرافقين Deviants (Level 5)':'Deviants (Level 5)','التلفيل وقتل البوسات':'Leveling & Boss Runs',
+    'انضم إلى مجتمع ديسكورد الخاص بنا':'Join Our Discord Community',
+    'تواصل مباشر مع الدعم الفني، متابعة طلبات الشراء تلقائياً عبر نظام التذاكر، والحصول على خصومات حصرية للأعضاء!':'Get direct support, track orders through our ticket system, and enjoy exclusive member discounts!',
+    'دخول مجتمع Discord':'Join Discord Community','المتجر الأفضل والأسرع لشراء كافة مستلزمات لعبة Once Human بأعلى درجة أمان وموثوقية.':'The best and fastest store for Once Human items, with premium safety and reliability.',
+    'روابط سريعة':'Quick Links','مخطط الأسلحة':'Weapon Blueprints','مرافقين Deviants':'Deviants','الدعم والمساعدة':'Support & Help',
+    'سياسة الاسترجاع والضمان':'Refund & Warranty Policy','كيفية تسليم المنتجات':'How Delivery Works','التواصل عبر ديسكورد':'Contact us on Discord',
+    'طرق الدفع المدعومة':'Accepted Payment Methods','© 2026 جميع الحقوق محفوظة لـ Once Human Store.':'© 2026 All rights reserved to Once Human Store.',
+    'سلة الشراء':'Shopping Cart','المجموع الفرعي:':'Subtotal:','رسوم التسليم الفوري:':'Instant Delivery Fee:','مجاني ⚡':'FREE ⚡','الإجمالي النهائي:':'Total:',
+    'متابعة عملية الشراء':'Proceed to Checkout','خطوات بسيطة من الشراء حتى استلام الطلب داخل اللعبة.':'A few simple steps from purchase to in-game delivery.',
+    'أضف المنتجات التي تريدها إلى سلة الشراء، ثم اضغط «متابعة عملية الشراء».':'Add your products to the cart, then click “Proceed to Checkout”.',
+    'اكتب اسم حسابك في الديسكورد، واسم شخصيتك في اللعبة، واختر منطقة السيرفر الصحيحة.':'Enter your Discord username and in-game character name, then select your server region.',
+    'ادفع عبر PayPal، أو حوّل مبلغ USDT على الشبكة التي تختارها ثم الصق رقم العملية (TXID).':'Pay with PayPal, or send USDT on your chosen network and enter the transaction ID (TXID).',
+    'بعد إتمام الطلب تظهر لك تفاصيله. انسخها وادخل إلى سيرفر الديسكورد وافتح تذكرة (Ticket) وأرسلها هناك.':'After placing your order, copy its details, join our Discord server, open a ticket, and send them there.',
+    'يتواصل معك المشرف في التذكرة ويسلّمك طلبك داخل اللعبة. التسليم عادةً خلال 15 دقيقة من تأكيد الدفع، وفي حالة USDT بعد التحقق من التحويل يدوياً.':'A moderator will contact you in the ticket and deliver your order in-game. Delivery usually takes 15 minutes after payment confirmation. USDT transfers require manual verification.',
+    'لتسريع التسليم، تأكد من كتابة اسم الشخصية ومنطقة السيرفر بشكل صحيح، وكن متواجداً على الديسكورد بعد الدفع.':'For faster delivery, enter your character name and server region correctly, and stay available on Discord after payment.',
+    'يرجى قراءة هذه السياسة قبل إتمام أي عملية شراء.':'Please read this policy before making a purchase.',
+    'لا يمكن استرجاع أي منتج أو خدمة تم دفع ثمنها، أو تم استلامها.':'Products or services that have been paid for or delivered are non-refundable.',
+    'جميع المبيعات نهائية، ولا يوجد استرجاع للمبلغ ولا استبدال للمنتج بعد إتمام الدفع.':'All sales are final. Refunds and exchanges are not available after payment.',
+    'بعد تسليم الطلب داخل اللعبة لا يمكن إلغاؤه أو استرجاعه تحت أي ظرف.':'Once an order has been delivered in-game, it cannot be cancelled or refunded.',
+    'أنت مسؤول عن صحة بياناتك: اسم الشخصية، ومنطقة السيرفر، وحساب الديسكورد، ونوع المنتج.':'You are responsible for providing accurate details: character name, server region, Discord account, and product type.',
+    'في حال التحويل عبر USDT، تأكد من الشبكة والعنوان والمبلغ قبل الإرسال، فالتحويلات الخاطئة لا يمكن استرجاعها.':'For USDT transfers, verify the network, wallet address, and amount before sending. Incorrect transfers cannot be recovered.',
+    'بإتمامك عملية الدفع فإنك توافق على هذه السياسة.':'By completing payment, you agree to this policy.',
+    'لأي استفسار قبل الشراء، تواصل معنا عبر الديسكورد.':'For questions before purchasing, contact us on Discord.',
+    'إتمام الطلب والتحقق من الحساب':'Checkout & Account Verification','اسم حسابك في الديسكورد (Discord Username) *':'Your Discord Username *',
+    'ضروري لفتح تذكرة وتكليف المشرف بتسليمك الطلب داخل اللعبة.':'Required to open a ticket and arrange in-game delivery.',
+    'منطقة السيرفر (Region) *':'Server Region *','اختر طريقة الدفع المناسبة':'Choose a Payment Method','PayPal / بطاقة':'PayPal / Card',
+    'المبلغ الاجمالي للشراء:':'Order Total:','يتم الدفع بالدولار الأمريكي (USD) عبر PayPal، ويمكنك الدفع بالبطاقة البنكية من نفس النافذة.':'Payment is processed in USD via PayPal. You can also pay by bank card in the same window.',
+    'اختر شبكة التحويل':'Choose Transfer Network','الشبكة:':'Network:','المبلغ:':'Amount:','عنوان المحفظة:':'Wallet Address:',
+    'نسخ':'Copy','أرسل عملة USDT فقط وعلى الشبكة المذكورة بالضبط. الإرسال على شبكة أخرى أو بعملة مختلفة قد يضيّع المبلغ.':'Send USDT only on the exact network shown. Using another network or currency may result in lost funds.',
+    'رقم العملية (TXID) بعد التحويل *':'Transaction ID (TXID) *','تأكيد التحويل وإرسال الطلب':'Confirm Transfer & Place Order',
+    'تم تأكيد الطلب بنجاح! 🎉':'Order Confirmed Successfully! 🎉','رقم الطلب الخاص بك هو':'Your order number is',
+    'انسخ تفاصيل الطلب وأرسلها في تذكرة على الديسكورد لاستلام طلبك.':'Copy your order details and send them in a Discord ticket to receive your order.',
+    'نسخ تفاصيل الطلب':'Copy Order Details','التوجه إلى الديسكورد للتسليم':'Go to Discord for Delivery','إغلاق النافذة':'Close Window',
+    'سجّل الدخول بحسابك لمتابعة طلباتك وإتمام الشراء.':'Sign in to track your orders and complete purchases.',
+    'يلزم تسجيل الدخول قبل إتمام عملية الشراء.':'You must sign in before completing your purchase.',
+    'المتابعة عبر Google':'Continue with Google','المتابعة عبر Discord':'Continue with Discord','أو بالبريد الإلكتروني':'Or continue with email',
+    'حساب جديد':'Create Account','البريد الإلكتروني':'Email Address','كلمة المرور':'Password','تأكيد كلمة المرور':'Confirm Password',
+    'أرسل لي رابط دخول سريع (Magic Link)':'Send me a sign-in link (Magic Link)','نحفظ فقط الاسم والبريد وصورة الحساب ومزوّد الدخول لربط طلباتك بك.':'We only store your name, email, profile picture, and sign-in provider to link your orders.',
+    'طلباتي':'My Orders','تسجيل الخروج':'Sign Out','جاري الاتصال بقاعدة البيانات…':'Connecting to database…',
+    'بندقية هجومية فتاكة تعتمد على دمج الـ Shrapnel العالي. تجميع كامل Tier 5 ومجربة في أعتى مناطق الـ Hard Zones.':'A powerful assault rifle build focused on high Shrapnel damage. Complete Tier 5 setup, tested in the toughest Hard Zones.',
+    '1,000,000 Energy Links (حزمة طاقة ضخمة)':'1,000,000 Energy Links (Large Bundle)','مليون قطعة من عملة Energy Links لتسريع البناء، الشراء من التجار، وتطوير المعدات بدون عناء التجميع.':'One million Energy Links to speed up crafting, vendor purchases, and gear upgrades without grinding.',
+    'أكثر مبيعاً':'BEST SELLER','نادر جداً':'VERY RARE','ديانت طاهي المأكولات بمستوى مهارة كامل 5/5. يزيد من بوفات الأطعمة والـ Crafting Speed بنسبة 45%.':'Chef Dinosaur Deviant with a max 5/5 skill. Boosts food buffs and crafting speed by 45%.',
+    'خدمة رفع':'BOOSTING SERVICE','إنهاء طور Prime War بمستوى صعوبة Nightmare مع فريق محترف واستلام كامل الـ Mod Chests الفاخرة.':'Complete Prime War on Nightmare difficulty with a professional team and receive all premium Mod Chests.',
+    'تخفيض':'SALE','رشاش ثقيل أسطوري يقدم دمج الحرق (Burn Status Effect) المستمر. مثالي للقضاء على مجموعات الوحوش.':'A legendary heavy machine gun with continuous Burn damage. Ideal for taking down groups of monsters.',
+    '500,000 Energy Links (حزمة متوسطة)':'500,000 Energy Links (Medium Bundle)','سريع':'FAST','نصف مليون Energy Links تسلم مباشرة عبر Trade Vending Machine داخل القواعد بأمان كامل.':'500,000 Energy Links delivered safely through the Trade Vending Machine inside your base.',
+    'مرافق قتالي أسطوري يزيد نسب الضربة الحرجة (Critical Hit Rate) بنسبة مرتفعة جداً في المعارك.':'A legendary combat Deviant that greatly increases your Critical Hit Rate in battle.',
+    'تلفيل شامل':'FULL LEVELING','رفع مستوى حسابك وشخصيتك من ليفل 1 إلى 50 مع فتح كافة مناطق الخريطة والمناجم الرئسية.':'Level your character from 1 to 50 and unlock all major map areas and mines.',
+    'متبقي':'Only','فقط':'left','لم يتم العثور على أي منتجات مطابقة لخيارات البحث!':'No products match your search filters!',
+    'نفد المخزون':'OUT OF STOCK','غير متوفر':'Unavailable','إضافة':'Add','جميع السيرفرات':'All Regions','السعر':'Price','معاينة':'View Details',
+    'جاري تحميل المخزون، حاول بعد لحظات.':'Loading stock, please try again in a moment.','وصلت إلى أقصى كمية متاحة في المخزون (':'You have reached the available stock limit (',
+    '✓ أُضيف إلى السلة: ':'✓ Added to cart: ','وصلت إلى أقصى كمية متاحة في المخزون.':'You have reached the available stock limit.',
+    'سلة الشراء فارغة حالياً':'Your cart is currently empty','تصفح المنتجات وأضف ما تحتاجه للبدء':'Browse products and add what you need to get started',
+    'السيرفرات المدعومة:':'Supported Regions:','السعر النهائي:':'Final Price:','إضافة لسلة الشراء الآن':'Add to Cart Now',
+    'سلة الشراء فارغة! يرجى إضافة منتجات أولاً.':'Your cart is empty! Please add products first.','تم النسخ':'Copied',
+    'لم يتم إدخال PAYPAL_CLIENT_ID في إعدادات الدفع بعد.':'PAYPAL_CLIENT_ID has not been configured in payment settings yet.',
+    'جاري تحميل PayPal...':'Loading PayPal...','تعذر تحميل PayPal. تأكد من الاتصال وحاول مرة أخرى.':'Could not load PayPal. Check your connection and try again.',
+    'الكمية المطلوبة غير متوفرة في المخزون. حدّث السلة وحاول مرة أخرى.':'The requested quantity is out of stock. Refresh your cart and try again.',
+    'أحد المنتجات لم يعد متاحاً.':'One of the products is no longer available.','لديك طلبات كثيرة بانتظار الدفع. أكمل أو ألغِ طلباً سابقاً أولاً.':'You have too many pending payments. Complete or cancel an earlier order first.',
+    'تحقق من بيانات التسليم (ديسكورد، اسم الشخصية، السيرفر).':'Check your delivery details (Discord, character name, and server).',
+    'انتهت مهلة حجز الطلب (10 دقائق). أعد إنشاء الطلب.':'The order reservation expired (10 minutes). Please create the order again.',
+    'هذا الطلب لم يعد قابلاً للدفع. أعد إنشاء الطلب.':'This order can no longer be paid. Please create it again.',
+    'رقم العملية هذا مستخدم من قبل.':'This transaction ID has already been used.','أدخل رقم العملية.':'Enter the transaction ID.',
+    'يجب تسجيل الدخول أولاً.':'Please sign in first.','لا يمكن إلغاء طلب دفعته قيد المراجعة.':'An order with a payment under review cannot be cancelled.',
+    'تعذّر التحقق من عملية PayPal.':'Could not verify the PayPal transaction.','لا يمكن الجمع بين عملات مختلفة في طلب واحد.':'An order cannot contain different currencies.',
+    'تعذّر إتمام العملية: ':'Could not complete the operation: ','تعذّر التحقق من المنتجات. حدّث الصفحة وحاول مرة أخرى.':'Could not verify products. Refresh the page and try again.',
+    'تعذّر بدء الدفع عبر PayPal.':'Could not start PayPal checkout.','تعذّر تأكيد الدفع.':'Could not confirm payment.',
+    'حالة دفع غير متوقعة، تواصل مع الدعم برقم الطلب ':'Unexpected payment status. Contact support with order number ',
+    'حدث خطأ أثناء تأكيد الدفع. إن خُصم المبلغ تواصل مع الدعم.':'An error occurred while confirming payment. If you were charged, contact support.',
+    'حدث خطأ أثناء الدفع عبر PayPal.':'An error occurred during PayPal payment.',
+    'لم أجد رقم عملية صحيح. الرقم يتكون من 64 حرفاً وأرقاماً (a-f و 0-9)، ويمكنك لصق الرقم أو رابط العملية من المستكشف.':'A valid transaction ID was not found. It must contain 64 hexadecimal characters (a-f, 0-9). You can paste the ID or its explorer URL.',
+    'تم استلام الدفع وهو قيد المراجعة اليدوية من الإدارة.':'Payment received and pending manual admin review.',
+    'سيتم التحقق من التحويل يدوياً قبل التسليم. المخزون محجوز لك حتى المراجعة.':'The transfer will be verified manually before delivery. Your stock is reserved during review.',
+    'تم تأكيد الدفع عبر PayPal من الخادم.':'PayPal payment was confirmed by the server.','تم حفظ الطلب في حسابك ✅':'Order saved to your account ✅',
+    'بانتظار الدفع':'Awaiting Payment','قيد مراجعة الدفع':'Payment Under Review','قيد المعالجة':'Processing','قيد التنفيذ':'In Progress',
+    'مدفوع':'Paid','مكتمل':'Completed','تم التسليم':'Delivered','ملغي':'Cancelled','فشل':'Failed','مسترجع':'Refunded',
+    'حسابي':'My Account','دخول':'Sign In','تعذّر تحميل مكتبة Supabase.':'Could not load the Supabase library.',
+    'جاري التحويل إلى':'Redirecting to','فشل تسجيل الدخول:':'Sign-in failed:','إنشاء حساب':'Create Account','تسجيل الدخول':'Sign In',
+    'إنشاء حساب جديد':'Create a New Account','البريد الإلكتروني أو كلمة المرور غير صحيحة.':'Incorrect email or password.',
+    'لم يتم تأكيد بريدك بعد. افتح رسالة التأكيد في بريدك ثم حاول مجدداً.':'Your email has not been confirmed. Open the confirmation email and try again.',
+    'هذا البريد مسجّل مسبقاً. جرّب تسجيل الدخول.':'This email is already registered. Try signing in.',
+    'كلمة المرور ضعيفة. استخدم 6 أحرف على الأقل.':'Password is too weak. Use at least 6 characters.',
+    'محاولات كثيرة. انتظر قليلاً ثم حاول مرة أخرى.':'Too many attempts. Wait a moment and try again.',
+    'التسجيل بالبريد غير مفعّل حالياً.':'Email sign-up is currently disabled.','تسجيل الدخول بالبريد غير مفعّل حالياً.':'Email sign-in is currently disabled.',
+    'صيغة البريد الإلكتروني غير صحيحة.':'Invalid email format.','تعذّر الاتصال بالخادم. تحقق من الإنترنت.':'Could not connect to the server. Check your internet connection.',
+    'حدث خطأ غير متوقع.':'An unexpected error occurred.','أدخل بريداً إلكترونياً صحيحاً.':'Enter a valid email address.',
+    'أدخل كلمة المرور.':'Enter your password.','كلمة المرور يجب أن تكون 6 أحرف على الأقل.':'Password must be at least 6 characters.',
+    'كلمتا المرور غير متطابقتين.':'Passwords do not match.','جاري إنشاء الحساب…':'Creating account…','جاري تسجيل الدخول…':'Signing in…',
+    'تم إنشاء الحساب وتسجيل دخولك ✅':'Account created and signed in ✅','تم إنشاء الحساب. أرسلنا رسالة تأكيد إلى بريدك، افتحها لتفعيل الحساب ثم سجّل الدخول.':'Account created. We sent a confirmation email. Verify your email, then sign in.',
+    'تم تسجيل الدخول ✅':'Signed in successfully ✅','أدخل بريدك الإلكتروني أولاً لنرسل لك الرابط.':'Enter your email address first so we can send you the link.',
+    'جاري إرسال رابط الدخول…':'Sending sign-in link…','أرسلنا رابط الدخول إلى':'We sent a sign-in link to',
+    '. افتح بريدك واضغط على الرابط لإكمال الدخول.':'. Open your email and click the link to finish signing in.',
+    'الدخول عبر':'Signed in via','منذ':'Since','لا توجد طلبات حتى الآن':'No orders yet',
+    'عندما تُتم أول عملية شراء ستظهر طلباتك هنا.':'Your orders will appear here after your first purchase.',
+    'تصفح المنتجات':'Browse Products','تعذّر تحميل طلباتك':'Could not load your orders','إعادة المحاولة':'Try Again',
+    'لا توجد تفاصيل منتجات لهذا الطلب.':'No product details for this order.','تعذّر تحميل تفاصيل المنتجات لهذا الطلب.':'Could not load this order’s product details.',
+    'الإجمالي':'Total','إلغاء الطلب وإعادة المخزون':'Cancel Order & Restore Stock','إلغاء هذا الطلب؟':'Cancel this order?',
+    'جاري تحميل الطلبات…':'Loading orders…','يجب تسجيل الدخول لعرض طلباتك.':'Sign in to view your orders.','لا توجد طلبات':'No Orders',
+    'خطأ في الاستعلام.':'Query error.','تعذّر الاتصال بالخادم. تحقق من الإنترنت ثم أعد المحاولة.':'Could not connect to the server. Check your internet and try again.',
+    'المنتجات':'Products','الطلبات':'Orders','العملاء':'Customers','المدفوعات والشحن':'Payments & Top-ups','الكوبونات':'Coupons',
+    'المخزون والتسليمات':'Inventory & Deliveries','رسائل الدعم':'Support Messages','انتهت صلاحية الإدارة أو لا تملكها.':'Admin session expired or you do not have permission.',
+    'بحث في النتائج…':'Search results…','إغلاق':'Close','تحديث':'Refresh','إضافة':'Add','جدول آخر':'Other Table',
+    'اكتب اسم الجدول في Supabase:':'Enter the table name in Supabase:','اسم جدول غير صالح.':'Invalid table name.',
+    'ليست لديك صلاحية الوصول إلى لوحة الإدارة.':'You do not have permission to access the admin panel.','جاري التحميل…':'Loading…',
+    'تعذّر تحميل الجدول':'Could not load table','تنبيه:':'Notice:','لم يُعدَّل أي سجل (تحقق من الصلاحيات).':'No record was updated (check permissions).',
+    'تم تحديث الحالة ✅':'Status updated ✅','لا نتائج مطابقة للبحث.':'No matching search results.','لا توجد بيانات في هذا الجدول.':'No data in this table.',
+    'تفاصيل':'Details','المخزون':'Stock','قبول':'Approve','رفض':'Reject','تعديل':'Edit','عرض السرّي':'Reveal Secret','حذف':'Delete',
+    'تفاصيل السجل':'Record Details','منتجات الطلب':'Order Items','لا توجد عناصر لهذا الطلب.':'No items for this order.',
+    'حفظ التعديلات':'Save Changes','إلغاء':'Cancel','المنتج':'Product','المخزون الحالي المتاح:':'Current Available Stock:',
+    'الكمية الجديدة':'New Quantity','كمية المخزون الجديدة':'New Stock Quantity',
+    'أدخل صفراً لإيقاف توفر المنتج مؤقتاً، أو أدخل العدد المتاح للبيع.':'Enter 0 to temporarily disable the product, or enter the quantity available for sale.',
+    'حفظ المخزون':'Save Stock','أدخل كمية صحيحة كعدد صحيح يساوي صفراً أو أكبر.':'Enter a valid whole number greater than or equal to zero.',
+    'تعذّر تحديد المنتج لتحديث مخزونه.':'Could not identify the product to update its stock.',
+    'جارٍ حفظ المخزون…':'Saving stock…','تعذّر تحديث المخزون:':'Could not update stock:','تم تحديث المخزون بنجاح ✅':'Stock updated successfully ✅',
+    'حدث خطأ أثناء تحديث المخزون:':'An error occurred while updating stock:','تعديل مخزون المنتج':'Edit Product Stock',
+    'سبب الرفض (اختياري):':'Rejection Reason (Optional):','قبول هذه الدفعة وإكمال الطلب؟':'Approve this payment and complete the order?',
+    'رفض الدفعة؟ سيُلغى الطلب ويُعاد المخزون.':'Reject this payment? The order will be cancelled and stock restored.',
+    'تم قبول الدفعة ✅':'Payment approved ✅','تم رفض الدفعة وإعادة المخزون ✅':'Payment rejected and stock restored ✅',
+    'حذف هذا السجل نهائياً؟ لا يمكن التراجع.':'Permanently delete this record? This cannot be undone.',
+    'تم الحذف ✅':'Deleted successfully ✅','غير متاحة':'Unavailable','بيانات سرّية — للمدير فقط':'Sensitive data — Admin only',
+    'الاتصال ناجح':'Connection successful','فشل الاتصال':'Connection failed',
+
+    // Additional interface, checkout, inventory, connection and live-status messages.
+    'إغلاق':'Close','مثال: player_one#0000 أو username':'Example: player_one#0000 or username',
+    'بندقية هجومية فتاكة تعتمد على دمج الـ Shrapnel العالي. تجميع كامل Tier 5 ومجربة في أعتى مناطق الـ Hard Zones.':'A powerful assault rifle build focused on high Shrapnel damage. Complete Tier 5 setup, tested in the toughest Hard Zones.',
+    'ديانت طاهي المأكولات بمستوى مهارة كامل 5/5. يزيد من بوفات الأطعمة والـ Crafting Speed بنسبة 45%.':'Chef Dinosaur Deviant with max 5/5 skill. Boosts food buffs and crafting speed by 45%.',
+    'إنهاء طور Prime War بمستوى صعوبة Nightmare مع فريق محترف واستلام كامل الـ Mod Chests الفاخرة.':'Complete Prime War on Nightmare difficulty with a professional team and receive all premium Mod Chests.',
+    'رشاش ثقيل أسطوري يقدم دمج الحرق (Burn Status Effect) المستمر. مثالي للقضاء على مجموعات الوحوش.':'A legendary heavy machine gun with continuous Burn damage. Ideal for taking down groups of monsters.',
+    'مرافق قتالي أسطوري يزيد نسب الضربة الحرجة (Critical Hit Rate) بنسبة مرتفعة جداً في المعارك.':'A legendary combat Deviant that greatly increases your Critical Hit Rate in battle.',
+    'رفع مستوى حسابك وشخصيتك من ليفل 1 إلى 50 مع فتح كافة مناطق الخريطة والمناجم الرئسية.':'Level your character from 1 to 50 and unlock all major map areas and mines.',
+    'جاري الاتصال بقاعدة البيانات…':'Connecting to database…','فشل الاتصال: العميل غير مُهيّأ (تعذّر تحميل مكتبة Supabase)':'Connection failed: client is not initialized (Supabase library could not load)',
+    'الاتصال ناجح لكن القراءة ممنوعة بسبب RLS: أضف سياسة SELECT لجدول products (':'Connected, but reading is blocked by RLS: add a SELECT policy to the products table (',
+    'جدول products غير موجود أو اسمه مختلف (':'The products table does not exist or has a different name (',
+    'الجدول موجود لكن عمود id غير موجود (':'The table exists, but the id column is missing (',
+    'فشل الاتصال: مفتاح API غير صحيح (':'Connection failed: invalid API key (','فشل الاتصال: ':'Connection failed: ',
+    'الاتصال ناجح، لكن لم تُقرأ أي منتجات (0). الجدول فارغ، أو أن RLS يحجب القراءة بصمت بسبب عدم وجود سياسة SELECT':'Connected, but no products were read (0). The table is empty, or RLS is silently blocking reads because no SELECT policy exists.',
+    'تم الاتصال بنجاح — عدد المنتجات المقروءة: ':'Connected successfully — products read: ','عدد المنتجات المقروءة:':'Products read:',
+    'خطأ غير معروف':'Unknown error','متبقي ':'Only ',' فقط':' left','جاري تحميل المخزون، حاول بعد لحظات.':'Inventory is loading. Please try again in a moment.',
+    'وصلت إلى أقصى كمية متاحة في المخزون (':'You have reached the maximum available stock (','وصلت إلى أقصى كمية متاحة في المخزون.':'You have reached the maximum available stock.',
+    '✓ أُضيف إلى السلة:':'✓ Added to cart:','سلة الشراء فارغة! يرجى إضافة منتجات أولاً.':'Your cart is empty! Please add products first.',
+    'تم النسخ':'Copied','الكمية المطلوبة غير متوفرة في المخزون. حدّث السلة وحاول مرة أخرى.':'The requested quantity is unavailable. Refresh your cart and try again.',
+    'أحد المنتجات لم يعد متاحاً.':'One of the products is no longer available.','لديك طلبات كثيرة بانتظار الدفع. أكمل أو ألغِ طلباً سابقاً أولاً.':'You have too many orders awaiting payment. Complete or cancel a previous order first.',
+    'تحقق من بيانات التسليم (ديسكورد، اسم الشخصية، السيرفر).':'Check your delivery details (Discord, character name, server).',
+    'انتهت مهلة حجز الطلب (10 دقائق). أعد إنشاء الطلب.':'The order reservation expired (10 minutes). Please create the order again.',
+    'هذا الطلب لم يعد قابلاً للدفع. أعد إنشاء الطلب.':'This order can no longer be paid. Please create it again.',
+    'رقم العملية هذا مستخدم من قبل.':'This transaction ID has already been used.','أدخل رقم العملية.':'Enter the transaction ID.','يجب تسجيل الدخول أولاً.':'You must sign in first.',
+    'لا يمكن إلغاء طلب دفعته قيد المراجعة.':'An order with a payment under review cannot be cancelled.','تعذّر التحقق من عملية PayPal.':'Could not verify the PayPal transaction.',
+    'لا يمكن الجمع بين عملات مختلفة في طلب واحد.':'Different currencies cannot be combined in one order.','تعذّر إتمام العملية:':'Could not complete the operation:',
+    'تعذّر التحقق من المنتجات. حدّث الصفحة وحاول مرة أخرى.':'Could not verify products. Refresh the page and try again.',
+    'تعذّر بدء الدفع عبر PayPal.':'Could not start PayPal payment.','تعذّر تأكيد الدفع.':'Could not confirm payment.',
+    'حالة دفع غير متوقعة، تواصل مع الدعم برقم الطلب':'Unexpected payment status. Contact support with your order number.',
+    'حدث خطأ أثناء تأكيد الدفع. إن خُصم المبلغ تواصل مع الدعم.':'An error occurred while confirming payment. If you were charged, contact support.',
+    'حدث خطأ أثناء الدفع عبر PayPal.':'An error occurred during PayPal payment.',
+    'لم أجد رقم عملية صحيح. الرقم يتكون من 64 حرفاً وأرقاماً (a-f و 0-9)، ويمكنك لصق الرقم أو رابط العملية من المستكشف.':'No valid transaction ID found. It must contain 64 hexadecimal characters (a-f and 0-9). You can paste the ID or transaction explorer link.',
+    'تم استلام الدفع وهو قيد المراجعة اليدوية من الإدارة.':'Payment received and pending manual admin review.',
+    'سيتم التحقق من التحويل يدوياً قبل التسليم. المخزون محجوز لك حتى المراجعة.':'The transfer will be verified manually before delivery. Your stock is reserved until review.',
+    'تم تأكيد الدفع عبر PayPal من الخادم.':'PayPal payment was verified by the server.','تم حفظ الطلب في حسابك ✅':'Order saved to your account ✅',
+    'بانتظار الدفع':'Awaiting Payment','قيد مراجعة الدفع':'Payment Under Review','قيد المعالجة':'Processing','قيد التنفيذ':'In Progress',
+    'مدفوع':'Paid','مكتمل':'Completed','تم التسليم':'Delivered','ملغي':'Cancelled','فشل':'Failed','مسترجع':'Refunded','حسابي':'My Account','دخول':'Sign In',
+    'تعذّر تحميل مكتبة Supabase.':'Could not load the Supabase library.','جاري التحويل إلى':'Redirecting to','فشل تسجيل الدخول:':'Sign-in failed:',
+    'إنشاء حساب':'Create Account','تسجيل الدخول':'Sign In','إنشاء حساب جديد':'Create a New Account',
+    'البريد الإلكتروني أو كلمة المرور غير صحيحة.':'Incorrect email or password.','لم يتم تأكيد بريدك بعد. افتح رسالة التأكيد في بريدك ثم حاول مجدداً.':'Your email has not been confirmed. Open the confirmation email and try again.',
+    'هذا البريد مسجّل مسبقاً. جرّب تسجيل الدخول.':'This email is already registered. Try signing in.','كلمة المرور ضعيفة. استخدم 6 أحرف على الأقل.':'Password is too weak. Use at least 6 characters.',
+    'محاولات كثيرة. انتظر قليلاً ثم حاول مرة أخرى.':'Too many attempts. Wait a moment and try again.','التسجيل بالبريد غير مفعّل حالياً.':'Email sign-up is currently disabled.',
+    'تسجيل الدخول بالبريد غير مفعّل حالياً.':'Email sign-in is currently disabled.','صيغة البريد الإلكتروني غير صحيحة.':'Invalid email format.',
+    'تعذّر الاتصال بالخادم. تحقق من الإنترنت.':'Could not connect to the server. Check your internet connection.','حدث خطأ غير متوقع.':'An unexpected error occurred.',
+    'أدخل بريداً إلكترونياً صحيحاً.':'Enter a valid email address.','أدخل كلمة المرور.':'Enter your password.','كلمة المرور يجب أن تكون 6 أحرف على الأقل.':'Password must be at least 6 characters.',
+    'كلمتا المرور غير متطابقتين.':'Passwords do not match.','جاري إنشاء الحساب…':'Creating account…','جاري تسجيل الدخول…':'Signing in…',
+    'تم إنشاء الحساب وتسجيل دخولك ✅':'Account created and signed in ✅','تم إنشاء الحساب. أرسلنا رسالة تأكيد إلى بريدك، افتحها لتفعيل الحساب ثم سجّل الدخول.':'Account created. We sent a confirmation email. Verify your email, then sign in.',
+    'تم تسجيل الدخول ✅':'Signed in successfully ✅','أدخل بريدك الإلكتروني أولاً لنرسل لك الرابط.':'Enter your email address first so we can send you the link.',
+    'جاري إرسال رابط الدخول…':'Sending sign-in link…','أرسلنا رابط الدخول إلى':'We sent a sign-in link to','الدخول عبر':'Signed in via','منذ':'Since',
+    'لا توجد طلبات حتى الآن':'No orders yet','عندما تُتم أول عملية شراء ستظهر طلباتك هنا.':'Your orders will appear here after your first purchase.',
+    'تصفح المنتجات':'Browse Products','تعذّر تحميل طلباتك':'Could not load your orders','إعادة المحاولة':'Try Again',
+    'لا توجد تفاصيل منتجات لهذا الطلب.':'No product details for this order.','تعذّر تحميل تفاصيل المنتجات لهذا الطلب.':'Could not load this order’s product details.',
+    'الإجمالي':'Total','إلغاء الطلب وإعادة المخزون':'Cancel Order & Restore Stock','إلغاء هذا الطلب؟':'Cancel this order?',
+    'جاري تحميل الطلبات…':'Loading orders…','يجب تسجيل الدخول لعرض طلباتك.':'Sign in to view your orders.','لا توجد طلبات':'No Orders',
+    'خطأ في الاستعلام.':'Query error.','تعذّر الاتصال بالخادم. تحقق من الإنترنت ثم أعد المحاولة.':'Could not connect to the server. Check your internet and try again.',
+    'المنتجات':'Products','الطلبات':'Orders','العملاء':'Customers','المدفوعات والشحن':'Payments & Top-ups','الكوبونات':'Coupons',
+    'المخزون والتسليمات':'Inventory & Deliveries','رسائل الدعم':'Support Messages','انتهت صلاحية الإدارة أو لا تملكها.':'Admin session expired or you do not have permission.',
+    'بحث في النتائج…':'Search results…','تحديث':'Refresh','إضافة':'Add','جدول آخر':'Other Table','اكتب اسم الجدول في Supabase:':'Enter the table name in Supabase:',
+    'اسم جدول غير صالح.':'Invalid table name.','ليست لديك صلاحية الوصول إلى لوحة الإدارة.':'You do not have permission to access the admin panel.',
+    'جاري التحميل…':'Loading…','لم أجد جدولاً لهذا القسم (جرّبت:':'No table found for this section (tried:','استخدم «جدول آخر» لإدخال اسم الجدول الصحيح.':'Use “Other Table” to enter the correct table name.',
+    'تعذّر تحميل الجدول':'Could not load table','تنبيه:':'Notice:','تعذّر تحديث الحالة:':'Could not update status:',
+    'لم يُعدَّل أي سجل (تحقق من الصلاحيات).':'No record was updated (check permissions).','تم تحديث الحالة ✅':'Status updated ✅',
+    'لا نتائج مطابقة للبحث.':'No matching search results.','لا توجد بيانات في هذا الجدول.':'No data in this table.','تفاصيل':'Details',
+    'المخزون':'Stock','قبول':'Approve','رفض':'Reject','تعديل':'Edit','عرض السرّي':'Reveal Secret','حذف':'Delete',
+    'تفاصيل السجل':'Record Details','منتجات الطلب':'Order Items','تعذّر تحميل order_items:':'Could not load order_items:',
+    'لا توجد عناصر لهذا الطلب.':'No items for this order.','لا أعرف أعمدة هذا الجدول (فارغ). أدخل السجل بصيغة JSON بأسماء أعمدته الفعلية.':'I cannot identify this table’s columns (it is empty). Enter the record as JSON using its actual column names.',
+    '(سرّي — اتركه فارغاً لعدم التغيير)':'(Secret — leave blank to keep unchanged)','حفظ التعديلات':'Save Changes','قيمة JSON غير صالحة:':'Invalid JSON value:',
+    'فشل الحفظ:':'Save failed:','لم يُحفظ أي سجل (تحقق من الصلاحيات).':'No record was saved (check permissions).','تم الحفظ ✅':'Saved ✅',
+    'تعديل سجل':'Edit Record','إضافة سجل':'Add Record','إلغاء':'Cancel','المنتج':'Product','— المخزون الحالي المتاح:':'— Current available stock:',
+    'الكمية الجديدة':'New Quantity','كمية المخزون الجديدة':'New Stock Quantity','أدخل صفراً لإيقاف توفر المنتج مؤقتاً، أو أدخل العدد المتاح للبيع.':'Enter 0 to temporarily disable the product, or enter the quantity available for sale.',
+    'حفظ المخزون':'Save Stock','أدخل كمية صحيحة كعدد صحيح يساوي صفراً أو أكبر.':'Enter a valid whole number greater than or equal to zero.',
+    'تعذّر تحديد المنتج لتحديث مخزونه.':'Could not identify the product to update its stock.','جارٍ حفظ المخزون…':'Saving stock…',
+    'تعذّر تحديث المخزون:':'Could not update stock:','تم تحديث المخزون بنجاح ✅':'Stock updated successfully ✅',
+    'حدث خطأ أثناء تحديث المخزون:':'An error occurred while updating stock:','تعديل مخزون المنتج':'Edit Product Stock',
+    'سبب الرفض (اختياري):':'Rejection Reason (Optional):','قبول هذه الدفعة وإكمال الطلب؟':'Approve this payment and complete the order?',
+    'رفض الدفعة؟ سيُلغى الطلب ويُعاد المخزون.':'Reject this payment? The order will be cancelled and stock restored.',
+    'تعذّرت المراجعة:':'Review failed:','تم قبول الدفعة ✅':'Payment approved ✅','تم رفض الدفعة وإعادة المخزون ✅':'Payment rejected and stock restored ✅',
+    'حذف هذا السجل نهائياً؟ لا يمكن التراجع.':'Permanently delete this record? This cannot be undone.','تعذّر الحذف:':'Could not delete:',
+    'لم يُحذف أي سجل (تحقق من الصلاحيات).':'No record was deleted (check permissions).','تم الحذف ✅':'Deleted successfully ✅',
+    'تعذّر جلب القيمة السرّية:':'Could not retrieve the secret value:','غير متاحة':'Unavailable','بيانات سرّية — للمدير فقط':'Sensitive data — Admin only',
+    'الاتصال ناجح':'Connection successful','فشل الاتصال':'Connection failed','نفد المخزون':'Out of Stock','غير متوفر':'Unavailable',
+    'جميع السيرفرات':'All Servers','السعر':'Price','السعر النهائي:':'Final Price:','السيرفرات المدعومة:':'Supported Servers:',
+    'سلة الشراء فارغة حالياً':'Your cart is currently empty','تصفح المنتجات وأضف ما تحتاجه للبدء':'Browse products and add what you need to get started',
+    'إضافة لسلة الشراء الآن':'Add to Cart Now','لم يتم إدخال PAYPAL_CLIENT_ID في إعدادات الدفع بعد.':'PAYPAL_CLIENT_ID has not been configured in payment settings yet.',
+    'جاري تحميل PayPal...':'Loading PayPal...','تعذر تحميل PayPal. تأكد من الاتصال وحاول مرة أخرى.':'Could not load PayPal. Check your connection and try again.',
+    'حماية 100% بدون أي مخابرة حظر':'100% safe service with no ban risk',
+
+    'الموسم الجديد: Stardust Apocalypse':'NEW SEASON: Stardust Apocalypse','اطلب عبر الديسكورد':'Order via Discord',
+    'يدعم جميع السيرفرات (NA, EU, SEA)':'Supports all regions (NA, EU, SEA)','السيرفر:':'Server:',
+    'جميع المناطق (ALL)':'All Regions (ALL)','أوروبا (EU)':'Europe (EU)','جنوب شرق آسيا (SEA)':'Southeast Asia (SEA)',
+    'مخططات أسلحة ودروع':'Weapons & Armor Blueprints','Energy Links & عملات':'Energy Links & Currency','التلفيل وقتل البوسات':'Leveling & Boss Runs',
+    'المتجر الأفضل والأسرع لشراء كافة مستلزمات لعبة Once Human بأعلى درجة أمان وموثوقية.':'The best and fastest store for Once Human items, with premium safety and reliability.',
+    'مخطط الأسلحة':'Weapon Blueprints','مرافقين Deviants':'Deviants','الدعم والمساعدة':'Support & Help',
+    'كيفية تسليم المنتجات':'How Delivery Works','التواصل عبر ديسكورد':'Contact us on Discord',
+    '© 2026 جميع الحقوق محفوظة لـ Once Human Store.':'© 2026 All rights reserved to Once Human Store.',
+    'المجموع الفرعي:':'Subtotal:','رسوم التسليم الفوري:':'Instant Delivery Fee:','مجاني ⚡':'FREE ⚡','الإجمالي النهائي:':'Grand Total:',
+    'خطوات بسيطة من الشراء حتى استلام الطلب داخل اللعبة.':'A few simple steps from purchase to in-game delivery.',
+    'اسم حسابك في الديسكورد (Discord Username) *':'Your Discord Username *','اسم الشخصية في اللعبة *':'In-game Character Name *',
+    'اختر طريقة الدفع المناسبة':'Choose a Payment Method','PayPal / بطاقة':'PayPal / Card',
+    'يتم الدفع بالدولار الأمريكي (USD) عبر PayPal، ويمكنك الدفع بالبطاقة البنكية من نفس النافذة.':'Payment is processed in USD via PayPal. You can also pay by bank card in the same window.',
+    'الشبكة:':'Network:','المبلغ:':'Amount:','عنوان المحفظة:':'Wallet Address:',
+    'أرسل عملة USDT فقط وعلى الشبكة المذكورة بالضبط. الإرسال على شبكة أخرى أو بعملة مختلفة قد يضيّع المبلغ.':'Send USDT only on the exact network shown. Using another network or currency may result in lost funds.',
+    'تأكيد التحويل وإرسال الطلب':'Confirm Transfer & Place Order','رقم الطلب الخاص بك هو':'Your order number is',
+    'التوجه إلى الديسكورد للتسليم':'Go to Discord for Delivery','إغلاق النافذة':'Close Window',
+    'تسجيل الدخول':'Sign In','المتابعة عبر Discord':'Continue with Discord','أو بالبريد الإلكتروني':'Or continue with email',
+    'البريد الإلكتروني':'Email Address','كلمة المرور':'Password','تأكيد كلمة المرور':'Confirm Password',
+    'نحفظ فقط الاسم والبريد وصورة الحساب ومزوّد الدخول لربط طلباتك بك.':'We only store your name, email, profile picture, and sign-in provider to link your orders.',
+    'تسجيل الخروج':'Sign Out'
+  };
+
+  const attrMap = {
+    'placeholder': {
+      'ابحث عن أسلحة، طاقة Energy Links، مرافقين Deviants...':'Search weapons, Energy Links, Deviants...',
+      'ابحث عن المنتجات...':'Search products...','الصق رقم العملية هنا':'Paste transaction ID here',
+      'مثال: player_one#0000 أو username':'Example: player_one#0000 or username'
+    },
+    'title': {'لوحة الإدارة':'Admin Panel','معاينة':'Preview'},
+    'aria-label': {'لوحة الإدارة':'Admin Panel','Switch language':'تبديل اللغة'}
+  };
+  const reverse = Object.fromEntries(Object.entries(translations).map(([ar,en]) => [en,ar]));
+  let lang = 'ar';
+  const originalText = new WeakMap();
+  const lastText = new WeakMap();
+  const originalAttrs = new WeakMap();
+  const lastAttrs = new WeakMap();
+  const attrNames = ['placeholder','title','aria-label'];
+
+  function convertText(value, target) {
+    const dict = target === 'en' ? translations : reverse;
+    const raw = value;
+    const lead = (raw.match(/^\s*/) || [''])[0], trail = (raw.match(/\s*$/) || [''])[0];
+    let core = raw.trim();
+    if (!core) return raw;
+    if (dict[core]) return lead + dict[core] + trail;
+    const keys = Object.keys(dict).sort((a,b) => b.length-a.length);
+    for (const k of keys) if (core.includes(k)) core = core.split(k).join(dict[k]);
+    return lead + core + trail;
+  }
+
+  function translateElement(root, target) {
+    if (!root) return;
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+      acceptNode(n) {
+        const el=n.parentElement;
+        if (!el || el.closest('script,style,noscript,textarea,select,option')) return NodeFilter.FILTER_REJECT;
+        return NodeFilter.FILTER_ACCEPT;
+      }
+    });
+    const nodes=[]; while(walker.nextNode()) nodes.push(walker.currentNode);
+    nodes.forEach(n => {
+      const current=n.nodeValue;
+      const previous=lastText.get(n);
+      if (!originalText.has(n) || (previous !== undefined && current !== previous)) originalText.set(n,current);
+      const source=originalText.get(n);
+      const next=target === 'ar' ? source : convertText(source,'en');
+      if (current !== next) n.nodeValue=next;
+      lastText.set(n,next);
+    });
+
+    const els = [root, ...root.querySelectorAll('*')];
+    els.forEach(el => {
+      if (el.id === 'languageSelector' || el.closest && el.closest('#languageSelector')) return;
+      let saved=originalAttrs.get(el); if (!saved) { saved={}; originalAttrs.set(el,saved); }
+      let last=lastAttrs.get(el); if (!last) { last={}; lastAttrs.set(el,last); }
+      for (const a of attrNames) {
+        if (!el.hasAttribute || !el.hasAttribute(a)) continue;
+        const current=el.getAttribute(a);
+        if (!(a in saved) || (a in last && current !== last[a])) saved[a]=current;
+        const source=saved[a];
+        let next=source;
+        if (target === 'en') {
+          const dict=attrMap[a] || {};
+          next=dict[source] || source;
+        } else {
+          const dict=Object.fromEntries(Object.entries(attrMap[a] || {}).map(([k,v])=>[v,k]));
+          next=dict[source] || source;
+        }
+        if (current !== next) el.setAttribute(a,next);
+        last[a]=next;
+      }
+    });
+  }
+
+  function setLanguage(next, persist=true) {
+    lang = next === 'en' ? 'en' : 'ar';
+    document.documentElement.lang = lang;
+    document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+    document.title = lang === 'ar' ? 'متجر Once Human - خدمات وموارد وانس هيومن الاحترافية' : 'Once Human Store - Premium Services & Resources';
+    document.body.classList.toggle('english-mode', lang === 'en');
+    const selector=document.getElementById('languageSelector');
+    if (selector) selector.value=lang;
+    translateElement(document.body,lang);
+    try { if (typeof window.renderProducts === 'function') window.renderProducts(); } catch(e) { console.warn('Product localization refresh:', e); }
+    try { if (typeof window.updateCartUI === 'function') window.updateCartUI(); } catch(e) { console.warn('Cart localization refresh:', e); }
+    if (persist) { try { localStorage.setItem('onceHumanStoreLanguage',lang); } catch(e){} }
+  }
+
+  window.setStoreLanguage = setLanguage;
+  window.toggleLanguage = () => setLanguage(lang === 'ar' ? 'en' : 'ar');
+  window.getStoreLanguage = () => lang;
+  window.storeText = (ar,en) => lang === 'ar' ? ar : en;
+
+  function bindLanguageSelector() {
+    const selector=document.getElementById('languageSelector');
+    if (!selector || selector.dataset.languageBound === 'true') return;
+    selector.dataset.languageBound='true';
+    selector.addEventListener('change', () => setLanguage(selector.value));
+  }
+  bindLanguageSelector();
+  document.addEventListener('DOMContentLoaded', () => {
+    bindLanguageSelector();
+    let saved='ar';
+    try { saved=localStorage.getItem('onceHumanStoreLanguage') || 'ar'; } catch(e){}
+    setLanguage(saved,false);
+    const observer = new MutationObserver(records => {
+      records.forEach(r => {
+        r.addedNodes.forEach(n => {
+          if(n.nodeType===Node.ELEMENT_NODE) translateElement(n,lang);
+          else if(n.nodeType===Node.TEXT_NODE && n.parentElement && !n.parentElement.closest('script,style,noscript,textarea,select,option')) translateElement(n.parentElement,lang);
+        });
+        if(r.type==='characterData' && r.target.nodeType===Node.TEXT_NODE && r.target.parentElement && !r.target.parentElement.closest('script,style,noscript,textarea,select,option')) translateElement(r.target.parentElement,lang);
+      });
+    });
+    observer.observe(document.body,{childList:true,subtree:true,characterData:true});
+  });
+})();
+</script>
+
 </body>
 </html>
