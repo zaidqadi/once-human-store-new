@@ -2330,11 +2330,9 @@ body.english-mode #accountModal > div > button {
         { id: 'orders', label: 'الطلبات', icon: 'fa-receipt', tables: ['orders'], status: ['pending_payment', 'paid', 'processing', 'completed', 'cancelled', 'refunded'], items: 1 },
         { id: 'customers', label: 'العملاء', icon: 'fa-users', tables: ['profiles'] },
         { id: 'payments', label: 'المدفوعات والشحن', icon: 'fa-wallet', tables: ['payments', 'payment_requests', 'topup_requests', 'recharge_requests', 'charge_requests', 'deposits'], status: ['pending', 'approved', 'paid', 'completed', 'rejected', 'failed', 'cancelled', 'refunded'] },
-        { id: 'coupons', label: 'الكوبونات', icon: 'fa-ticket', tables: ['coupons', 'discount_codes', 'promo_codes'], add: 1, edit: 1, del: 1 },
-        { id: 'inventory', label: 'المخزون والتسليمات', icon: 'fa-key', tables: ['digital_assets', 'deliveries', 'order_deliveries', 'digital_deliveries'], add: 1, edit: 1, reveal: 1, status: ['available', 'reserved', 'sold', 'delivered', 'used', 'pending'] },
         { id: 'support', label: 'رسائل الدعم', icon: 'fa-headset', tables: ['support_messages', 'support_tickets', 'tickets', 'contact_messages'], status: ['open', 'pending', 'resolved', 'closed'] }
     ];
-    const S = { sec: 'orders', tbl: null, rows: [], avail: [], extra: {}, q: '', tok: 0 };
+    const S = { sec: 'orders', tbl: null, rows: [], avail: [], extra: {}, q: '', tok: 0, payFilter: 'all' };
     const found = {};
 
     // ---------- التحقق من الصلاحية عبر public.is_admin() ----------
@@ -2384,6 +2382,7 @@ body.english-mode #accountModal > div > button {
             '<div id="adminTabs" class="max-w-6xl mx-auto px-4 pb-3 flex gap-2 overflow-x-auto"></div></div>' +
             '<div class="max-w-6xl mx-auto px-4 py-4">' +
             '<div id="adminSubs" class="flex gap-2 overflow-x-auto mb-3"></div>' +
+            '<div id="adminPaymentFilters" class="hidden flex flex-wrap gap-2 mb-3"></div>' +
             '<div class="flex flex-wrap items-center gap-2 mb-3">' +
             '<input id="adminSearch" type="search" placeholder="بحث في النتائج…" class="' + CLS + ' flex-1 min-w-[140px]">' +
             '<button type="button" id="adminRefresh" class="' + BTN + 'bg-slate-900 border-slate-700 text-slate-200 hover:border-starlight"><i class="fa-solid fa-rotate-right ml-1"></i> تحديث</button>' +
@@ -2438,7 +2437,7 @@ body.english-mode #accountModal > div > button {
         return (found[t] = { ok: true, keys: data && data[0] ? Object.keys(data[0]) : [] });
     }
     async function selectSection(id) {
-        S.sec = id; S.q = ''; $('adminSearch').value = '';
+        S.sec = id; S.q = ''; if (id === 'payments') S.payFilter = 'all'; $('adminSearch').value = '';
         const tok = ++S.tok, c = cfg();
         renderTabs(); msg('جاري التحميل…');
         const names = c.tables.concat(S.extra[id] || []);
@@ -2460,8 +2459,37 @@ body.english-mode #accountModal > div > button {
     }
     function renderSubs() {
         const box = $('adminSubs'); box.innerHTML = '';
-        if (S.avail.length < 2) return;
-        S.avail.forEach(t => box.appendChild(btn(t, t === S.tbl ? 'bg-slate-800 border-starlight text-starlight font-mono' : 'bg-slate-900 border-slate-700 text-slate-400 font-mono', () => { S.tbl = t; renderSubs(); load(); })));
+        if (S.avail.length >= 2) S.avail.forEach(t => box.appendChild(btn(t, t === S.tbl ? 'bg-slate-800 border-starlight text-starlight font-mono' : 'bg-slate-900 border-slate-700 text-slate-400 font-mono', () => { S.tbl = t; S.payFilter = 'all'; renderSubs(); load(); })));
+        renderPaymentFilters();
+    }
+    function renderPaymentFilters() {
+        const box = $('adminPaymentFilters');
+        if (!box) return;
+        box.innerHTML = '';
+        const show = S.sec === 'payments' && S.tbl === 'payments';
+        box.classList.toggle('hidden', !show);
+        if (!show) return;
+        const filters = [
+            ['all', 'الكل'],
+            ['review', 'قيد المراجعة'],
+            ['accepted', 'تم القبول'],
+            ['rejected', 'تم الرفض']
+        ];
+        filters.forEach(([key, label]) => {
+            const active = S.payFilter === key;
+            box.appendChild(btn(label, active
+                ? 'bg-starlight border-starlight text-slate-950 whitespace-nowrap'
+                : 'bg-slate-900 border-slate-700 text-slate-300 hover:border-starlight whitespace-nowrap',
+                () => { S.payFilter = key; render(); renderPaymentFilters(); }));
+        });
+    }
+    function matchesPaymentFilter(row) {
+        if (S.sec !== 'payments' || S.tbl !== 'payments' || S.payFilter === 'all') return true;
+        const status = String(row.status || '').toLowerCase();
+        if (S.payFilter === 'accepted') return ['approved', 'paid', 'completed'].includes(status);
+        if (S.payFilter === 'rejected') return status === 'rejected';
+        if (S.payFilter === 'review') return ['pending', 'under_review', 'pending_payment'].includes(status);
+        return true;
     }
     async function load() {
         const t = S.tbl, info = found[t], tok = ++S.tok;
@@ -2505,8 +2533,9 @@ body.english-mode #accountModal > div > button {
         return s;
     }
     function render() {
+        renderPaymentFilters();
         const c = cfg(), box = $('adminList'); box.innerHTML = '';
-        const q = S.q, rows = q ? S.rows.filter(r => JSON.stringify(r).toLowerCase().includes(q)) : S.rows;
+        const q = S.q, rows = (q ? S.rows.filter(r => JSON.stringify(r).toLowerCase().includes(q)) : S.rows).filter(matchesPaymentFilter);
         if (!rows.length) { box.appendChild(mk('p', 'p-6 text-center text-xs text-slate-500', S.rows.length ? 'لا نتائج مطابقة للبحث.' : 'لا توجد بيانات في هذا الجدول.')); return; }
         const keys = []; S.rows.slice(0, 50).forEach(r => Object.keys(r).forEach(k => { if (!keys.includes(k) && k !== 'updated_at') keys.push(k); }));
         let cols = keys.slice(0, 8); const hasId = keys.includes('id');
@@ -2936,7 +2965,7 @@ body.english-mode #accountModal > div > button {
     'الإجمالي':'Total','إلغاء الطلب وإعادة المخزون':'Cancel Order & Restore Stock','إلغاء هذا الطلب؟':'Cancel this order?',
     'جاري تحميل الطلبات…':'Loading orders…','يجب تسجيل الدخول لعرض طلباتك.':'Sign in to view your orders.','لا توجد طلبات':'No Orders',
     'خطأ في الاستعلام.':'Query error.','تعذّر الاتصال بالخادم. تحقق من الإنترنت ثم أعد المحاولة.':'Could not connect to the server. Check your internet and try again.',
-    'المنتجات':'Products','الطلبات':'Orders','العملاء':'Customers','المدفوعات والشحن':'Payments & Top-ups','الكوبونات':'Coupons',
+    'المنتجات':'Products','الطلبات':'Orders','العملاء':'Customers','المدفوعات والشحن':'Payments & Top-ups','الكل':'All','قيد المراجعة':'Under Review','تم القبول':'Accepted','تم الرفض':'Rejected','الكوبونات':'Coupons',
     'المخزون والتسليمات':'Inventory & Deliveries','رسائل الدعم':'Support Messages','انتهت صلاحية الإدارة أو لا تملكها.':'Admin session expired or you do not have permission.',
     'بحث في النتائج…':'Search results…','إغلاق':'Close','تحديث':'Refresh','إضافة':'Add','جدول آخر':'Other Table',
     'اكتب اسم الجدول في Supabase:':'Enter the table name in Supabase:','اسم جدول غير صالح.':'Invalid table name.',
@@ -3014,7 +3043,7 @@ body.english-mode #accountModal > div > button {
     'الإجمالي':'Total','إلغاء الطلب وإعادة المخزون':'Cancel Order & Restore Stock','إلغاء هذا الطلب؟':'Cancel this order?',
     'جاري تحميل الطلبات…':'Loading orders…','يجب تسجيل الدخول لعرض طلباتك.':'Sign in to view your orders.','لا توجد طلبات':'No Orders',
     'خطأ في الاستعلام.':'Query error.','تعذّر الاتصال بالخادم. تحقق من الإنترنت ثم أعد المحاولة.':'Could not connect to the server. Check your internet and try again.',
-    'المنتجات':'Products','الطلبات':'Orders','العملاء':'Customers','المدفوعات والشحن':'Payments & Top-ups','الكوبونات':'Coupons',
+    'المنتجات':'Products','الطلبات':'Orders','العملاء':'Customers','المدفوعات والشحن':'Payments & Top-ups','الكل':'All','قيد المراجعة':'Under Review','تم القبول':'Accepted','تم الرفض':'Rejected','الكوبونات':'Coupons',
     'المخزون والتسليمات':'Inventory & Deliveries','رسائل الدعم':'Support Messages','انتهت صلاحية الإدارة أو لا تملكها.':'Admin session expired or you do not have permission.',
     'بحث في النتائج…':'Search results…','تحديث':'Refresh','إضافة':'Add','جدول آخر':'Other Table','اكتب اسم الجدول في Supabase:':'Enter the table name in Supabase:',
     'اسم جدول غير صالح.':'Invalid table name.','ليست لديك صلاحية الوصول إلى لوحة الإدارة.':'You do not have permission to access the admin panel.',
