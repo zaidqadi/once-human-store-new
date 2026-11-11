@@ -193,6 +193,71 @@ body.english-mode #accountModal > div > button {
   right: 1rem !important;
 }
 </style>
+
+<style id="floating-help-widget-styles">
+  #floatingHelpWidget { position:fixed; right:22px; bottom:22px; z-index:45; direction:rtl; }
+  html[dir="ltr"] #floatingHelpWidget { right:auto; left:22px; direction:ltr; }
+  #floatingHelpButton { width:58px; height:58px; border-radius:9999px; display:flex; align-items:center; justify-content:center; color:#06131b; background:linear-gradient(145deg,#a5f3fc,#22d3ee 55%,#0891b2); border:2px solid rgba(207,250,254,.9); box-shadow:0 8px 28px rgba(6,182,212,.35),0 0 0 5px rgba(34,211,238,.10); transition:transform .2s,box-shadow .2s; }
+  #floatingHelpButton:hover { transform:translateY(-3px) scale(1.04); box-shadow:0 12px 34px rgba(6,182,212,.48),0 0 0 7px rgba(34,211,238,.13); }
+  #floatingHelpButton i { font-size:27px; animation:help-globe-spin 12s linear infinite; }
+  @keyframes help-globe-spin { to { transform:rotate(360deg); } }
+  #floatingHelpMenu { position:absolute; bottom:72px; right:0; width:min(285px,calc(100vw - 32px)); padding:9px; border:1px solid rgba(100,116,139,.45); border-radius:18px; background:rgba(2,6,23,.97); box-shadow:0 18px 50px rgba(0,0,0,.55); backdrop-filter:blur(14px); }
+  html[dir="ltr"] #floatingHelpMenu { right:auto; left:0; }
+  #floatingHelpMenu button, #floatingHelpMenu a { width:100%; display:flex; align-items:center; gap:12px; padding:13px 12px; border-radius:12px; color:#e2e8f0; font-size:13px; font-weight:800; text-align:start; transition:background .2s,color .2s; }
+  #floatingHelpMenu button:hover, #floatingHelpMenu a:hover { background:rgba(34,211,238,.10); color:#67e8f9; }
+  #floatingHelpMenu .help-menu-icon { width:34px; height:34px; flex:0 0 34px; display:grid; place-items:center; border-radius:10px; background:rgba(34,211,238,.10); color:#67e8f9; font-size:15px; }
+  @media (max-width:480px) { #floatingHelpWidget { right:15px; bottom:16px; } html[dir="ltr"] #floatingHelpWidget { left:15px; right:auto; } #floatingHelpButton { width:54px; height:54px; } }
+  @media (prefers-reduced-motion:reduce) { #floatingHelpButton i { animation:none; } }
+</style>
+
+<style id="mobile-ui-tweaks">
+@media (max-width:640px){
+  /* Header: logo on the first row, controls on the second */
+  header .flex.items-center.justify-between.h-20{height:auto;flex-wrap:wrap;padding:10px 0;gap:10px}
+  header .flex.items-center.justify-between.h-20 > div:last-child{width:100%;justify-content:space-between;gap:6px}
+  header h1{font-size:17px}
+  header h1 + p{display:none}
+  #languageSelector,#currencySelector{padding:8px 6px;font-size:11px}
+  #authBtn,#cartBtn,#adminNavBtn{padding:9px}
+
+  /* Hero */
+  section.relative{padding-top:20px;padding-bottom:8px}
+  section.relative h2{font-size:1.6rem;line-height:1.35}
+  section.relative .flex.flex-wrap > a{flex:1 1 100%;justify-content:center}
+
+  /* Products */
+  #productsGrid{gap:14px}
+  #productsGrid .h-48{height:11rem}
+  #productsSection{padding-top:16px}
+
+  /* Inputs: 16px stops iOS from zooming on focus */
+  input,select,textarea{font-size:16px !important}
+
+  /* Modals scroll inside the screen */
+  #productModal > div,#checkoutModal > div,#authModal > div,#accountModal > div{max-height:92vh;max-height:92dvh;overflow-y:auto;padding:18px}
+  #checkoutForm .grid.gap-3{grid-template-columns:1fr}
+  #modalContent img{height:11rem}
+
+  /* Cart drawer */
+  #cartDrawer .max-w-md{max-width:100%}
+  #cartDrawer .fixed.inset-y-0{padding-left:0}
+
+  /* Toast sits above the help button and wraps */
+  #cartToast{white-space:normal !important;width:max-content;max-width:88vw !important;text-align:center;bottom:86px !important}
+
+  /* Help center fits the phone */
+  #floatingHelpWidget{right:12px !important;bottom:calc(14px + env(safe-area-inset-bottom)) !important}
+  html[dir="ltr"] #floatingHelpWidget{left:12px !important;right:auto !important}
+  #floatingHelpMenu{width:calc(100vw - 24px) !important;max-height:calc(100vh - 100px) !important;max-height:calc(100dvh - 100px) !important;padding:14px !important;bottom:66px !important}
+  .help-option{padding:13px !important;min-height:56px}
+  .help-answer-text{font-size:14px !important}
+  .help-issue-send,.help-satisfied,.help-footer a{min-height:46px}
+  .help-rating-stars button{font-size:32px !important;padding:4px 6px !important}
+
+  /* Footer */
+  footer{padding-bottom:84px}
+}
+</style>
 </head>
 <body class="bg-darkBg bg-grid-pattern min-h-screen flex flex-col justify-between">
 
@@ -2868,6 +2933,7 @@ body.english-mode #accountModal > div > button {
     'دخول مجتمع Discord':'Join Discord Community','المتجر الأفضل والأسرع لشراء كافة مستلزمات لعبة Once Human بأعلى درجة أمان وموثوقية.':'The best and fastest store for Once Human items, with premium safety and reliability.',
     'روابط سريعة':'Quick Links','مخطط الأسلحة':'Weapon Blueprints','مرافقين Deviants':'Deviants','الدعم والمساعدة':'Support & Help',
     'سياسة الاسترجاع والضمان':'Refund & Warranty Policy','كيفية تسليم المنتجات':'How Delivery Works','التواصل عبر ديسكورد':'Contact us on Discord',
+    'كيفية استلام الطلب':'How to Receive Your Order','تواصل مع الدعم المباشر':'Contact Live Support','المساعدة والدعم':'Help & Support','فتح المساعدة والدعم':'Open Help & Support',
     'طرق الدفع المدعومة':'Accepted Payment Methods','© 2026 جميع الحقوق محفوظة لـ Once Human Store.':'© 2026 All rights reserved to Once Human Store.',
     'سلة الشراء':'Shopping Cart','المجموع الفرعي:':'Subtotal:','رسوم التسليم الفوري:':'Instant Delivery Fee:','مجاني ⚡':'FREE ⚡','الإجمالي النهائي:':'Total:',
     'متابعة عملية الشراء':'Proceed to Checkout','خطوات بسيطة من الشراء حتى استلام الطلب داخل اللعبة.':'A few simple steps from purchase to in-game delivery.',
@@ -3177,6 +3243,7 @@ body.english-mode #accountModal > div > button {
     document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
     document.title = lang === 'ar' ? 'متجر Once Human - خدمات وموارد وانس هيومن الاحترافية' : 'Once Human Store - Premium Services & Resources';
     document.body.classList.toggle('english-mode', lang === 'en');
+    document.dispatchEvent(new Event('store-language-changed'));
     const selector=document.getElementById('languageSelector');
     if (selector) selector.value=lang;
     translateElement(document.body,lang);
@@ -3216,5 +3283,193 @@ body.english-mode #accountModal > div > button {
 })();
 </script>
 
+
+    <!-- Floating Interactive Help Center -->
+    <div id="floatingHelpWidget">
+      <section id="floatingHelpMenu" class="help-hidden" role="dialog" aria-modal="false" aria-label="مركز المساعدة">
+        <header class="help-center-head">
+          <div><div class="help-center-kicker" id="helpKicker">مركز المساعدة</div><h3 id="helpTitle">كيف يمكننا مساعدتك؟</h3><p id="helpSubtitle">اختر الموضوع للوصول إلى الحل المناسب</p></div>
+          <button type="button" class="help-close" onclick="event.stopPropagation();closeFloatingHelpMenu()" aria-label="إغلاق" title="إغلاق"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+        </header>
+        <div id="helpBreadcrumb" class="help-breadcrumb"></div>
+        <div id="helpContent" class="help-content"></div>
+        <footer id="helpFooter" class="help-footer help-hidden">
+          <div class="help-rating" aria-label="تقييم الإجابة">
+            <span id="helpRatingLabel">قيّم الإجابة</span>
+            <div class="help-rating-stars" role="group" aria-label="اختر تقييمًا من نجمة إلى خمس نجوم">
+              <button type="button" data-help-rating="1" aria-label="نجمة واحدة">★</button>
+              <button type="button" data-help-rating="2" aria-label="نجمتان">★</button>
+              <button type="button" data-help-rating="3" aria-label="ثلاث نجوم">★</button>
+              <button type="button" data-help-rating="4" aria-label="أربع نجوم">★</button>
+              <button type="button" data-help-rating="5" aria-label="خمس نجوم">★</button>
+            </div>
+            <span id="helpRatingThanks" class="help-rating-thanks" aria-live="polite"></span>
+          </div>
+          <a class="help-contact" href="https://discord.gg/vbRgT4vvc" target="_blank" rel="noopener noreferrer" onclick="closeFloatingHelpMenu()"><i class="fa-solid fa-headset"></i><span id="helpContactText">تواصل مع الدعم المباشر</span></a>
+        </footer>
+      </section>
+      <button id="floatingHelpButton" type="button" aria-label="فتح مركز المساعدة" aria-expanded="false" aria-controls="floatingHelpMenu" onclick="toggleFloatingHelpMenu()"><i class="fa-solid fa-earth-americas" aria-hidden="true"></i></button>
+    </div>
+    <script id="floating-help-widget-script">
+    (function(){
+      const helpTree = {
+        ar: {
+          title:'الأسئلة الشائعة', subtitle:'اختر سؤالًا لعرض الإجابة', kicker:'مركز المساعدة', back:'رجوع', faq:'الأسئلة الشائعة', faqDesc:'اختر موضوعًا ثم سؤالك لعرض طريقة الحل', discord:'تواصل مع الدعم عبر Discord', discordDesc:'افتح سيرفر الدعم للتحدث مع الفريق', satisfied:'تمت إفادتي', rating:'قيّم الإجابة', ratingThanks:'شكرًا لتقييمك', contact:'تواصل مع الدعم عبر Discord',
+          categories:[
+            {id:'orders',icon:'fa-receipt',label:'الطلبات',desc:'معرفة الطلبات وحالاتها',items:[
+              ['status','كيف أعرف طلباتي وحالتها؟','يمكنك مراجعة طلباتك ومعرفة حالتها من الملف الشخصي:\n1. اضغط على زر حسابك في أعلى المتجر (سجّل الدخول أولًا إن لم تكن مسجّلًا).\n2. افتح الملف الشخصي.\n3. ستجد قسم «طلباتي» يعرض جميع طلباتك، وحالة كل طلب وتفاصيله.']
+            ]},
+            {id:'payment',icon:'fa-wallet',label:'الدفع',desc:'طرق الدفع ومراجعة التحويل',items:[
+              ['methods','ما طرق الدفع المتاحة؟','الطرق المتاحة حاليًا:\n• PayPal / بطاقة بنكية: الدفع بالدولار الأمريكي (USD) ويتم تأكيده تلقائيًا.\n• USDT على شبكة TRC20 (TRON).\n• USDT على شبكة Polygon (POS).\n\nاختر طريقة الدفع في صفحة إتمام الطلب. وعند التحويل بـ USDT أرسل على الشبكة المحددة فقط ثم الصق رقم العملية (TXID).'],
+              ['review','كيف تتم مراجعة التحويل؟','تتم مراجعة التحويل عن طريق Discord. ادخل سيرفر الديسكورد وافتح تذكرة (Ticket)، ثم أرسل رقم الطلب ورقم العملية (TXID) أو إثبات التحويل ليتم التحقق منه. لا ترسل تحويلًا ثانيًا قبل التواصل مع الدعم.'],
+              ['rejected','تم رفض عملية الدفع','تواصل مع الدعم عبر Discord وأرسل رقم الطلب وإثبات التحويل ومرجعه لمعرفة سبب الرفض ومراجعته.'],
+              ['notupdated','حوّلت المبلغ لكن الحالة لم تتغير','أرسل رقم الطلب وإثبات التحويل إلى الدعم عبر Discord ليتم التحقق من العملية.']
+            ]},
+            {id:'delivery',icon:'fa-gamepad',label:'استلام المنتجات داخل اللعبة',desc:'خطوات التسليم ومتطلباته',items:[
+              ['how','كيف يتم استلام المنتجات؟','استلام المنتجات يتم عن طريق Discord. بعد إتمام الطلب انسخ تفاصيله، وادخل سيرفر الديسكورد وافتح تذكرة (Ticket) وأرسلها هناك. سيتواصل معك المشرف ويسلّمك طلبك داخل اللعبة.'],
+              ['data','كيف أجهز بيانات الاستلام؟','تواصل مع فريق التسليم عبر Discord، وسيخبرك بالبيانات المطلوبة لإتمام التسليم داخل اللعبة. أرسل البيانات بدقة لتجنب التأخير.'],
+              ['late','تأخر استلام المنتج','تواصل مع فريق التسليم عبر Discord وأرسل رقم الطلب لمعرفة حالة التسليم ومتابعته.'],
+              ['wrong','أرسلت بيانات استلام خاطئة','تواصل فورًا مع فريق التسليم عبر Discord وأرسل رقم الطلب والبيانات الصحيحة. لا يمكن ضمان تعديلها بعد بدء التسليم.']
+            ]},
+            {id:'account',icon:'fa-user',label:'الحساب وتسجيل الدخول',desc:'الملف الشخصي أو تسجيل الدخول',action:'account'},
+            {id:'technical',icon:'fa-lightbulb',label:'الاقتراحات والأخطاء',desc:'أرسل اقتراحك أو اشرح المشكلة التي واجهتك',form:'issue'},
+            {id:'other',icon:'fa-circle-question',label:'أسئلة أخرى',desc:'الكوبونات والاستفسارات العامة',items:[
+              ['coupon','كيف أستخدم كود الخصم؟','أدخل كود الخصم في الحقل المخصص أثناء إتمام الطلب، ثم تأكد من ظهور الخصم في الإجمالي قبل الدفع.'],
+              ['general','لدي استفسار آخر','إذا لم تجد إجابة لسؤالك، استخدم زر «تواصل مع الدعم عبر Discord» أدناه لمراسلة فريق الدعم.']
+            ]}
+          ]
+        },
+        en: {
+          title:'Frequently Asked Questions',subtitle:'Choose a question to view its answer',kicker:'HELP CENTER',back:'Back',faq:'Frequently Asked Questions',faqDesc:'Choose a topic and then a question to see its answer',discord:'Contact support on Discord',discordDesc:'Open the support server to talk to our team',satisfied:'This helped me',rating:'Rate this answer',ratingThanks:'Thanks for your rating',contact:'Contact support on Discord',
+          categories:[
+            {id:'orders',icon:'fa-receipt',label:'Orders',desc:'View your orders and their status',items:[['status','How can I view my orders and their status?','You can review your orders and their status from your Profile:\n1. Tap your account button at the top of the store (sign in first if needed).\n2. Open your Profile.\n3. Under “My Orders” you will see all your orders, the status of each one, and its details.']]},
+            {id:'payment',icon:'fa-wallet',label:'Payments',desc:'Payment methods and verification',items:[['methods','Which payment methods are available?','Currently available methods:\n• PayPal / bank card: paid in USD and confirmed automatically.\n• USDT on the TRC20 (TRON) network.\n• USDT on the Polygon (POS) network.\n\nChoose your method on the checkout page. For USDT, send only on the selected network, then paste the transaction ID (TXID).'],['review','How is a transfer reviewed?','Transfers are reviewed through Discord. Join our Discord server and open a ticket, then send your order number and the transaction ID (TXID) or transfer receipt for verification. Do not send a second transfer before contacting support.'],['rejected','My payment was rejected','Contact support on Discord and provide your order number, transfer receipt, and transaction reference so the team can review it.'],['notupdated','I paid but the status has not changed','Send your order number and transfer receipt to support on Discord so the payment can be checked.']]},
+            {id:'delivery',icon:'fa-gamepad',label:'In-game delivery',desc:'Delivery steps and requirements',items:[['how','How do I receive my products?','Products are received through Discord. After placing your order, copy its details, join our Discord server, and open a ticket to send them. A moderator will contact you and deliver your order in-game.'],['data','How do I prepare my delivery details?','Contact the delivery team on Discord. They will tell you which details are needed to complete the in-game delivery.'],['late','My product delivery is delayed','Contact the delivery team on Discord and provide your order number to check and follow up on delivery.'],['wrong','I sent incorrect delivery details','Contact the delivery team on Discord immediately with your order number and the corrected details.']]},
+            {id:'account',icon:'fa-user',label:'Account and sign-in',desc:'Open your profile or sign in',action:'account'},
+            {id:'technical',icon:'fa-lightbulb',label:'Suggestions & Errors',desc:'Send a suggestion or describe an issue',form:'issue'},
+            {id:'other',icon:'fa-circle-question',label:'Other questions',desc:'Coupons and general questions',items:[['coupon','How do I use a coupon?','Enter the coupon in the designated checkout field and make sure the discount appears in the total before paying.'],['general','I have another question','If you cannot find your answer, use the Contact support on Discord button below to message our team.']]}
+          ]
+        }
+      };
+      let path=[];
+      const $=id=>document.getElementById(id);
+      const lang=()=>window.getStoreLanguage && window.getStoreLanguage()==='en'?'en':'ar';
+      function render(){
+        const t=helpTree[lang()], content=$('helpContent'), footer=$('helpFooter');
+        $('helpKicker').textContent=t.kicker; $('helpTitle').textContent=path.length?path[path.length-1].label:t.title;
+        $('helpSubtitle').textContent=path.length?(path[path.length-1].desc||''):t.subtitle;
+        $('helpContactText').textContent=t.contact; $('helpRatingLabel').textContent=t.rating; $('helpRatingThanks').textContent='';
+        $('helpBreadcrumb').innerHTML=path.length?'<button type="button" onclick="helpGoBack()"><i class="fa-solid fa-arrow-'+(lang()==='ar'?'right':'left')+'"></i> '+t.back+'</button><span>'+path.map(x=>escapeHelp(x.label)).join(' / ')+'</span>':'';
+        content.innerHTML=''; footer.classList.add('help-hidden');
+        if(!path.length){
+          // First screen: one FAQ entry only.
+          content.appendChild(makeHelpOption('fa-circle-question',t.faq,t.faqDesc,()=>{
+            path.push({label:t.faq,isFaq:true});
+            render();
+          }));
+          return;
+        }
+        if(path.length===1 && path[0].isFaq){
+          // Second screen: show topic categories as selectable options.
+          t.categories.forEach(c=>{
+            content.appendChild(makeHelpOption(c.icon,c.label,c.desc,()=>{
+              if(c.action==='account'){
+                window.closeFloatingHelpMenu();
+                if(window.currentUser){
+                  if(typeof window.openAccountModal==='function')window.openAccountModal();
+                } else if(typeof window.openAuthModal==='function'){
+                  window.openAuthModal(false);
+                }
+                return;
+              }
+              path.push({label:c.label,desc:c.desc,items:c.items,form:c.form});
+              if(Array.isArray(c.items)&&c.items.length===1){path.push({label:c.items[0][1],answer:c.items[0][2]});}
+              render();
+            }));
+          });
+          return;
+        }
+        if(path.length===2 && Array.isArray(path[1].items)){
+          // Third screen: show questions belonging to the selected category.
+          path[1].items.forEach(item=>{
+            content.appendChild(makeHelpOption('fa-circle-question',item[1],path[1].label,()=>{
+              path.push({label:item[1],answer:item[2]});
+              render();
+            }));
+          });
+          return;
+        }
+        const node=path[path.length-1];
+        if(node.form==='issue'){
+          const box=document.createElement('div');box.className='help-issue-form';
+          const label=document.createElement('label');label.textContent=lang()==='ar'?'اكتب اقتراحك أو المشكلة التي واجهتك':'Write your suggestion or describe the issue you faced';label.htmlFor='helpIssueText';
+          const area=document.createElement('textarea');area.id='helpIssueText';area.rows=4;area.maxLength=1500;area.placeholder=lang()==='ar'?'اشرح ما حدث بالتفصيل...':'Describe what happened...';
+          const send=document.createElement('button');send.type='button';send.className='help-issue-send';send.textContent=lang()==='ar'?'نسخ النص وفتح Discord':'Copy text and open Discord';
+          send.addEventListener('click',async()=>{const value=area.value.trim();if(!value){area.focus();return;}if(window.saveSupportMessage){await window.saveSupportMessage(value,send);return;}const message=(lang()==='ar'?'اقتراح / مشكلة من الموقع:\n':'Website suggestion / issue:\n')+value;try{await navigator.clipboard.writeText(message);send.textContent=lang()==='ar'?'تم النسخ — الصق الرسالة في Discord':'Copied — paste the message in Discord';}catch(e){send.textContent=lang()==='ar'?'تعذر النسخ؛ انسخ النص يدويًا':'Copy failed; please copy the text manually';}window.open('https://discord.gg/vbRgT4vvc','_blank','noopener,noreferrer');});
+          box.append(label,area,send);content.appendChild(box);content.appendChild(makeSatisfiedBtn());footer.classList.remove('help-hidden');return;
+        }
+        if(node.answer){
+          const answer=document.createElement('div'); answer.className='help-answer';
+          answer.innerHTML='<div class="help-answer-icon"><i class="fa-solid fa-lightbulb"></i></div><div class="help-answer-text">'+escapeHelp(node.answer)+'</div>';
+          content.appendChild(answer); content.appendChild(makeSatisfiedBtn()); footer.classList.remove('help-hidden'); return;
+        }
+        (node.items||[]).forEach(item=>content.appendChild(makeHelpOption('fa-chevron-'+(lang()==='ar'?'left':'right'),item[1],lang()==='ar'?'اضغط لعرض الحل':'Tap to view the solution',()=>{path.push({label:item[1],answer:item[2]});render();})));
+      }
+      document.querySelectorAll('[data-help-rating]').forEach(btn=>btn.addEventListener('click',()=>{
+        const rating=Number(btn.getAttribute('data-help-rating'));
+        document.querySelectorAll('[data-help-rating]').forEach(star=>{
+          const active=Number(star.getAttribute('data-help-rating'))<=rating;
+          star.classList.toggle('is-selected',active);
+          star.setAttribute('aria-pressed',String(active));
+        });
+        $('helpRatingThanks').textContent=helpTree[lang()].ratingThanks;
+      }));
+      function makeHelpOption(icon,label,desc,action){const b=document.createElement('button');b.type='button';b.className='help-option';b.innerHTML='<span class="help-option-icon"><i class="fa-solid '+icon+'"></i></span><span class="help-option-copy"><strong>'+escapeHelp(label)+'</strong><small>'+escapeHelp(desc||'')+'</small></span><i class="fa-solid fa-angle-'+(lang()==='ar'?'left':'right')+' help-option-arrow"></i>';b.addEventListener('click',action);return b;}
+      function makeSatisfiedBtn(){const b=document.createElement('button');b.type='button';b.className='help-satisfied';b.innerHTML='<i class="fa-solid fa-circle-check"></i><span></span>';b.querySelector('span').textContent=helpTree[lang()].satisfied;b.addEventListener('click',()=>window.finishHelp());return b;}
+      window.saveSupportMessage=async function(value,btn){
+        const ar=lang()==='ar',old=btn.textContent;
+        btn.disabled=true;btn.textContent=ar?'جاري الإرسال…':'Sending…';
+        try{
+          if(typeof supabaseClient==='undefined'||!supabaseClient)throw new Error('no client');
+          const u=window.currentUser||null;
+          const {error}=await supabaseClient.from('support_messages').insert({user_id:u?u.id:null,email:u?(u.email||null):null,type:'suggestion_or_error',message:value,language:lang(),status:'open',page_url:String(location.href).slice(0,500)});
+          if(error)throw error;
+          btn.textContent=ar?'تم حفظ رسالتك ✅ سيراجعها الفريق':'Saved ✅ Our team will review it';
+          const a=document.getElementById('helpIssueText');if(a)a.value='';
+        }catch(e){
+          console.warn('[Support]',e);
+          try{await navigator.clipboard.writeText((ar?'اقتراح / مشكلة من الموقع:\n':'Website suggestion / issue:\n')+value);}catch(_){}
+          btn.textContent=ar?'تعذّر الحفظ — نُسخ النص، الصقه في Discord':'Could not save — text copied, paste it in Discord';
+          window.open('https://discord.gg/vbRgT4vvc','_blank','noopener,noreferrer');
+        }finally{
+          btn.disabled=false;setTimeout(()=>{btn.textContent=old;},4000);
+        }
+      };
+      function escapeHelp(v){return String(v||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+      window.toggleFloatingHelpMenu=function(){const m=$('floatingHelpMenu'),b=$('floatingHelpButton');if(!m||!b)return;const opening=m.classList.contains('help-hidden');m.classList.toggle('help-hidden',!opening);b.setAttribute('aria-expanded',String(opening));if(opening){path=[];render();}};
+      window.closeFloatingHelpMenu=function(){const m=$('floatingHelpMenu'),b=$('floatingHelpButton');if(m)m.classList.add('help-hidden');if(b)b.setAttribute('aria-expanded','false');};
+      window.helpGoBack=function(){if(path.length)path.pop();render();};
+      window.finishHelp=function(){window.closeFloatingHelpMenu();path=[];};
+      document.addEventListener('click',e=>{const w=$('floatingHelpWidget');if(!w)return;const inside=(e.composedPath?e.composedPath():[]).includes(w)||w.contains(e.target);if(!inside)window.closeFloatingHelpMenu();});
+      document.addEventListener('keydown',e=>{if(e.key==='Escape')window.closeFloatingHelpMenu();});
+      document.addEventListener('store-language-changed',()=>{if(!$('floatingHelpMenu').classList.contains('help-hidden'))render();});
+    })();
+    </script>
+    <style id="floating-help-center-styles">
+      #floatingHelpWidget .help-hidden{display:none!important}
+      .help-rating{display:grid;justify-items:center;gap:5px;padding:10px 8px;border:1px solid rgba(148,163,184,.22);border-radius:12px;background:rgba(15,23,42,.55);color:#cbd5e1;font-size:12px;font-weight:800}
+      .help-rating-stars{display:flex;gap:7px;direction:ltr}
+      .help-rating-stars button{padding:2px 4px;color:#64748b;font-size:27px;line-height:1;transition:color .15s,transform .15s}
+      .help-rating-stars button:hover{transform:scale(1.15);color:#fbbf24}
+      .help-rating-stars button.is-selected{color:#fbbf24}
+      .help-rating-thanks{min-height:16px;color:#67e8f9;font-size:10px}
+
+      #floatingHelpWidget{position:fixed;right:22px;bottom:22px;z-index:80;direction:rtl}html[dir="ltr"] #floatingHelpWidget{right:auto;left:22px;direction:ltr}
+      #floatingHelpButton{width:58px;height:58px;border-radius:50%;display:grid;place-items:center;color:#06131b;background:linear-gradient(145deg,#a5f3fc,#22d3ee 55%,#0891b2);border:2px solid rgba(207,250,254,.9);box-shadow:0 8px 28px rgba(6,182,212,.35),0 0 0 5px rgba(34,211,238,.10)}#floatingHelpButton i{font-size:27px;animation:help-globe-spin 12s linear infinite}@keyframes help-globe-spin{to{transform:rotate(360deg)}}
+      #floatingHelpMenu{position:absolute;bottom:72px;right:0;width:min(370px,calc(100vw - 28px));max-height:min(75vh,650px);overflow:auto;padding:16px;border:1px solid rgba(100,116,139,.5);border-radius:20px;background:rgba(2,6,23,.98);color:#e2e8f0;box-shadow:0 18px 55px rgba(0,0,0,.6);backdrop-filter:blur(16px)}html[dir="ltr"] #floatingHelpMenu{right:auto;left:0}
+      .help-center-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;padding-bottom:13px;border-bottom:1px solid rgba(148,163,184,.18)}.help-center-kicker{font-size:10px;font-weight:900;letter-spacing:.12em;color:#67e8f9}.help-center-head h3{font-size:18px;font-weight:900;color:white;margin:4px 0}.help-center-head p{font-size:11px;color:#94a3b8;margin:0}.help-close{flex:0 0 38px;width:38px;height:38px;display:grid;place-items:center;border-radius:50%;font-size:18px;line-height:1;color:#e2e8f0;background:rgba(51,65,85,.7);border:1px solid rgba(148,163,184,.35);transition:.18s;cursor:pointer}.help-close:hover{background:#ef4444;border-color:#ef4444;color:#fff;transform:rotate(90deg)}.help-close:focus-visible{outline:2px solid #22d3ee;outline-offset:2px}.help-breadcrumb{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:10px;color:#94a3b8;padding:10px 0}.help-breadcrumb:empty{display:none}.help-breadcrumb button{color:#67e8f9;font-weight:800}.help-content{display:grid;gap:8px;padding-top:12px}.help-option{display:flex;align-items:center;gap:10px;width:100%;padding:11px;border:1px solid rgba(71,85,105,.5);border-radius:13px;background:rgba(15,23,42,.8);text-align:start;transition:.18s}.help-option:hover{border-color:rgba(34,211,238,.6);background:rgba(8,47,73,.55)}.help-option-icon{width:36px;height:36px;flex:0 0 36px;display:grid;place-items:center;border-radius:11px;background:rgba(34,211,238,.12);color:#67e8f9}.help-option-copy{display:grid;gap:3px;min-width:0;flex:1}.help-option-copy strong{font-size:12px;color:#f1f5f9}.help-option-copy small{font-size:10px;color:#94a3b8}.help-option-arrow{font-size:11px;color:#64748b}.help-issue-form{display:grid;gap:9px;padding:13px;border:1px solid rgba(34,211,238,.25);border-radius:15px;background:rgba(8,47,73,.25)}.help-issue-form label{font-size:12px;font-weight:800;color:#e2e8f0}.help-issue-form textarea{width:100%;resize:vertical;min-height:105px;padding:11px;border:1px solid rgba(100,116,139,.6);border-radius:11px;background:#0f172a;color:#f8fafc;font:inherit;font-size:12px;line-height:1.7;outline:none}.help-issue-form textarea:focus{border-color:#22d3ee}.help-issue-send{padding:11px;border-radius:11px;background:#4f46e5;color:white;font-size:12px;font-weight:900}.help-answer{padding:16px 12px;border:1px solid rgba(34,211,238,.25);border-radius:15px;background:rgba(8,47,73,.3)}.help-answer-icon{color:#67e8f9;font-size:21px;margin-bottom:9px}.help-answer-text{font-size:13px;line-height:1.9;color:#e2e8f0;white-space:pre-wrap}.help-footer{display:grid;gap:8px;margin-top:14px}.help-footer button,.help-footer a{display:flex;align-items:center;justify-content:center;gap:8px;padding:12px;border-radius:12px;font-size:12px;font-weight:900}.help-satisfied{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:12px;border-radius:12px;font-size:12px;font-weight:900;background:#0f766e;color:white}.help-satisfied:hover{filter:brightness(1.12)}.help-contact{background:#4f46e5;color:white}.help-footer button:hover,.help-footer a:hover{filter:brightness(1.12)}
+      @media(max-width:480px){#floatingHelpWidget{right:14px;bottom:15px}html[dir="ltr"] #floatingHelpWidget{left:14px;right:auto}#floatingHelpButton{width:54px;height:54px}#floatingHelpMenu{bottom:66px;width:min(370px,calc(100vw - 28px));max-height:72vh}}
+      @media(prefers-reduced-motion:reduce){#floatingHelpButton i{animation:none}}
+    </style>
 </body>
 </html>
