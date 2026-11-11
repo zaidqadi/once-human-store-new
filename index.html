@@ -713,7 +713,7 @@
     </div>
 
     <!-- مؤشر حالة الاتصال بقاعدة بيانات Supabase -->
-    <div id="dbStatus" dir="rtl" style="position:fixed;bottom:8px;right:8px;z-index:45;display:flex;align-items:center;gap:6px;max-width:min(92vw,420px);padding:5px 10px;border-radius:14px;background:rgba(2,6,23,0.92);border:1px solid #fbbf24;color:#e2e8f0;font-size:11px;line-height:1.4;font-weight:700;pointer-events:none;box-shadow:0 4px 14px rgba(0,0,0,0.4);">
+    <div id="dbStatus" dir="rtl" style="position:fixed;bottom:8px;right:8px;z-index:45;display:none;align-items:center;gap:6px;max-width:min(92vw,420px);padding:5px 10px;border-radius:14px;background:rgba(2,6,23,0.92);border:1px solid #fbbf24;color:#e2e8f0;font-size:11px;line-height:1.4;font-weight:700;pointer-events:none;box-shadow:0 4px 14px rgba(0,0,0,0.4);">
         <span id="dbStatusDot" style="flex:none;width:8px;height:8px;border-radius:50%;background:#fbbf24;"></span>
         <span id="dbStatusText" style="white-space:normal;word-break:break-word;">جاري الاتصال بقاعدة البيانات…</span>
     </div>
@@ -2018,6 +2018,11 @@
     async function refreshAdmin() {
         const ok = await isAdmin();
         ['adminNavBtn', 'adminAccBtn'].forEach(id => { const b = $(id); if (b) b.style.display = ok ? 'flex' : 'none'; });
+
+        // مؤشر حالة قاعدة البيانات يظهر للمدير فقط.
+        const dbStatus = $('dbStatus');
+        if (dbStatus) dbStatus.style.display = ok ? 'flex' : 'none';
+
         if (!ok) closeAdmin();
     }
     async function guard() {            // يُستدعى قبل كل عملية كتابة
