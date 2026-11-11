@@ -2395,10 +2395,11 @@ body.english-mode #accountModal > div > button {
         { id: 'orders', label: 'الطلبات', icon: 'fa-receipt', tables: ['orders'], status: ['pending_payment', 'paid', 'processing', 'completed', 'cancelled', 'refunded'], items: 1 },
         { id: 'customers', label: 'العملاء', icon: 'fa-users', tables: ['profiles'] },
         { id: 'payments', label: 'المدفوعات والشحن', icon: 'fa-wallet', tables: ['payments', 'payment_requests', 'topup_requests', 'recharge_requests', 'charge_requests', 'deposits'], status: ['pending', 'approved', 'paid', 'completed', 'rejected', 'failed', 'cancelled', 'refunded'] },
-        { id: 'support', label: 'رسائل الدعم', icon: 'fa-headset', tables: ['support_messages', 'support_tickets', 'tickets', 'contact_messages'], status: ['open', 'pending', 'resolved', 'closed'] }
+        { id: 'admins', label: 'إدارة الأدمن', icon: 'fa-user-shield', tables: [] }
     ];
     const S = { sec: 'orders', tbl: null, rows: [], avail: [], extra: {}, q: '', tok: 0, payFilter: 'all' };
     const found = {};
+    const ADM = { list: [] };   // قائمة الأدمن الحالية (تُمسح عند إغلاق اللوحة)
 
     // ---------- التحقق من الصلاحية عبر public.is_admin() ----------
     async function isAdmin() {
@@ -2478,7 +2479,7 @@ body.english-mode #accountModal > div > button {
     function closeAdmin() {
         const p = $('adminPanel'); if (!p || p.style.display === 'none') return;
         closeModal(); p.style.display = 'none'; document.body.style.overflow = '';
-        S.rows = []; $('adminList').innerHTML = '';   // لا نُبقي بيانات في الصفحة بعد الإغلاق
+        S.rows = []; ADM.list = []; $('adminList').innerHTML = '';   // لا نُبقي بيانات في الصفحة بعد الإغلاق
     }
     function closeModal() { const m = $('adminModal'); if (m) { m.classList.add('hidden'); m.classList.remove('flex'); m.innerHTML = ''; } }
     function modal(title, body, buttons) {
@@ -2505,6 +2506,8 @@ body.english-mode #accountModal > div > button {
         S.sec = id; S.q = ''; if (id === 'payments') S.payFilter = 'all'; $('adminSearch').value = '';
         const tok = ++S.tok, c = cfg();
         renderTabs(); msg('جاري التحميل…');
+        if (id === 'admins') { S.rows = []; S.avail = []; renderSubs(); adminTools(false); loadAdmins(tok); return; }   // قسم الأدمن لا يستخدم الجداول العامة
+        adminTools(true);
         const names = c.tables.concat(S.extra[id] || []);
         const res = await Promise.all(names.map(probe));
         if (tok !== S.tok) return;
@@ -2569,6 +2572,107 @@ body.english-mode #accountModal > div > button {
         S.rows = (r.data || []).map(o => { Object.keys(o).forEach(k => { if (HID.test(k)) delete o[k]; }); return o; });
         msg(info.err ? 'تنبيه: ' + info.err : '');
         render();
+    }
+
+    // ---------- قسم «إدارة الأدمن»: كل العمليات عبر دوال RPC آمنة، والحماية الفعلية في قاعدة البيانات ----------
+    function adminTools(show) {    // أدوات الجداول العامة (بحث/إضافة/جدول آخر) لا تنطبق على قسم الأدمن
+        ['adminSearch', 'adminOther'].forEach(id => { const e = $(id); if (e) e.style.display = show ? '' : 'none'; });
+        if (!show) $('adminAdd').classList.add('hidden');
+    }
+    function rpcMsg(e) {
+        const m = (e && e.message) || '';
+        if (e && (e.code === 'PGRST202' || /could not find the function|schema cache/i.test(m))) return 'دوال إدارة الأدمن غير موجودة في قاعدة البيانات. شغّل ملف SQL أولاً.';
+        return m || 'حدث خطأ غير متوقع.';
+    }
+    async function loadAdmins(tok, okText) {
+        const r = await supabaseClient.rpc('admin_list_admins');
+        if (tok !== S.tok || S.sec !== 'admins') return;      // المستخدم انتقل لقسم آخر
+        if (r.error) { ADM.list = []; $('adminList').innerHTML = ''; msg('تعذّر تحميل قائمة الأدمن: ' + rpcMsg(r.error), 'err'); return; }
+        ADM.list = r.data || [];
+        msg(okText || '', okText ? 'ok' : undefined);
+        renderAdmins();
+    }
+    function renderAdmins() {
+        const box = $('adminList'); box.innerHTML = '';
+        const me = window.currentUser && window.currentUser.id;
+        const head = mk('div', 'flex flex-wrap items-center justify-between gap-3 p-3 bg-slate-900');
+        const cnt = mk('div', 'text-xs text-slate-300 font-bold flex items-center gap-1.5');
+        cnt.appendChild(mk('i', 'fa-solid fa-user-shield text-starlight'));
+        cnt.appendChild(mk('span', '', 'عدد الأدمن:'));
+        cnt.appendChild(mk('span', 'text-starlight text-sm', String(ADM.list.length)));
+        head.appendChild(cnt);
+        const add = btn('', 'bg-starlight border-starlight text-slate-950', openAddAdmin);
+        add.appendChild(mk('i', 'fa-solid fa-user-plus ml-1')); add.appendChild(document.createTextNode('إضافة أدمن'));
+        head.appendChild(add); box.appendChild(head);
+        if (!ADM.list.length) { box.appendChild(mk('p', 'p-6 text-center text-xs text-slate-500', 'لا يوجد أدمن.')); return; }
+        ADM.list.forEach(a => {
+            const row = mk('div', 'flex flex-wrap items-center justify-between gap-3 p-3 border-t border-slate-800 hover:bg-slate-900/60');
+            const info = mk('div', 'min-w-0 flex-1');
+            const nm = mk('div', 'text-xs font-bold text-white break-words', a.full_name || '—');
+            if (me && a.user_id === me) nm.appendChild(mk('span', 'text-[11px] text-slate-400 font-normal mr-1', '(أنت)'));
+            const em = mk('div', 'text-[11px] text-slate-400 break-all', a.email || '—'); em.dir = 'ltr'; em.style.textAlign = 'right';
+            info.appendChild(nm); info.appendChild(em); row.appendChild(info);
+            if (a.is_main) {      // المدير الرئيسي: لا زر حذف، فقط شارة الحماية
+                const tag = mk('span', 'px-2.5 py-1 rounded-lg border border-emerald-500/40 bg-emerald-500/10 text-emerald-300 text-[11px] font-bold whitespace-nowrap');
+                tag.appendChild(mk('i', 'fa-solid fa-lock ml-1')); tag.appendChild(document.createTextNode('المدير الرئيسي — محمي'));
+                row.appendChild(tag);
+            } else {
+                const del = btn('حذف أدمن', 'bg-slate-900 border-red-500/40 text-red-300', () => removeAdmin(a, del));
+                row.appendChild(del);
+            }
+            box.appendChild(row);
+        });
+    }
+    async function removeAdmin(a, b) {
+        if (a.is_main) return;       // الحماية الحقيقية في قاعدة البيانات؛ هذا مجرد حاجز واجهة
+        const self = window.currentUser && a.user_id === window.currentUser.id;
+        if (!confirm('إزالة صفة الأدمن من هذا الحساب وإعادته إلى عميل؟ لن يُحذف الحساب أو بياناته.' + (self ? '\nتنبيه: هذا حسابك أنت، ستفقد الوصول إلى لوحة الإدارة.' : ''))) return;
+        if (!(await guard())) return;
+        b.disabled = true;
+        const r = await supabaseClient.rpc('admin_remove_admin', { p_user_id: a.user_id });
+        if (r.error || !r.data || r.data.success !== true) { b.disabled = false; msg('تعذّرت إزالة الأدمن: ' + (r.error ? rpcMsg(r.error) : 'لم تتم العملية.'), 'err'); return; }
+        if (self) { await refreshAdmin(); return; }      // فقد المستخدم صلاحيته: تُغلق اللوحة
+        await loadAdmins(++S.tok, 'تمت إزالة صفة الأدمن وأُعيد الحساب إلى عميل ✅');   // تحديث القائمة والعدد فوراً
+    }
+    function openAddAdmin() {
+        const body = mk('div', 'space-y-3');
+        const inp = mk('input', CLS); inp.type = 'search'; inp.placeholder = 'ابحث بالاسم أو البريد الإلكتروني…'; inp.setAttribute('aria-label', 'بحث عن عميل');
+        const note = mk('p', 'hidden'), res = mk('div', 'space-y-1.5 max-h-72 overflow-y-auto');
+        body.appendChild(mk('p', 'text-[11px] text-slate-500', 'اختر عميلاً موجوداً لترقيته إلى أدمن.'));
+        body.appendChild(inp); body.appendChild(note); body.appendChild(res);
+        let seq = 0, timer = null;
+        const showNote = t => { note.textContent = t || ''; note.className = t ? 'text-xs text-red-400' : 'hidden'; };
+        async function promote(c, b) {
+            if (!confirm('ترقية هذا الحساب إلى أدمن؟\n' + (c.email || c.full_name || ''))) return;
+            if (!(await guard())) return;
+            showNote(''); b.disabled = true;
+            const r = await supabaseClient.rpc('admin_add_admin', { p_user_id: c.user_id });
+            if (r.error || !r.data || r.data.success !== true) { b.disabled = false; showNote('تعذّرت إضافة الأدمن: ' + (r.error ? rpcMsg(r.error) : 'لم تتم العملية.')); return; }
+            closeModal();
+            await loadAdmins(++S.tok, 'تمت ترقية الحساب إلى أدمن ✅');   // تحديث القائمة والعدد فوراً
+        }
+        async function run() {
+            const my = ++seq;
+            res.innerHTML = ''; res.appendChild(mk('p', 'text-xs text-slate-500 py-2', 'جاري البحث…'));
+            const r = await supabaseClient.rpc('admin_search_customers', { p_query: inp.value.trim() });
+            if (my !== seq || !res.isConnected) return;      // نتيجة قديمة أو أُغلقت النافذة
+            res.innerHTML = '';
+            if (r.error) { res.appendChild(mk('p', 'text-xs text-red-400 py-2', 'تعذّر البحث: ' + rpcMsg(r.error))); return; }
+            const rows = r.data || [];
+            if (!rows.length) { res.appendChild(mk('p', 'text-xs text-slate-500 py-2', 'لا يوجد عملاء مطابقون.')); return; }
+            rows.forEach(c => {
+                const it = mk('div', 'flex items-center justify-between gap-2 bg-slate-900 border border-slate-800 rounded-xl p-2.5');
+                const info = mk('div', 'min-w-0 flex-1');
+                info.appendChild(mk('div', 'text-xs font-bold text-white break-words', c.full_name || '—'));
+                const em = mk('div', 'text-[11px] text-slate-400 break-all', c.email || '—'); em.dir = 'ltr'; em.style.textAlign = 'right';
+                info.appendChild(em); it.appendChild(info);
+                const go = btn('ترقية إلى أدمن', 'bg-starlight border-starlight text-slate-950 whitespace-nowrap', () => promote(c, go));
+                it.appendChild(go); res.appendChild(it);
+            });
+        }
+        inp.oninput = () => { clearTimeout(timer); timer = setTimeout(run, 300); };
+        modal('إضافة أدمن', body, [btn('إغلاق', 'bg-slate-900 border-slate-700 text-slate-300', closeModal)]);
+        inp.focus(); run();
     }
 
     // ---------- عرض الجدول ----------
@@ -3161,17 +3265,40 @@ body.english-mode #accountModal > div > button {
     'تسجيل الدخول':'Sign In','المتابعة عبر Discord':'Continue with Discord','أو بالبريد الإلكتروني':'Or continue with email',
     'البريد الإلكتروني':'Email Address','كلمة المرور':'Password','تأكيد كلمة المرور':'Confirm Password',
     'نحفظ فقط الاسم والبريد وصورة الحساب ومزوّد الدخول لربط طلباتك بك.':'We only store your name, email, profile picture, and sign-in provider to link your orders.',
-    'تسجيل الخروج':'Sign Out'
+    'تسجيل الخروج':'Sign Out',
+    'إدارة الأدمن':'Admin Management',
+    'عدد الأدمن:':'Number of admins:',
+    'إضافة أدمن':'Add Admin',
+    'حذف أدمن':'Remove Admin',
+    'المدير الرئيسي — محمي':'Main Admin — Protected',
+    '(أنت)':'(You)',
+    'لا يوجد أدمن.':'No admins found.',
+    'اختر عميلاً موجوداً لترقيته إلى أدمن.':'Choose an existing customer to promote to admin.',
+    'ترقية إلى أدمن':'Promote to Admin',
+    'جاري البحث…':'Searching…',
+    'لا يوجد عملاء مطابقون.':'No matching customers.',
+    'تعذّر البحث:':'Search failed:',
+    'تعذّر تحميل قائمة الأدمن:':'Could not load the admin list:',
+    'تعذّرت إضافة الأدمن:':'Could not add the admin:',
+    'تعذّرت إزالة الأدمن:':'Could not remove the admin:',
+    'تمت ترقية الحساب إلى أدمن ✅':'Account promoted to admin ✅',
+    'تمت إزالة صفة الأدمن وأُعيد الحساب إلى عميل ✅':'Admin role removed; the account is now a customer ✅',
+    'ترقية هذا الحساب إلى أدمن؟':'Promote this account to admin?',
+    'إزالة صفة الأدمن من هذا الحساب وإعادته إلى عميل؟ لن يُحذف الحساب أو بياناته.':'Remove the admin role from this account and return it to customer? The account and its data will not be deleted.',
+    'تنبيه: هذا حسابك أنت، ستفقد الوصول إلى لوحة الإدارة.':'Note: this is your own account; you will lose access to the admin panel.',
+    'دوال إدارة الأدمن غير موجودة في قاعدة البيانات. شغّل ملف SQL أولاً.':'Admin-management functions are missing in the database. Run the SQL file first.',
+    'لم تتم العملية.':'The operation was not completed.'
   };
 
   const attrMap = {
     'placeholder': {
       'ابحث عن أسلحة، طاقة Energy Links، مرافقين Deviants...':'Search weapons, Energy Links, Deviants...',
       'ابحث عن المنتجات...':'Search products...','الصق رقم العملية هنا':'Paste transaction ID here',
-      'مثال: player_one#0000 أو username':'Example: player_one#0000 or username'
+      'مثال: player_one#0000 أو username':'Example: player_one#0000 or username',
+      'ابحث بالاسم أو البريد الإلكتروني…':'Search by name or email…'
     },
     'title': {'لوحة الإدارة':'Admin Panel','معاينة':'Preview'},
-    'aria-label': {'لوحة الإدارة':'Admin Panel','Switch language':'تبديل اللغة'}
+    'aria-label': {'لوحة الإدارة':'Admin Panel','Switch language':'تبديل اللغة','بحث عن عميل':'Search customers'}
   };
   const reverse = Object.fromEntries(Object.entries(translations).map(([ar,en]) => [en,ar]));
   let lang = 'ar';
@@ -3427,23 +3554,12 @@ body.english-mode #accountModal > div > button {
       function makeHelpOption(icon,label,desc,action){const b=document.createElement('button');b.type='button';b.className='help-option';b.innerHTML='<span class="help-option-icon"><i class="fa-solid '+icon+'"></i></span><span class="help-option-copy"><strong>'+escapeHelp(label)+'</strong><small>'+escapeHelp(desc||'')+'</small></span><i class="fa-solid fa-angle-'+(lang()==='ar'?'left':'right')+' help-option-arrow"></i>';b.addEventListener('click',action);return b;}
       function makeSatisfiedBtn(){const b=document.createElement('button');b.type='button';b.className='help-satisfied';b.innerHTML='<i class="fa-solid fa-circle-check"></i><span></span>';b.querySelector('span').textContent=helpTree[lang()].satisfied;b.addEventListener('click',()=>window.finishHelp());return b;}
       window.saveSupportMessage=async function(value,btn){
+        // لا تُحفظ رسائل الدعم في قاعدة البيانات: يُنسخ النص ويُفتح Discord فقط (مطابق لنص الزر).
         const ar=lang()==='ar',old=btn.textContent;
-        btn.disabled=true;btn.textContent=ar?'جاري الإرسال…':'Sending…';
-        try{
-          if(typeof supabaseClient==='undefined'||!supabaseClient)throw new Error('no client');
-          const u=window.currentUser||null;
-          const {error}=await supabaseClient.from('support_messages').insert({user_id:u?u.id:null,email:u?(u.email||null):null,type:'suggestion_or_error',message:value,language:lang(),status:'open',page_url:String(location.href).slice(0,500)});
-          if(error)throw error;
-          btn.textContent=ar?'تم حفظ رسالتك ✅ سيراجعها الفريق':'Saved ✅ Our team will review it';
-          const a=document.getElementById('helpIssueText');if(a)a.value='';
-        }catch(e){
-          console.warn('[Support]',e);
-          try{await navigator.clipboard.writeText((ar?'اقتراح / مشكلة من الموقع:\n':'Website suggestion / issue:\n')+value);}catch(_){}
-          btn.textContent=ar?'تعذّر الحفظ — نُسخ النص، الصقه في Discord':'Could not save — text copied, paste it in Discord';
-          window.open('https://discord.gg/vbRgT4vvc','_blank','noopener,noreferrer');
-        }finally{
-          btn.disabled=false;setTimeout(()=>{btn.textContent=old;},4000);
-        }
+        try{await navigator.clipboard.writeText((ar?'اقتراح / مشكلة من الموقع:\n':'Website suggestion / issue:\n')+value);btn.textContent=ar?'تم النسخ — الصق الرسالة في Discord':'Copied — paste the message in Discord';}
+        catch(_){btn.textContent=ar?'تعذر النسخ؛ انسخ النص يدويًا':'Copy failed; please copy the text manually';}
+        window.open('https://discord.gg/vbRgT4vvc','_blank','noopener,noreferrer');
+        setTimeout(()=>{btn.textContent=old;},4000);
       };
       function escapeHelp(v){return String(v||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
       window.toggleFloatingHelpMenu=function(){const m=$('floatingHelpMenu'),b=$('floatingHelpButton');if(!m||!b)return;const opening=m.classList.contains('help-hidden');m.classList.toggle('help-hidden',!opening);b.setAttribute('aria-expanded',String(opening));if(opening){path=[];render();}};
