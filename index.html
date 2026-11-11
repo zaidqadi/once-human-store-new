@@ -2208,57 +2208,8 @@ body.english-mode #accountModal > div > button {
         opts.forEach(o => { const op = mk('option', '', o); op.value = o; s.appendChild(op); });
         s.value = row.status || '';
         s.onchange = async () => {
-            if (!(await guard())) { s.value = row.status || ''; return; }
-
-            // اعتماد الطلب كمدفوع يتم فقط عبر مراجعة دفعة مرتبطة به وقيد المراجعة.
-            if (S.tbl === 'orders' && s.value === 'paid') {
-                const previousStatus = row.status || '';
-                s.disabled = true;
-                try {
-                    const payment = await supabaseClient
-                        .from('payments')
-                        .select('id,status')
-                        .eq('order_id', row.id)
-                        .eq('status', 'under_review')
-                        .maybeSingle();
-
-                    if (payment.error || !payment.data) {
-                        msg(payment.error ? 'تعذّر العثور على الدفعة: ' + payment.error.message : 'لا توجد دفعة لهذا الطلب بحالة قيد المراجعة.', 'err');
-                        s.value = previousStatus;
-                        return;
-                    }
-
-                    if (!confirm('هل تريد اعتماد الدفعة وإكمال الطلب؟ تأكد من وصول المبلغ فعلياً قبل الاعتماد.')) {
-                        s.value = previousStatus;
-                        return;
-                    }
-
-                    const result = await supabaseClient.rpc('admin_review_manual_payment', {
-                        p_payment_id: payment.data.id,
-                        p_approve: true,
-                        p_note: 'اعتماد يدوي من لوحة الإدارة'
-                    });
-
-                    if (result.error || (result.data && result.data.success === false)) {
-                        msg('تعذّر اعتماد الدفعة: ' + (result.error ? result.error.message : (result.data.message || 'رفض الخادم العملية')), 'err');
-                        s.value = previousStatus;
-                        return;
-                    }
-
-                    row.status = 'paid';
-                    s.value = 'paid';
-                    msg('تم اعتماد الدفعة وتحديث الطلب إلى مدفوع ✅', 'ok');
-                    await load();
-                } catch (e) {
-                    msg('حدث خطأ أثناء اعتماد الدفعة: ' + ((e && e.message) || e), 'err');
-                    s.value = previousStatus;
-                } finally {
-                    s.disabled = false;
-                }
-                return;
-            }
-
-            // بقية حالات الطلبات تمر عبر دالة الخادم للتحقق من الانتقالات وإدارة المخزون.
+            if (!(await guard())) return;
+            // الطلبات: تغيير الحالة عبر دالة الخادم فقط (تُعيد المخزون وتتحقق من الانتقال)
             const r = S.tbl === 'orders'
                 ? await supabaseClient.rpc('admin_set_order_status', { p_order_id: row.id, p_status: s.value }).then(x => x.error ? x : { data: [1] })
                 : await supabaseClient.from(S.tbl).update({ status: s.value }).eq('id', row.id).select();
@@ -2288,6 +2239,7 @@ body.english-mode #accountModal > div > button {
             });
             const act = mk('td', 'p-2.5 flex gap-1.5');
             act.appendChild(btn('تفاصيل', 'bg-slate-900 border-slate-700 text-slate-200 hover:border-starlight', () => openDetails(row)));
+            if (S.tbl === 'orders' && hasId && !custom()) act.appendChild(btn('سجل الطلب', 'bg-slate-900 border-cyan-500/40 text-cyan-300 hover:border-cyan-300', () => openOrderAudit(row)));
             if (S.tbl === 'products' && hasId && !custom()) act.appendChild(btn('المخزون', 'bg-slate-900 border-emerald-500/40 text-emerald-300', () => openStock(row)));
             if (S.tbl === 'payments' && row.status === 'under_review' && row.method === 'manual' && hasId) {
                 act.appendChild(btn('قبول', 'bg-slate-900 border-emerald-500/40 text-emerald-300', () => reviewPayment(row, true)));
@@ -2299,6 +2251,101 @@ body.english-mode #accountModal > div > button {
             tr.appendChild(act); tb.appendChild(tr);
         });
         box.appendChild(tbl);
+    }
+
+    // ---------- سجل مراجعة الدفع وتسليم الطلب ----------
+    function auditDate(value) {
+        if (!value) return '—';
+        const d = new Date(value);
+        return Number.isNaN(d.getTime()) ? String(value) : d.toLocaleString('ar', { dateStyle: 'medium', timeStyle: 'short' });
+    }
+    function auditLine(parent, label, value, tone) {
+        const line = mk('div', 'flex flex-col sm:flex-row sm:items-start sm:justify-between gap-1 border-b border-slate-800 py-2');
+        line.appendChild(mk('span', 'text-slate-500 shrink-0', label));
+        line.appendChild(mk('span', 'text-left break-all ' + (tone || 'text-slate-200'), value || '—'));
+        parent.appendChild(line);
+    }
+    async function openOrderAudit(order) {
+        const body = mk('div', 'space-y-4 text-xs');
+        const loading = mk('p', 'text-slate-400 py-3', 'جاري تحميل سجل الطلب…');
+        body.appendChild(loading);
+        modal('سجل الطلب • ' + (order.order_number || String(order.id).slice(0, 8)), body, [
+            btn('إغلاق', 'bg-slate-900 border-slate-700 text-slate-300', closeModal)
+        ]);
+
+        const [payRes, fullRes] = await Promise.all([
+            supabaseClient.from('payments')
+                .select('id,status,method,reviewed_by,reviewed_at,review_note,created_at')
+                .eq('order_id', order.id).order('created_at', { ascending: false }),
+            supabaseClient.from('order_fulfillments')
+                .select('id,order_item_id,product_id,delivery_type,status,delivered_by,delivered_at,created_at')
+                .eq('order_id', order.id).order('created_at', { ascending: true })
+        ]);
+        loading.remove();
+
+        if (payRes.error || fullRes.error) {
+            const err = payRes.error || fullRes.error;
+            body.appendChild(mk('p', 'text-red-400 bg-red-950/30 border border-red-900/50 rounded-xl p-3',
+                'تعذّر تحميل سجل الطلب: ' + err.message));
+            return;
+        }
+
+        const payments = payRes.data || [], fulfillments = fullRes.data || [];
+        const ids = [...new Set([
+            ...payments.map(x => x.reviewed_by),
+            ...fulfillments.map(x => x.delivered_by)
+        ].filter(Boolean))];
+        let profiles = [];
+        if (ids.length) {
+            const pr = await supabaseClient.from('profiles')
+                .select('id,full_name,email,role').in('id', ids);
+            if (!pr.error) profiles = pr.data || [];
+        }
+        const profileMap = new Map(profiles.map(p => [p.id, p]));
+        const productIds = [...new Set(fulfillments.map(x => x.product_id).filter(Boolean))];
+        let productMap = new Map();
+        if (productIds.length) {
+            const productsRes = await supabaseClient.from('products')
+                .select('id,name').in('id', productIds);
+            if (!productsRes.error) productMap = new Map((productsRes.data || []).map(p => [p.id, p.name]));
+        }
+        const adminName = id => {
+            if (!id) return 'غير مسجل';
+            const p = profileMap.get(id);
+            return p ? (p.full_name || p.email || ('مدير (' + id.slice(0, 8) + '…)')) : ('حساب غير معروف (' + id.slice(0, 8) + '…)');
+        };
+
+        const paySection = mk('section', 'rounded-2xl border border-slate-800 bg-slate-900/50 p-3');
+        paySection.appendChild(mk('h4', 'font-bold text-white text-sm mb-2', 'مراجعة الدفع'));
+        if (!payments.length) paySection.appendChild(mk('p', 'text-slate-500 py-2', 'لا توجد دفعات مرتبطة بهذا الطلب.'));
+        payments.forEach((p, i) => {
+            if (i) paySection.appendChild(mk('div', 'border-t border-slate-800 my-2'));
+            auditLine(paySection, 'حالة الدفع', p.status || '—');
+            auditLine(paySection, 'طريقة الدفع', p.method || '—');
+            auditLine(paySection, p.status === 'rejected' ? 'راجع / رفض بواسطة' : 'وافق / راجع بواسطة',
+                p.reviewed_by ? adminName(p.reviewed_by) : 'لم تتم المراجعة بعد',
+                p.reviewed_by ? 'text-cyan-300' : 'text-slate-500');
+            auditLine(paySection, 'تاريخ المراجعة', auditDate(p.reviewed_at));
+            if (p.review_note) auditLine(paySection, 'ملاحظة المراجعة', p.review_note);
+        });
+        body.appendChild(paySection);
+
+        const deliverySection = mk('section', 'rounded-2xl border border-slate-800 bg-slate-900/50 p-3');
+        deliverySection.appendChild(mk('h4', 'font-bold text-white text-sm mb-2', 'تسليم المنتجات'));
+        if (!fulfillments.length) deliverySection.appendChild(mk('p', 'text-slate-500 py-2', 'لا توجد سجلات تسليم لهذا الطلب.'));
+        fulfillments.forEach((f, i) => {
+            const card = mk('div', 'rounded-xl bg-slate-950/70 border border-slate-800 p-3 mb-2');
+            const productLabel = (f.product_id && productMap.get(f.product_id)) || ('المنتج ' + (i + 1));
+            card.appendChild(mk('div', 'font-bold text-slate-200 mb-2', productLabel + (f.delivery_type ? ' • ' + f.delivery_type : '')));
+            auditLine(card, 'حالة التسليم', f.status || '—');
+            auditLine(card, 'تم التسليم بواسطة',
+                f.delivered_by ? adminName(f.delivered_by) : (f.status === 'delivered' ? 'تسليم تلقائي بواسطة النظام (لا يوجد مدير مسجل)' : 'لم يتم التسليم بعد'),
+                f.delivered_by ? 'text-emerald-300' : 'text-slate-400');
+            auditLine(card, 'تاريخ التسليم', auditDate(f.delivered_at));
+            deliverySection.appendChild(card);
+        });
+        body.appendChild(deliverySection);
+        if (!ids.length) body.appendChild(mk('p', 'text-[11px] text-slate-500', 'لا توجد هوية مدير مسجلة في سجلات هذا الطلب حتى الآن.'));
     }
 
     // ---------- تفاصيل / إضافة وتعديل / حذف / كشف السرّي ----------
