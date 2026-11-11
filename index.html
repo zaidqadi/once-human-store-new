@@ -664,6 +664,37 @@ body.english-mode #accountModal > div > button {
         </div>
     </div>
 
+    <!-- Pending Order Payment Modal -->
+    <div id="pendingPaymentModal" class="fixed inset-0 z-[70] hidden items-center justify-center p-4 bg-black/85 backdrop-blur-sm">
+        <div class="bg-slate-950 border border-amber-500/40 rounded-3xl max-w-md w-full p-6 text-center shadow-2xl relative">
+            <button type="button" onclick="closePendingPaymentModal()" aria-label="إغلاق" class="absolute top-3 left-3 w-9 h-9 rounded-full bg-slate-900 text-slate-300 hover:text-white">×</button>
+            <div class="w-14 h-14 bg-amber-500/10 text-amber-300 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-amber-500/30 text-2xl">
+                <i class="fa-regular fa-clock"></i>
+            </div>
+            <h3 class="text-xl font-black text-white mb-2">الطلب بانتظار الدفع</h3>
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 mb-3 text-sm">
+                <div class="flex justify-between gap-3 mb-2"><span class="text-slate-400">رقم الطلب</span><b id="pendingPayOrderNumber" class="font-mono text-starlight">—</b></div>
+                <div class="flex justify-between gap-3"><span class="text-slate-400">كمية الطلب</span><b id="pendingPayOrderQty" class="text-white">0</b></div>
+            </div>
+            <p class="text-xs text-slate-400 mb-2">الوقت المتبقي لإتمام الدفع</p>
+            <div id="pendingPayCountdown" class="text-3xl font-black font-mono tracking-widest text-amber-300 mb-4" dir="ltr">10:00</div>
+            <div id="pending-paypal-button-container" class="min-h-[45px]"></div>
+            <p id="pendingPayMessage" class="text-[11px] text-slate-500 mt-3">أكمل الدفع قبل انتهاء الوقت.</p>
+        </div>
+    </div>
+
+    <!-- Order Expired Notice -->
+    <div id="orderExpiredModal" class="fixed inset-0 z-[80] hidden items-center justify-center p-4 bg-black/85 backdrop-blur-sm">
+        <div class="bg-slate-950 border border-red-500/40 rounded-3xl max-w-sm w-full p-6 text-center shadow-2xl">
+            <div class="w-14 h-14 bg-red-500/10 text-red-300 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-red-500/30 text-2xl">
+                <i class="fa-solid fa-clock"></i>
+            </div>
+            <h3 class="text-lg font-black text-white mb-2">انتهت مهلة الطلب</h3>
+            <p class="text-sm text-slate-300 leading-relaxed mb-4">فشلت عملية الدفع، انتهت مهلة الطلب.</p>
+            <button type="button" onclick="closeOrderExpiredModal()" class="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 rounded-xl text-sm">حسنًا</button>
+        </div>
+    </div>
+
     <!-- Auth Modal (Google / Discord / Email & Password / Magic Link) -->
     <div id="authModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onclick="if(event.target===this) closeAuthModal()">
         <div class="bg-slate-950 border border-slate-800 rounded-3xl max-w-sm w-full p-6 relative shadow-2xl overflow-y-auto overscroll-contain max-h-[90vh]">
@@ -1323,6 +1354,7 @@ body.english-mode #accountModal > div > button {
 
         // PayPal
         let paypalState = 'idle';
+        let pendingPayPalToRender = null;
         function loadPayPal() {
             const box = document.getElementById('paypal-button-container');
             if(paypalState === 'ready' || paypalState === 'loading') return;
@@ -1334,7 +1366,11 @@ body.english-mode #accountModal > div > button {
             box.innerHTML = '<p class="text-xs text-slate-400">جاري تحميل PayPal...</p>';
             const sc = document.createElement('script');
             sc.src = 'https://www.paypal.com/sdk/js?client-id=' + encodeURIComponent(PAYPAL_CLIENT_ID) + '&currency=USD&intent=capture';
-            sc.onload = () => { paypalState = 'ready'; box.innerHTML = ''; renderPayPalButtons(); };
+            sc.onload = () => {
+                paypalState = 'ready'; box.innerHTML = '';
+                if (pendingPayPalToRender) { const pending = pendingPayPalToRender; pendingPayPalToRender = null; renderPendingPayPalButtons(pending); }
+                else renderPayPalButtons();
+            };
             sc.onerror = () => { paypalState = 'idle'; box.innerHTML = '<p class="text-xs text-red-400">تعذر تحميل PayPal. تأكد من الاتصال وحاول مرة أخرى.</p>'; };
             document.head.appendChild(sc);
         }
@@ -1444,13 +1480,18 @@ body.english-mode #accountModal > div > button {
                     } finally { checkoutBusy = false; }
                 },
                 onCancel: async () => {
-                    if (current) await tryCancelOrder(current.order_id);
-                    current = null; checkoutBusy = false;
+                    // إغلاق نافذة PayPal لا يلغي الطلب؛ يبقى محجوزًا حتى انتهاء expires_at.
+                    checkoutBusy = false;
+                    const box = document.getElementById('paypal-button-container');
+                    if (box) box.innerHTML = '<p class="text-xs text-amber-300">طلبك ما زال بانتظار الدفع. يمكنك إكماله من صفحة طلباتي قبل انتهاء الوقت.</p>';
+                    if (typeof loadMyOrders === 'function') loadMyOrders();
                 },
                 onError: async (err) => {
-                    // إن كان الدفع قيد المراجعة فالخادم يرفض الإلغاء ويبقى المخزون محجوزاً
-                    if (current) await tryCancelOrder(current.order_id);
+                    // لا نلغي الطلب عند خطأ PayPal عابر؛ تنتهي مهلته تلقائيًا من الخادم.
                     checkoutBusy = false;
+                    const box = document.getElementById('paypal-button-container');
+                    if (box) box.innerHTML = '<p class="text-xs text-amber-300">طلبك ما زال محفوظًا بانتظار الدفع. يمكنك المحاولة من صفحة طلباتي.</p>';
+                    if (typeof loadMyOrders === 'function') loadMyOrders();
                     alert((err && err.message) || 'حدث خطأ أثناء الدفع عبر PayPal.');
                 }
             }).render('#paypal-button-container');
@@ -1490,7 +1531,7 @@ body.english-mode #accountModal > div > button {
 
         function finishOrder(o) {
             const info = getOrderInfo();
-            const lines = cart.map(i => '- ' + i.name + ' x' + i.qty);
+            const lines = Array.isArray(o.items) ? o.items.map(i => '- ' + i.name + ' x' + i.qty) : cart.map(i => '- ' + i.name + ' x' + i.qty);
             const summary = [
                 'Order ' + o.orderNumber,
                 'Payment: ' + o.methodLabel + (o.pending ? ' (pending verification)' : ' (paid)'),
@@ -1518,6 +1559,7 @@ body.english-mode #accountModal > div > button {
             updateCartUI();
             document.getElementById('checkoutForm').reset();
             closeCheckoutModal();
+            if (typeof closePendingPaymentModal === 'function') closePendingPaymentModal();
             loadCatalog();
 
             document.getElementById('successModal').classList.remove('hidden');
@@ -1894,6 +1936,193 @@ body.english-mode #accountModal > div > button {
             return { name: name, qty: qtyRaw, price: priceRaw };
         }
 
+        let orderCountdownInterval = null;
+        let activePendingPaymentOrderId = null;
+        let orderExpiryNoticeShown = {};
+
+        function orderQuantityTotal(o) {
+            return (Array.isArray(o.order_items) ? o.order_items : []).reduce((sum, it) => {
+                const raw = it.quantity !== undefined && it.quantity !== null ? it.quantity : (it.qty !== undefined && it.qty !== null ? it.qty : 0);
+                const n = Number(raw);
+                return sum + (Number.isFinite(n) && n > 0 ? n : 0);
+            }, 0);
+        }
+
+        function countdownText(ms) {
+            const sec = Math.max(0, Math.ceil(ms / 1000));
+            return String(Math.floor(sec / 60)).padStart(2, '0') + ':' + String(sec % 60).padStart(2, '0');
+        }
+
+        function closePendingPaymentModal() {
+            const modal = document.getElementById('pendingPaymentModal');
+            if (modal) { modal.classList.add('hidden'); modal.classList.remove('flex'); }
+            activePendingPaymentOrderId = null;
+            const box = document.getElementById('pending-paypal-button-container');
+            if (box) box.innerHTML = '';
+        }
+
+        function closeOrderExpiredModal() {
+            const modal = document.getElementById('orderExpiredModal');
+            if (modal) { modal.classList.add('hidden'); modal.classList.remove('flex'); }
+        }
+
+        function showOrderExpiredNotice(orderId) {
+            if (orderExpiryNoticeShown[orderId]) return;
+            orderExpiryNoticeShown[orderId] = true;
+            closePendingPaymentModal();
+            const modal = document.getElementById('orderExpiredModal');
+            if (modal) { modal.classList.remove('hidden'); modal.classList.add('flex'); }
+            // يعيد تحميل الحالة من الخادم بعد أن تعالجها مهمة pg_cron.
+            setTimeout(() => {
+                if (typeof loadMyOrders === 'function') loadMyOrders();
+                if (typeof loadCatalog === 'function') loadCatalog();
+            }, 2500);
+        }
+
+        function tickOrderCountdowns() {
+            document.querySelectorAll('[data-order-countdown]').forEach(el => {
+                const expiresAt = Number(el.dataset.expiresAt || 0);
+                const remaining = expiresAt - Date.now();
+                if (remaining > 0) {
+                    el.textContent = countdownText(remaining);
+                    return;
+                }
+                el.textContent = '00:00';
+                if (el.dataset.expired !== '1') {
+                    el.dataset.expired = '1';
+                    const orderId = el.dataset.orderId || '';
+                    const payBtn = document.querySelector('[data-pay-order="' + orderId + '"]');
+                    if (payBtn) { payBtn.disabled = true; payBtn.classList.add('opacity-50', 'cursor-not-allowed'); payBtn.textContent = 'انتهت المهلة'; }
+                    showOrderExpiredNotice(orderId);
+                }
+            });
+        }
+
+        function ensureOrderCountdownTimer() {
+            if (orderCountdownInterval === null) {
+                orderCountdownInterval = setInterval(tickOrderCountdowns, 1000);
+            }
+            tickOrderCountdowns();
+        }
+
+        function openPendingPayment(o) {
+            if (!o || !o.id || !o.expires_at || new Date(o.expires_at).getTime() <= Date.now()) {
+                showOrderExpiredNotice(o && o.id ? o.id : 'unknown');
+                return;
+            }
+            if (String(o.payment_method || '').toLowerCase() !== 'paypal') {
+                alert('طريقة الدفع لهذا الطلب لا يمكن استكمالها من هذه النافذة.');
+                return;
+            }
+            activePendingPaymentOrderId = o.id;
+            document.getElementById('pendingPayOrderNumber').textContent = o.order_number || '—';
+            document.getElementById('pendingPayOrderQty').textContent = String(orderQuantityTotal(o));
+            document.getElementById('pendingPayCountdown').textContent = countdownText(new Date(o.expires_at).getTime() - Date.now());
+            document.getElementById('pendingPayMessage').textContent = 'أكمل الدفع قبل انتهاء الوقت.';
+            const modal = document.getElementById('pendingPaymentModal');
+            modal.classList.remove('hidden'); modal.classList.add('flex');
+            loadPayPalForPending(o);
+            ensureOrderCountdownTimer();
+        }
+
+        function loadPayPalForPending(o) {
+            const box = document.getElementById('pending-paypal-button-container');
+            if (!box) return;
+            if (PAYPAL_CLIENT_ID.startsWith('YOUR_')) {
+                box.innerHTML = '<p class="text-xs text-amber-400">الدفع عبر PayPal غير مهيأ حاليًا.</p>';
+                return;
+            }
+            if (paypalState === 'ready' && window.paypal) {
+                renderPendingPayPalButtons(o);
+                return;
+            }
+            pendingPayPalToRender = o;
+            box.innerHTML = '<p class="text-xs text-slate-400">جاري تحميل PayPal...</p>';
+            if (paypalState === 'loading') return;
+            paypalState = 'loading';
+            const sc = document.createElement('script');
+            sc.src = 'https://www.paypal.com/sdk/js?client-id=' + encodeURIComponent(PAYPAL_CLIENT_ID) + '&currency=USD&intent=capture';
+            sc.onload = () => {
+                paypalState = 'ready';
+                const pending = pendingPayPalToRender;
+                pendingPayPalToRender = null;
+                if (pending) renderPendingPayPalButtons(pending);
+            };
+            sc.onerror = () => {
+                paypalState = 'idle';
+                box.innerHTML = '<p class="text-xs text-red-400">تعذر تحميل PayPal. حاول مرة أخرى.</p>';
+            };
+            document.head.appendChild(sc);
+        }
+
+        function renderPendingPayPalButtons(o) {
+            const box = document.getElementById('pending-paypal-button-container');
+            if (!box || !window.paypal || !o || !o.id) return;
+            box.innerHTML = '';
+            paypal.Buttons({
+                style: { layout: 'vertical', color: 'gold', shape: 'rect', label: 'paypal' },
+                onClick: () => {
+                    if (checkoutBusy) return Promise.reject();
+                    if (!o.expires_at || new Date(o.expires_at).getTime() <= Date.now()) {
+                        showOrderExpiredNotice(o.id);
+                        return Promise.reject();
+                    }
+                    return Promise.resolve();
+                },
+                createOrder: async () => {
+                    if (checkoutBusy) throw new Error('هناك عملية دفع قيد التنفيذ.');
+                    checkoutBusy = true;
+                    try {
+                        const { data, error } = await supabaseClient.functions.invoke('paypal-checkout', {
+                            body: { action: 'create', order_id: o.id }
+                        });
+                        if (error || !data || !data.paypal_order_id) throw new Error(await fnError(error, 'تعذّر بدء الدفع عبر PayPal.'));
+                        return data.paypal_order_id;
+                    } catch (e) {
+                        checkoutBusy = false;
+                        throw e;
+                    }
+                },
+                onApprove: async (data) => {
+                    try {
+                        const { data: res, error } = await supabaseClient.functions.invoke('paypal-checkout', {
+                            body: { action: 'capture', order_id: o.id, paypal_order_id: data.orderID }
+                        });
+                        if (error || !res) throw new Error(await fnError(error, 'تعذّر تأكيد الدفع.'));
+                        if (res.result === 'confirmed' || (res.result === 'already_processed' && ['paid','processing','completed'].includes(res.order_status))) {
+                            const items = (o.order_items || []).map(it => {
+                                const p = orderItemParts(it);
+                                return { name: p.name, qty: p.qty };
+                            });
+                            finishOrder({ methodLabel: 'PayPal', reference: data.orderID, pending: false, orderNumber: o.order_number, total: o.total, items });
+                        } else if (res.result === 'needs_admin_review') {
+                            const items = (o.order_items || []).map(it => {
+                                const p = orderItemParts(it);
+                                return { name: p.name, qty: p.qty };
+                            });
+                            finishOrder({ methodLabel: 'PayPal', reference: data.orderID, pending: true, review: true, orderNumber: o.order_number, total: o.total, items });
+                        } else {
+                            throw new Error('تعذّر تأكيد الدفع. تواصل مع الدعم برقم الطلب ' + (o.order_number || ''));
+                        }
+                    } catch (e) {
+                        alert((e && e.message) || 'حدث خطأ أثناء تأكيد الدفع.');
+                    } finally {
+                        checkoutBusy = false;
+                        if (typeof loadMyOrders === 'function') loadMyOrders();
+                    }
+                },
+                onCancel: () => {
+                    checkoutBusy = false;
+                    document.getElementById('pendingPayMessage').textContent = 'لم يتم إلغاء الطلب. يمكنك إكمال الدفع قبل انتهاء الوقت.';
+                },
+                onError: (err) => {
+                    checkoutBusy = false;
+                    document.getElementById('pendingPayMessage').textContent = 'تعذّر إكمال الدفع. يمكنك المحاولة مرة أخرى قبل انتهاء الوقت.';
+                    console.error('[Pending PayPal]', err);
+                }
+            }).render('#pending-paypal-button-container');
+        }
+
         function renderOrderCard(o) {
             const card = mk('div', 'bg-slate-900 border border-slate-800 rounded-2xl p-3.5');
 
@@ -1933,6 +2162,27 @@ body.english-mode #accountModal > div > button {
                 card.appendChild(mk('p', 'mt-3 pt-3 border-t border-slate-800 text-[11px] text-amber-400', 'تعذّر تحميل تفاصيل المنتجات لهذا الطلب.'));
             }
 
+            // كمية الطلب والعدّاد للطلبات التي لم ترسل إثبات الدفع بعد
+            if (String(o.status || '').toLowerCase() === 'pending_payment' && !underReview && o.expires_at) {
+                const qty = orderQuantityTotal(o);
+                const timerWrap = mk('div', 'mt-3 pt-3 border-t border-slate-800 flex items-center justify-between gap-3');
+                timerWrap.appendChild(mk('span', 'text-[11px] text-slate-400 font-bold', 'كمية الطلب: ' + qty));
+                const timer = mk('span', 'text-sm font-black font-mono text-amber-300', '--:--');
+                timer.dataset.orderCountdown = '1';
+                timer.dataset.orderId = o.id || '';
+                timer.dataset.expiresAt = String(new Date(o.expires_at).getTime());
+                timerWrap.appendChild(timer);
+                card.appendChild(timerWrap);
+                if (String(o.payment_method || '').toLowerCase() === 'paypal') {
+                    const pay = mk('button', 'mt-3 w-full text-xs font-black py-3 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 transition', 'إتمام الدفع');
+                    pay.type = 'button';
+                    pay.dataset.payOrder = o.id || '';
+                    pay.addEventListener('click', () => openPendingPayment(o));
+                    card.appendChild(pay);
+                }
+                ensureOrderCountdownTimer();
+            }
+
             // الإجمالي
             const foot = mk('div', 'mt-3 pt-3 border-t border-slate-800 flex items-center justify-between');
             foot.appendChild(mk('span', 'text-[11px] text-slate-400 font-bold', 'الإجمالي'));
@@ -1966,7 +2216,7 @@ body.english-mode #accountModal > div > button {
             if (!u) { renderOrdersError(list, 'يجب تسجيل الدخول لعرض طلباتك.'); return; }
             if (!supabaseClient) { renderOrdersError(list, 'تعذّر تحميل مكتبة Supabase.'); return; }
 
-            const baseCols = 'id,order_number,total,currency,status,created_at,expires_at,payments(status)';
+            const baseCols = 'id,order_number,total,currency,status,created_at,expires_at,payment_method,payments(status)';
             let itemsFailed = false;
             try {
                 // الطلبات الخاصة بالمستخدم الحالي فقط + عناصر كل طلب من order_items
