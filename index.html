@@ -177,6 +177,18 @@
         html[dir="ltr"] .mr-1 { margin-right:0; margin-left:.25rem; }
         html[dir="ltr"] #dbStatus { right:auto !important; left:8px !important; }
 </style>
+<style>
+/* Keep modal close controls on the leading side in both languages. */
+body.english-mode #deliveryModal button[aria-label],
+body.english-mode #refundModal button[aria-label],
+body.english-mode #productModal > div > button,
+body.english-mode #checkoutModal > div > button,
+body.english-mode #authModal > div > button,
+body.english-mode #accountModal > div > button {
+  left: auto !important;
+  right: 1rem !important;
+}
+</style>
 </head>
 <body class="bg-darkBg bg-grid-pattern min-h-screen flex flex-col justify-between">
 
@@ -1231,6 +1243,7 @@
                     </div>
                 </div>
             `;
+            if (typeof window.refreshStoreTranslations === 'function') window.refreshStoreTranslations();
             document.getElementById('productModal').classList.remove('hidden');
             document.getElementById('productModal').classList.add('flex');
         }
