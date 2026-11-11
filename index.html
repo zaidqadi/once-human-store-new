@@ -2140,6 +2140,29 @@ body.english-mode #accountModal > div > button {
             top.appendChild(badge);
             card.appendChild(top);
 
+            // حالة التسليم اليدوي داخل اللعبة، بعد اعتماد الدفع فقط.
+            const manualDeliveries = Array.isArray(o._deliveries)
+                ? o._deliveries.filter(d => d.delivery_type === 'manual') : [];
+            if (manualDeliveries.length) {
+                const deliveryWrap = mk('div', 'mt-3 rounded-xl border border-slate-700 bg-slate-950/70 p-3 space-y-2');
+                deliveryWrap.appendChild(mk('div', 'text-xs font-bold text-slate-200', 'حالة التسليم داخل اللعبة'));
+                manualDeliveries.forEach(d => {
+                    const isDelivered = d.status === 'delivered';
+                    const isPaid = ['paid', 'processing', 'completed'].includes(String(o.status || '').toLowerCase());
+                    const label = isDelivered ? 'تم التسليم' : (isPaid ? 'تم الدفع — بانتظار التسليم' : 'بانتظار الدفع');
+                    const tone = isDelivered ? 'text-emerald-300' : (isPaid ? 'text-amber-300' : 'text-slate-400');
+                    const item = mk('div', 'text-xs flex flex-col gap-1');
+                    item.appendChild(mk('div', 'font-bold ' + tone, label));
+                    if (isDelivered) {
+                        if (d.delivered_by_name) item.appendChild(mk('div', 'text-slate-400', 'تم التسليم بواسطة: ' + d.delivered_by_name));
+                        if (d.delivered_at) item.appendChild(mk('div', 'text-slate-500', 'وقت التسليم: ' + new Date(d.delivered_at).toLocaleString('ar')));
+                        if (d.note) item.appendChild(mk('div', 'text-slate-400', d.note));
+                    }
+                    deliveryWrap.appendChild(item);
+                });
+                card.appendChild(deliveryWrap);
+            }
+
             // المنتجات (من order_items)
             if (Array.isArray(o.order_items)) {
                 const wrap = mk('div', 'mt-3 pt-3 border-t border-slate-800 space-y-1.5');
@@ -2247,6 +2270,19 @@ body.english-mode #accountModal > div > button {
                 }
                 const data = res.data || [];
                 if (data.length === 0) { renderOrdersEmpty(list); return; }
+
+                // قراءة حالة التسليم من الدالة الآمنة الخاصة بصاحب الطلب فقط.
+                await Promise.all(data.map(async o => {
+                    const deliveryRes = await supabaseClient.rpc('get_my_delivery', { p_order_id: o.id });
+                    if (!deliveryRes.error && Array.isArray(deliveryRes.data)) {
+                        o._deliveries = deliveryRes.data;
+                    } else {
+                        o._deliveries = [];
+                        o._deliveriesError = !!deliveryRes.error;
+                        if (deliveryRes.error) console.warn('[Orders] تعذّر تحميل حالة التسليم:', deliveryRes.error.message);
+                    }
+                }));
+                if (reqId !== ordersReqId || !window.currentUser || window.currentUser.id !== u.id) return;
 
                 list.innerHTML = '';
                 data.forEach(o => {
@@ -2587,11 +2623,35 @@ body.english-mode #accountModal > div > button {
             const card = mk('div', 'rounded-xl bg-slate-950/70 border border-slate-800 p-3 mb-2');
             const productLabel = (f.product_id && productMap.get(f.product_id)) || ('المنتج ' + (i + 1));
             card.appendChild(mk('div', 'font-bold text-slate-200 mb-2', productLabel + (f.delivery_type ? ' • ' + f.delivery_type : '')));
-            auditLine(card, 'حالة التسليم', f.status || '—');
+            const orderIsPaid = ['paid', 'processing'].includes(String(order.status || '').toLowerCase());
+            const manualPending = f.delivery_type === 'manual' && orderIsPaid && f.status !== 'delivered';
+            auditLine(card, 'حالة التسليم', f.status === 'delivered' ? 'تم التسليم' : (manualPending ? 'مدفوع — بانتظار التسليم' : (f.status || '—')),
+                f.status === 'delivered' ? 'text-emerald-300' : (manualPending ? 'text-amber-300' : 'text-slate-300'));
             auditLine(card, 'تم التسليم بواسطة',
                 f.delivered_by ? adminName(f.delivered_by) : (f.status === 'delivered' ? 'تسليم تلقائي بواسطة النظام (لا يوجد مدير مسجل)' : 'لم يتم التسليم بعد'),
                 f.delivered_by ? 'text-emerald-300' : 'text-slate-400');
             auditLine(card, 'تاريخ التسليم', auditDate(f.delivered_at));
+            if (manualPending) {
+                const deliverBtn = btn('تم التسليم', 'w-full mt-3 bg-emerald-500/10 border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/20', async () => {
+                    if (!confirm('هل تؤكد أنك سلّمت هذا المنتج للعميل داخل لعبة Once Human؟')) return;
+                    deliverBtn.disabled = true;
+                    deliverBtn.textContent = 'جاري تأكيد التسليم…';
+                    const result = await supabaseClient.rpc('admin_mark_manual_delivered', {
+                        p_fulfillment_id: f.id,
+                        p_customer_note: 'تم التسليم داخل لعبة Once Human'
+                    });
+                    if (result.error || !result.data || result.data.success !== true) {
+                        alert('تعذّر تأكيد التسليم: ' + (result.error ? result.error.message : 'لم يتم تأكيد العملية.'));
+                        deliverBtn.disabled = false;
+                        deliverBtn.textContent = 'تم التسليم';
+                        return;
+                    }
+                    alert('تم تسجيل التسليم بنجاح.');
+                    await openOrderAudit(order);
+                    await load();
+                });
+                card.appendChild(deliverBtn);
+            }
             deliverySection.appendChild(card);
         });
         body.appendChild(deliverySection);
@@ -2812,6 +2872,11 @@ body.english-mode #accountModal > div > button {
     'حساب جديد':'Create Account','البريد الإلكتروني':'Email Address','كلمة المرور':'Password','تأكيد كلمة المرور':'Confirm Password',
     'أرسل لي رابط دخول سريع (Magic Link)':'Send me a sign-in link (Magic Link)','نحفظ فقط الاسم والبريد وصورة الحساب ومزوّد الدخول لربط طلباتك بك.':'We only store your name, email, profile picture, and sign-in provider to link your orders.',
     'طلباتي':'My Orders','تسجيل الخروج':'Sign Out','جاري الاتصال بقاعدة البيانات…':'Connecting to database…',
+    'حالة التسليم داخل اللعبة':'In-game delivery status','تم الدفع — بانتظار التسليم':'Paid — Awaiting Delivery',
+    'تم التسليم بواسطة:':'Delivered by:','وقت التسليم:':'Delivery time:',
+    'مدفوع — بانتظار التسليم':'Paid — Awaiting Delivery',
+    'تم التسليم داخل لعبة Once Human':'Delivered in Once Human','هل تؤكد أنك سلّمت هذا المنتج للعميل داخل لعبة Once Human؟':'Confirm that you delivered this item to the customer in Once Human?',
+    'جاري تأكيد التسليم…':'Confirming delivery…','تعذّر تأكيد التسليم: ':'Could not confirm delivery: ','تم تسجيل التسليم بنجاح.':'Delivery recorded successfully.',
     'بندقية هجومية فتاكة تعتمد على دمج الـ Shrapnel العالي. تجميع كامل Tier 5 ومجربة في أعتى مناطق الـ Hard Zones.':'A powerful assault rifle build focused on high Shrapnel damage. Complete Tier 5 setup, tested in the toughest Hard Zones.',
     '1,000,000 Energy Links (حزمة طاقة ضخمة)':'1,000,000 Energy Links (Large Bundle)','مليون قطعة من عملة Energy Links لتسريع البناء، الشراء من التجار، وتطوير المعدات بدون عناء التجميع.':'One million Energy Links to speed up crafting, vendor purchases, and gear upgrades without grinding.',
     'أكثر مبيعاً':'BEST SELLER','نادر جداً':'VERY RARE','ديانت طاهي المأكولات بمستوى مهارة كامل 5/5. يزيد من بوفات الأطعمة والـ Crafting Speed بنسبة 45%.':'Chef Dinosaur Deviant with a max 5/5 skill. Boosts food buffs and crafting speed by 45%.',
