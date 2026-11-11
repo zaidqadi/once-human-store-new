@@ -2208,8 +2208,57 @@ body.english-mode #accountModal > div > button {
         opts.forEach(o => { const op = mk('option', '', o); op.value = o; s.appendChild(op); });
         s.value = row.status || '';
         s.onchange = async () => {
-            if (!(await guard())) return;
-            // الطلبات: تغيير الحالة عبر دالة الخادم فقط (تُعيد المخزون وتتحقق من الانتقال)
+            if (!(await guard())) { s.value = row.status || ''; return; }
+
+            // اعتماد الطلب كمدفوع يتم فقط عبر مراجعة دفعة مرتبطة به وقيد المراجعة.
+            if (S.tbl === 'orders' && s.value === 'paid') {
+                const previousStatus = row.status || '';
+                s.disabled = true;
+                try {
+                    const payment = await supabaseClient
+                        .from('payments')
+                        .select('id,status')
+                        .eq('order_id', row.id)
+                        .eq('status', 'under_review')
+                        .maybeSingle();
+
+                    if (payment.error || !payment.data) {
+                        msg(payment.error ? 'تعذّر العثور على الدفعة: ' + payment.error.message : 'لا توجد دفعة لهذا الطلب بحالة قيد المراجعة.', 'err');
+                        s.value = previousStatus;
+                        return;
+                    }
+
+                    if (!confirm('هل تريد اعتماد الدفعة وإكمال الطلب؟ تأكد من وصول المبلغ فعلياً قبل الاعتماد.')) {
+                        s.value = previousStatus;
+                        return;
+                    }
+
+                    const result = await supabaseClient.rpc('admin_review_manual_payment', {
+                        p_payment_id: payment.data.id,
+                        p_approve: true,
+                        p_note: 'اعتماد يدوي من لوحة الإدارة'
+                    });
+
+                    if (result.error || (result.data && result.data.success === false)) {
+                        msg('تعذّر اعتماد الدفعة: ' + (result.error ? result.error.message : (result.data.message || 'رفض الخادم العملية')), 'err');
+                        s.value = previousStatus;
+                        return;
+                    }
+
+                    row.status = 'paid';
+                    s.value = 'paid';
+                    msg('تم اعتماد الدفعة وتحديث الطلب إلى مدفوع ✅', 'ok');
+                    await load();
+                } catch (e) {
+                    msg('حدث خطأ أثناء اعتماد الدفعة: ' + ((e && e.message) || e), 'err');
+                    s.value = previousStatus;
+                } finally {
+                    s.disabled = false;
+                }
+                return;
+            }
+
+            // بقية حالات الطلبات تمر عبر دالة الخادم للتحقق من الانتقالات وإدارة المخزون.
             const r = S.tbl === 'orders'
                 ? await supabaseClient.rpc('admin_set_order_status', { p_order_id: row.id, p_status: s.value }).then(x => x.error ? x : { data: [1] })
                 : await supabaseClient.from(S.tbl).update({ status: s.value }).eq('id', row.id).select();
