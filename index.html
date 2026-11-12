@@ -382,7 +382,7 @@
                 </div>
                 <div class="flex items-center gap-2">
                     <i class="fa-solid fa-globe text-purple-400 text-base"></i>
-                    <span>يدعم جميع السيرفرات (NA, EU, SEA)</span>
+                    <span>يدعم سيرفر أوروبا (EU)</span>
                 </div>
             </div>
         </div>
@@ -401,10 +401,7 @@
             <div class="flex items-center gap-2 text-xs text-slate-400">
                 <label for="serverRegion" class="whitespace-nowrap"><i class="fa-solid fa-server"></i> السيرفر:</label>
                 <select id="serverRegion" onchange="filterProducts()" class="bg-slate-900 border border-slate-700 text-slate-200 rounded-lg px-3 py-1.5 focus:border-starlight outline-none">
-                    <option value="all">جميع المناطق (ALL)</option>
-                    <option value="NA">شمال أمريكا (NA)</option>
                     <option value="EU">أوروبا (EU)</option>
-                    <option value="SEA">جنوب شرق آسيا (SEA)</option>
                 </select>
             </div>
         </div>
@@ -639,8 +636,6 @@
                     <label class="block text-slate-300 font-bold mb-1">منطقة السيرفر (Region) *</label>
                     <select id="checkoutRegion" required class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-starlight outline-none">
                         <option value="EU">أوروبا (EU)</option>
-                        <option value="NA">شمال أمريكا (NA)</option>
-                        <option value="SEA">جنوب شرق آسيا (SEA)</option>
                     </select>
                 </div>
 
@@ -1222,7 +1217,7 @@
             const filtered = products.filter(p => {
                 const matchCat = (currentCategory === 'all' || p.category === currentCategory);
                 const matchSearch = String(p.name || '').toLowerCase().includes(searchVal) || String(p.description || '').toLowerCase().includes(searchVal);
-                const matchRegion = (regionVal === 'all' || p.region === 'all' || p.region === regionVal);
+                const matchRegion = true; // سيرفر أوروبا فقط
                 return matchCat && matchSearch && matchRegion;
             });
 
@@ -2062,6 +2057,11 @@
                 usdtStopPolling();
                 clearPendingUsdtLocally(usdtState.ownerId);
                 idemSig = null;
+                // بعد الإلغاء: تصفير السلة (كل الكميات = 0)
+                cart = [];
+                saveCartLocally();
+                updateCartUI();
+                try { document.getElementById('checkoutForm').reset(); } catch (_) {}
                 usdtCloseDialog(false);
                 usdtResetView();
                 closeCheckoutModal();
@@ -3108,6 +3108,7 @@
                     cb.disabled = true;
                     const { error } = await supabaseClient.rpc('cancel_my_order', { p_order_id: o.id });
                     if (error) { alert(friendlyError(error)); cb.disabled = false; return; }
+                    cart = []; saveCartLocally(); updateCartUI();
                     loadMyOrders();
                     if (typeof loadCatalog === 'function') loadCatalog();
                 });
@@ -3972,7 +3973,7 @@
     'احصل على أفضل الأسلحة، مخططات البناء (Blueprints)، الطاقة الكهرومغناطيسية Energy Links، والمساعدين الرقميين Deviants بأعلى المقاييس وأسرع تسليم داخل السيرفر الخاص بك.':'Get the best weapons, blueprints, Energy Links, and Deviants with premium quality and fast delivery on your server.',
     'تصفح العروض الحصرية':'Browse Exclusive Offers','اطلب عبر الديسكورد':'Order via Discord',
     'تسليم آمن وفوري خلال 15 دقيقة':'Safe delivery within 15 minutes','تسليم يدوي داخل اللعبة عبر مشرف على ديسكورد':'Manual in-game delivery by a Discord moderator',
-    'دعم فني مباشر 24/7 على ديسكورد':'24/7 live support on Discord','يدعم جميع السيرفرات (NA, EU, SEA)':'Supports all regions (NA, EU, SEA)',
+    'دعم فني مباشر 24/7 على ديسكورد':'24/7 live support on Discord','يدعم سيرفر أوروبا (EU)':'Supports the Europe (EU) server',
     'أقسام المتجر':'Store Categories','السيرفر:':'Server:','جميع المناطق (ALL)':'All Regions (ALL)','جميع السيرفرات (Global)':'All Servers (Global)','جميع السيرفرات':'All Servers','أمريكا الشمالية':'North America','أوروبا':'Europe','آسيا':'Asia','أمريكا الجنوبية':'South America','الشرق الأوسط':'Middle East',
     'شمال أمريكا (NA)':'North America (NA)','أوروبا (EU)':'Europe (EU)','جنوب شرق آسيا (SEA)':'Southeast Asia (SEA)',
     'جميع المنتجات':'All Products','مخططات أسلحة ودروع':'Weapons & Armor Blueprints','Energy Links & عملات':'Energy Links & Currency',
@@ -4191,7 +4192,7 @@
     'تسليم يدوي داخل اللعبة عبر مشرف على ديسكورد':'Manual in-game delivery by a Discord moderator',
 
     'الموسم الجديد: Stardust Apocalypse':'NEW SEASON: Stardust Apocalypse','اطلب عبر الديسكورد':'Order via Discord',
-    'يدعم جميع السيرفرات (NA, EU, SEA)':'Supports all regions (NA, EU, SEA)','السيرفر:':'Server:',
+    'يدعم سيرفر أوروبا (EU)':'Supports the Europe (EU) server','السيرفر:':'Server:',
     'جميع المناطق (ALL)':'All Regions (ALL)','أوروبا (EU)':'Europe (EU)','جنوب شرق آسيا (SEA)':'Southeast Asia (SEA)',
     'مخططات أسلحة ودروع':'Weapons & Armor Blueprints','Energy Links & عملات':'Energy Links & Currency','التلفيل وقتل البوسات':'Leveling & Boss Runs',
     'المتجر الأفضل والأسرع لشراء كافة مستلزمات لعبة Once Human بأعلى درجة أمان وموثوقية.':'The best and fastest store for Once Human items, with premium safety and reliability.',
@@ -4314,11 +4315,11 @@
     if (!raw) return raw;
     const isEn = lang === 'en';
     const labels = {
-      all: isEn ? 'All Servers' : 'جميع السيرفرات',
-      global: isEn ? 'All Servers (Global)' : 'جميع السيرفرات (Global)',
-      na: isEn ? 'North America (NA)' : 'أمريكا الشمالية (NA)',
+      all: isEn ? 'Europe (EU)' : 'أوروبا (EU)',
+      global: isEn ? 'Europe (EU)' : 'أوروبا (EU)',
+      na: isEn ? 'Europe (EU)' : 'أوروبا (EU)',
       eu: isEn ? 'Europe (EU)' : 'أوروبا (EU)',
-      sea: isEn ? 'Southeast Asia (SEA)' : 'جنوب شرق آسيا (SEA)'
+      sea: isEn ? 'Europe (EU)' : 'أوروبا (EU)'
     };
     const key = raw.toLowerCase();
     if (labels[key]) return labels[key];
@@ -4336,10 +4337,7 @@
       if (textNode) textNode.nodeValue = isEn ? ' Server:' : ' السيرفر:';
     }
     const options = {
-      all: isEn ? 'All Regions (ALL)' : 'جميع المناطق (ALL)',
-      NA: isEn ? 'North America (NA)' : 'أمريكا الشمالية (NA)',
-      EU: isEn ? 'Europe (EU)' : 'أوروبا (EU)',
-      SEA: isEn ? 'Southeast Asia (SEA)' : 'جنوب شرق آسيا (SEA)'
+      EU: isEn ? 'Europe (EU)' : 'أوروبا (EU)'
     };
     ['serverRegion', 'checkoutRegion'].forEach(id => {
       const select = document.getElementById(id);
