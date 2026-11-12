@@ -1527,7 +1527,7 @@
                                 <span class="text-xs text-slate-500">السعر النهائي:</span>
                                 <span class="text-2xl font-black text-starlight">${rates[currentCurrency].symbol} ${price}</span>
                             </div>
-                            <button ${soldOut ? 'disabled' : ''} onclick="if (addToCart('${p.id}', document.querySelector('#modalContent img'))) { closeProductModal(); toggleCartDrawer(true); }" class="w-full ${soldOut ? 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700' : 'bg-starlight hover:bg-cyan-400 text-slate-950'} font-black py-3 rounded-xl transition clip-btn text-xs">
+                            <button ${soldOut ? 'disabled' : ''} onclick="if (addToCart('${p.id}', document.querySelector('#modalContent img'))) { closeProductModal(); }" class="w-full ${soldOut ? 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700' : 'bg-starlight hover:bg-cyan-400 text-slate-950'} font-black py-3 rounded-xl transition clip-btn text-xs">
                                 <i class="${soldOut ? 'fa-solid fa-ban' : 'fa-solid fa-cart-plus'} ml-1"></i> ${soldOut ? 'نفد المخزون' : 'إضافة لسلة الشراء الآن'}
                             </button>
                         </div>
