@@ -604,7 +604,7 @@
     <!-- Quick View Product Modal -->
     <div id="productModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
         <div class="bg-slate-950 border border-slate-800 rounded-3xl max-w-xl w-full p-6 relative shadow-2xl overflow-hidden">
-            <button onclick="closeProductModal()" class="absolute top-4 left-4 text-slate-400 hover:text-white p-2 z-10">
+            <button onclick="closeProductModal()" class="absolute top-4 [inset-inline-start:1rem] text-slate-400 hover:text-white p-2 z-10">
                 <i class="fa-solid fa-xmark text-xl"></i>
             </button>
             <div id="modalContent">
@@ -787,15 +787,15 @@
 
             <p id="usdtWarn" class="text-[10px] text-amber-400 leading-relaxed"><i class="fa-solid fa-triangle-exclamation ml-1"></i> أرسل عملة USDT فقط وعلى الشبكة المذكورة بالضبط. الإرسال على شبكة أخرى أو بعملة مختلفة قد يضيّع المبلغ.</p>
 
-            <button type="button" onclick="usdtRequestClose()" class="w-full bg-slate-900 hover:bg-red-500/10 border border-slate-700 hover:border-red-500/40 text-slate-300 hover:text-red-300 font-bold py-3 rounded-xl text-xs transition"><i class="fa-solid fa-xmark ml-1"></i> إغلاق صفحة الدفع</button>
+            <button type="button" onclick="usdtRequestCancel()" class="w-full bg-red-950/50 hover:bg-red-900/60 border border-red-500/40 hover:border-red-400 text-red-300 hover:text-red-200 font-bold py-3 rounded-xl text-xs transition"><i class="fa-solid fa-ban ml-1"></i> إلغاء الطلب وإلغاء حجز المنتجات</button>
         </div>
 
         <div id="usdtCloseConfirm" class="hidden fixed inset-0 z-[70] items-center justify-center p-4 bg-black/85 backdrop-blur-sm" role="alertdialog" aria-modal="true" aria-label="تنبيه">
             <div class="bg-slate-950 border border-red-500/40 rounded-3xl max-w-sm w-full p-6 text-center shadow-2xl">
                 <div class="w-14 h-14 bg-red-500/10 text-red-300 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-red-500/30 text-2xl"><i class="fa-solid fa-triangle-exclamation"></i></div>
-                <h3 class="text-lg font-black text-white mb-2">إغلاق صفحة الدفع؟</h3>
-                <p class="text-sm text-slate-300 leading-relaxed mb-2">سيتم إغلاق صفحة الدفع فقط. سيبقى طلبك محفوظًا بانتظار الدفع حتى انتهاء المهلة.</p>
-                <p class="text-[11px] text-amber-400 leading-relaxed mb-4">يمكنك العودة إلى طلباتك لإكمال الدفع قبل انتهاء الوقت.</p>
+                <h3 id="usdtCloseTitle" class="text-lg font-black text-white mb-2">إغلاق صفحة الدفع؟</h3>
+                <p id="usdtCloseMessage" class="text-sm text-slate-300 leading-relaxed mb-2">سيتم إغلاق صفحة الدفع فقط. سيبقى طلبك محفوظًا بانتظار الدفع حتى انتهاء المهلة.</p>
+                <p id="usdtCloseHint" class="text-[11px] text-amber-400 leading-relaxed mb-4">يمكنك العودة إلى طلباتك لإكمال الدفع قبل انتهاء الوقت.</p>
                 <p id="usdtCloseError" class="hidden text-[11px] text-red-400 font-bold leading-relaxed mb-3"></p>
                 <div class="flex flex-col gap-2">
                     <button type="button" id="usdtCloseStayBtn" onclick="usdtCloseDismiss()" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold py-3 rounded-xl text-sm transition">متابعة الدفع</button>
@@ -1902,6 +1902,38 @@
             if (d) { d.classList.toggle('hidden', !show); d.classList.toggle('flex', show); }
         }
         function usdtRequestClose() {
+            // زر X العلوي يخفي صفحة الدفع فقط ويُبقي الطلب قائماً.
+            const title = usdtEl('usdtCloseTitle');
+            const message = usdtEl('usdtCloseMessage');
+            const hint = usdtEl('usdtCloseHint');
+            const confirmBtn = usdtEl('usdtCloseConfirmBtn');
+            if (title) title.textContent = 'إغلاق صفحة الدفع؟';
+            if (message) message.textContent = 'سيتم إغلاق صفحة الدفع فقط. سيبقى طلبك محفوظاً بانتظار الدفع حتى انتهاء المهلة.';
+            if (hint) hint.textContent = 'يمكنك العودة إلى صفحة الدفع قبل انتهاء الوقت.';
+            if (confirmBtn) { confirmBtn.textContent = 'إغلاق الصفحة مع الاحتفاظ بالطلب'; confirmBtn.onclick = usdtConfirmClose; }
+            usdtCloseDialog(true);
+        }
+        function usdtRequestCancel() {
+            // زر أسفل صفحة الدفع يطلب إلغاء الطلب وتحرير المخزون من جهة الخادم.
+            const title = usdtEl('usdtCloseTitle');
+            const message = usdtEl('usdtCloseMessage');
+            const hint = usdtEl('usdtCloseHint');
+            const confirmBtn = usdtEl('usdtCloseConfirmBtn');
+            const err = usdtEl('usdtCloseError');
+            if (err) { err.textContent = ''; err.classList.add('hidden'); }
+            if (title) title.textContent = 'إلغاء الطلب والدفع؟';
+            if (message) message.textContent = 'سيتم إلغاء طلب الدفع الحالي. إذا كان الطلب ما زال قابلاً للإلغاء، سيحرر الخادم الكمية المحجوزة ويعيدها إلى المخزون.';
+            if (hint) hint.textContent = 'لا تغلق هذه النافذة إذا كنت قد أرسلت التحويل؛ تواصل مع الدعم أولاً.';
+            if (confirmBtn) { confirmBtn.textContent = 'تأكيد إلغاء الطلب والحجز'; confirmBtn.onclick = usdtConfirmCancel; }
+            usdtCloseDialog(true);
+        }
+        function usdtCloseDismiss() {
+            usdtCloseDialog(false);
+            // أعد إعداد نافذة التأكيد لوضع الإغلاق العادي في المرة القادمة.
+            const confirmBtn = usdtEl('usdtCloseConfirmBtn');
+            if (confirmBtn) { confirmBtn.textContent = 'إغلاق الصفحة مع الاحتفاظ بالطلب'; confirmBtn.onclick = usdtConfirmClose; }
+        }
+        function usdtConfirmClose() {
             usdtCloseDialog(false);
             usdtBackToCheckout();
             const reminder = usdtEl('pendingOrderReminder');
@@ -1910,10 +1942,39 @@
                 usdtStartCountdown(usdtState.expiresMs);
             }
         }
-        function usdtCloseDismiss() { usdtCloseDialog(false); }
-        function usdtConfirmClose() {
-            // توافق مع أي استدعاء قديم: لا يتم إلغاء الطلب عند إغلاق الصفحة.
-            usdtRequestClose();
+        async function usdtConfirmCancel() {
+            const order = usdtState.order;
+            if (!order || !order.order_id) {
+                usdtCloseDialog(false);
+                usdtBackToCheckout();
+                return;
+            }
+            const btn = usdtEl('usdtCloseConfirmBtn');
+            const stay = usdtEl('usdtCloseStayBtn');
+            const err = usdtEl('usdtCloseError');
+            if (btn) { btn.disabled = true; btn.textContent = 'جارٍ إلغاء الطلب…'; }
+            if (stay) stay.disabled = true;
+            if (err) { err.textContent = ''; err.classList.add('hidden'); }
+            try {
+                const { error } = await supabaseClient.rpc('cancel_my_order', { p_order_id: order.order_id });
+                if (error) throw error;
+                usdtStopTimer();
+                usdtStopPolling();
+                clearPendingUsdtLocally(usdtState.ownerId);
+                idemSig = null;
+                usdtCloseDialog(false);
+                usdtResetView();
+                closeCheckoutModal();
+                const reminder = usdtEl('pendingOrderReminder');
+                if (reminder) reminder.classList.add('hidden');
+                if (typeof loadCatalog === 'function') await loadCatalog();
+                alert('تم إلغاء الطلب. إذا كان الطلب غير مدفوع، فقد أعاد الخادم الكمية المحجوزة إلى المخزون.');
+            } catch (e) {
+                if (err) { err.textContent = friendlyError(e) || 'تعذّر إلغاء الطلب. قد يكون الدفع قد تأكد أو أن الطلب لم يعد قابلاً للإلغاء.'; err.classList.remove('hidden'); }
+            } finally {
+                if (btn) { btn.disabled = false; btn.textContent = 'تأكيد إلغاء الطلب والحجز'; btn.onclick = usdtConfirmCancel; }
+                if (stay) stay.disabled = false;
+            }
         }
         // الطلب القائم يبقى قيد المتابعة عند الرجوع؛ إن انتهى الطلب نعيد العرض للإنشاء من جديد.
         function usdtBackToCheckout() {
@@ -1926,9 +1987,20 @@
         }
         // زر "انتقل لإكمال الدفع": ينشئ الطلب بالمنطق الأصلي ثم يفتح صفحة الدفع إذا نجح.
         async function usdtProceed() {
-            if (usdtState.order) { usdtShowPayPage(); return; }
+            if (usdtState.order) {
+                const cartDrawer = document.getElementById('cartDrawer');
+                if (cartDrawer) cartDrawer.classList.add('hidden');
+                closeCheckoutModal();
+                usdtShowPayPage();
+                return;
+            }
             await usdtCreateOrder();
-            if (usdtState.order) usdtShowPayPage();
+            if (usdtState.order) {
+                const cartDrawer = document.getElementById('cartDrawer');
+                if (cartDrawer) cartDrawer.classList.add('hidden');
+                closeCheckoutModal();
+                usdtShowPayPage();
+            }
         }
         function usdtRenderQr(address) {
             const box = usdtEl('usdtQr');
@@ -3657,7 +3729,7 @@
     'طلبك بانتظار الدفع':'Your order is awaiting payment','اضغط للعودة وإكمال الدفع قبل انتهاء المهلة':'Tap to return and complete payment before the timer expires',
     'لا ترسل أي مبلغ إلى عنوان الإيداع بعد إلغاء الطلب.':'Do not send any funds to the deposit address after the order is cancelled.',
     'متابعة الدفع':'Continue Payment','إغلاق وإلغاء الطلب':'Close & Cancel Order','تم إلغاء الطلب وإعادة المخزون.':'Order cancelled and stock released.',
-    'إكمال الدفع عبر USDT':'Complete USDT Payment','انتقل لإكمال الدفع':'Continue to Payment','العودة إلى صفحة الدفع':'Back to Payment Page',
+    'إكمال الدفع عبر USDT':'Complete USDT Payment','إلغاء الطلب وإلغاء حجز المنتجات':'Cancel Order and Release Reserved Stock','إلغاء الطلب والدفع؟':'Cancel Order and Payment?','سيتم إلغاء طلب الدفع الحالي. إذا كان الطلب ما زال قابلاً للإلغاء، سيحرر الخادم الكمية المحجوزة ويعيدها إلى المخزون.':'The current payment order will be cancelled. If it is still cancellable, the server will release the reserved quantity back to stock.','لا تغلق هذه النافذة إذا كنت قد أرسلت التحويل؛ تواصل مع الدعم أولاً.':'Do not cancel if you have already sent the transfer; contact support first.','تأكيد إلغاء الطلب والحجز':'Confirm Order Cancellation and Release','تم إلغاء الطلب. إذا كان الطلب غير مدفوع، فقد أعاد الخادم الكمية المحجوزة إلى المخزون.':'The order was cancelled. If unpaid, the server has returned the reserved quantity to stock.','انتقل لإكمال الدفع':'Continue to Payment','العودة إلى صفحة الدفع':'Back to Payment Page',
     'رجوع إلى بيانات الطلب':'Back to Order Details','رقم الطلب:':'Order Number:','يُراقَب التحويل حتى:':'Transfer monitored until:',
     'امسح الرمز للحصول على عنوان الإيداع':'Scan the code to get the deposit address',
     'يتم التحقق من التحويل تلقائياً أثناء بقاء هذه الصفحة مفتوحة.':'The transfer is checked automatically while this page stays open.',
