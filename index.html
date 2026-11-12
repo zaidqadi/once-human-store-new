@@ -182,17 +182,40 @@
         html[dir="ltr"] #dbStatus { right:auto !important; left:8px !important; }
 </style>
 <style>
-/* Close buttons follow the reading direction: right in Arabic, left in English. */
+/* Close buttons: left in Arabic, right in English. Use physical sides to avoid RTL inversion. */
 #deliveryModal button[aria-label],
 #refundModal button[aria-label],
 #productModal > div > button,
 #checkoutModal > div > button,
 #authModal > div > button,
-#accountModal > div > button {
-  left: auto !important;
+#accountModal > div > button,
+#pendingPaymentModal button[aria-label] {
+  left: 1rem !important;
   right: auto !important;
-  inset-inline-start: 1rem !important;
+  inset-inline-start: auto !important;
   inset-inline-end: auto !important;
+}
+html[dir="ltr"] #deliveryModal button[aria-label],
+html[dir="ltr"] #refundModal button[aria-label],
+html[dir="ltr"] #productModal > div > button,
+html[dir="ltr"] #checkoutModal > div > button,
+html[dir="ltr"] #authModal > div > button,
+html[dir="ltr"] #accountModal > div > button,
+html[dir="ltr"] #pendingPaymentModal button[aria-label] {
+  left: auto !important;
+  right: 1rem !important;
+}
+/* USDT payment page close control: left in Arabic, right in English. */
+#usdtPayPage .sticky > div { position: relative; }
+#usdtPayPage .sticky > div > button:first-child {
+  position: absolute;
+  left: 1rem !important;
+  right: auto !important;
+  z-index: 2;
+}
+html[dir="ltr"] #usdtPayPage .sticky > div > button:first-child {
+  left: auto !important;
+  right: 1rem !important;
 }
 </style>
 
