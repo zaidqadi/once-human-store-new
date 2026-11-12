@@ -182,15 +182,17 @@
         html[dir="ltr"] #dbStatus { right:auto !important; left:8px !important; }
 </style>
 <style>
-/* Keep modal close controls on the leading side in both languages. */
-body.english-mode #deliveryModal button[aria-label],
-body.english-mode #refundModal button[aria-label],
-body.english-mode #productModal > div > button,
-body.english-mode #checkoutModal > div > button,
-body.english-mode #authModal > div > button,
-body.english-mode #accountModal > div > button {
+/* Close buttons follow the reading direction: right in Arabic, left in English. */
+#deliveryModal button[aria-label],
+#refundModal button[aria-label],
+#productModal > div > button,
+#checkoutModal > div > button,
+#authModal > div > button,
+#accountModal > div > button {
   left: auto !important;
-  right: 1rem !important;
+  right: auto !important;
+  inset-inline-start: 1rem !important;
+  inset-inline-end: auto !important;
 }
 </style>
 
@@ -1069,6 +1071,24 @@ body.english-mode #accountModal > div > button {
         let currentCurrency = 'USD';
         let currentCategory = 'all';
         let cart = [];
+        const CART_STORAGE_KEY = 'oncehuman_store_cart_v1';
+        function saveCartLocally() {
+            try {
+                localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart.map(i => ({ id: i.id, qty: Math.max(1, Number(i.qty) || 1) }))));
+            } catch (e) { console.warn('[Cart] تعذّر حفظ السلة محلياً:', e); }
+        }
+        function restoreCartLocally() {
+            try {
+                const raw = localStorage.getItem(CART_STORAGE_KEY);
+                const saved = raw ? JSON.parse(raw) : [];
+                if (!Array.isArray(saved)) return;
+                cart = saved.filter(x => x && typeof x.id === 'string' && Number.isFinite(Number(x.qty)) && Number(x.qty) > 0)
+                    .map(x => {
+                        const p = products.find(y => y.id === x.id);
+                        return p ? { ...p, qty: Math.floor(Number(x.qty)) } : null;
+                    }).filter(Boolean);
+            } catch (e) { console.warn('[Cart] تعذّر استعادة السلة:', e); cart = []; }
+        }
 
         // الكتالوج: السعر والمخزون والمعرّف تأتي من قاعدة البيانات (ربط بالـ slug).
         // الواجهة تعرض فقط؛ السعر الذي يُحاسَب به العميل يُحسب على الخادم داخل create_order.
@@ -1094,6 +1114,7 @@ body.english-mode #accountModal > div > button {
                 });
                 cart = cart.filter(i => i.dbId && i.stock > 0);
                 cart.forEach(i => { if(i.qty > i.stock) i.qty = i.stock; });
+                saveCartLocally();
                 renderProducts();
                 updateCartUI();
             } catch(e) { console.error('[Catalog]', e); }
@@ -1121,6 +1142,7 @@ body.english-mode #accountModal > div > button {
 
         // App Initialization
         window.onload = function() {
+            restoreCartLocally();
             renderProducts();
             updateCartUI();
             loadCatalog();
@@ -1235,21 +1257,23 @@ body.english-mode #accountModal > div > button {
         // Cart Operations
         function addToCart(productId, sourceImg) {
             const product = products.find(p => p.id === productId);
-            if(!product) return;
-            if(!catalogReady) { alert('جاري تحميل المخزون، حاول بعد لحظات.'); return; }
-            if(!product.dbId || !(product.stock > 0)) return;
+            if(!product) return false;
+            if(!catalogReady) { alert('جاري تحميل المخزون، حاول بعد لحظات.'); return false; }
+            if(!product.dbId || !(product.stock > 0)) return false;
             const item = cart.find(i => i.id === productId);
-            if(item && item.qty >= product.stock) { alert('وصلت إلى أقصى كمية متاحة في المخزون (' + product.stock + ').'); return; }
+            if(item && item.qty >= product.stock) { alert('وصلت إلى أقصى كمية متاحة في المخزون (' + product.stock + ').'); return false; }
             if(item) {
                 item.qty++;
             } else {
                 cart.push({ ...product, qty: 1 });
             }
+            saveCartLocally();
             updateCartUI();
             // شغّل حركة الصورة قبل إعادة رسم البطاقات حتى يبقى عنصر المصدر متاحاً للحركة.
             flyToCart(sourceImg);
             renderProducts();
             showCartToast(product.name, cart.find(i => i.id === productId).qty);
+            return true;
         }
 
         function bumpCart() {
@@ -1337,6 +1361,7 @@ body.english-mode #accountModal > div > button {
 
         function removeFromCart(productId) {
             cart = cart.filter(i => i.id !== productId);
+            saveCartLocally();
             updateCartUI();
             renderProducts();
         }
@@ -1349,6 +1374,7 @@ body.english-mode #accountModal > div > button {
                 if(item.qty <= 0) {
                     removeFromCart(productId);
                 } else {
+                    saveCartLocally();
                     updateCartUI();
                     renderProducts();
                 }
@@ -1446,7 +1472,7 @@ body.english-mode #accountModal > div > button {
                                 <span class="text-xs text-slate-500">السعر النهائي:</span>
                                 <span class="text-2xl font-black text-starlight">${rates[currentCurrency].symbol} ${price}</span>
                             </div>
-                            <button ${soldOut ? 'disabled' : ''} onclick="addToCart(${p.id}, document.querySelector('#modalContent img')); closeProductModal();" class="w-full ${soldOut ? 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700' : 'bg-starlight hover:bg-cyan-400 text-slate-950'} font-black py-3 rounded-xl transition clip-btn text-xs">
+                            <button ${soldOut ? 'disabled' : ''} onclick="if (addToCart(${p.id}, document.querySelector('#modalContent img'))) { closeProductModal(); toggleCartDrawer(true); }" class="w-full ${soldOut ? 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700' : 'bg-starlight hover:bg-cyan-400 text-slate-950'} font-black py-3 rounded-xl transition clip-btn text-xs">
                                 <i class="${soldOut ? 'fa-solid fa-ban' : 'fa-solid fa-cart-plus'} ml-1"></i> ${soldOut ? 'نفد المخزون' : 'إضافة لسلة الشراء الآن'}
                             </button>
                         </div>
@@ -1689,6 +1715,46 @@ body.english-mode #accountModal > div > button {
         const USDT_PAID_STATUSES = ['paid', 'processing', 'completed'];
         const usdtState = { order: null, networkKey: null, timer: null, busy: false, qrToken: 0,
                             pollTimer: null, polling: false, snapshot: null, graceMs: NaN, expiresMs: NaN, ownerId: null };
+        function pendingUsdtStorageKey(ownerId) { return 'oncehuman_pending_usdt_v1_' + String(ownerId || ''); }
+        function savePendingUsdtLocally() {
+            try {
+                if (!usdtState.order || !usdtState.ownerId || !usdtState.networkKey) return;
+                localStorage.setItem(pendingUsdtStorageKey(usdtState.ownerId), JSON.stringify({
+                    order: usdtState.order, networkKey: usdtState.networkKey,
+                    snapshot: usdtState.snapshot || { items: [], total: usdtState.order.total, currency: usdtState.order.currency },
+                    savedAt: Date.now()
+                }));
+            } catch (e) { console.warn('[USDT] تعذّر حفظ الطلب محلياً:', e); }
+        }
+        function clearPendingUsdtLocally(ownerId) {
+            try { if (ownerId) localStorage.removeItem(pendingUsdtStorageKey(ownerId)); }
+            catch (e) { console.warn('[USDT] تعذّر مسح نسخة الطلب المحلية:', e); }
+        }
+        async function restorePendingUsdtLocally(ownerId) {
+            if (!ownerId || !supabaseClient || !window.currentUser || window.currentUser.id !== ownerId || usdtState.order) return;
+            let saved;
+            try { saved = JSON.parse(localStorage.getItem(pendingUsdtStorageKey(ownerId)) || 'null'); }
+            catch (_) { clearPendingUsdtLocally(ownerId); return; }
+            if (!saved || !saved.order || !USDT_NETWORKS[saved.networkKey]) return;
+            const order = saved.order;
+            if (!order.order_id) { clearPendingUsdtLocally(ownerId); return; }
+            try {
+                const status = await usdtFetchOrderStatus(order.order_id, ownerId);
+                if (!window.currentUser || window.currentUser.id !== ownerId) return;
+                if (status !== 'pending_payment' && status !== 'under_review') {
+                    clearPendingUsdtLocally(ownerId);
+                    return;
+                }
+                usdtApplyOrder(order, saved.networkKey, (saved.snapshot && saved.snapshot.items) || [], ownerId);
+                if (saved.snapshot) usdtState.snapshot = saved.snapshot;
+                if (status === 'under_review') {
+                    usdtStopTimer(); usdtStopPolling(); usdtSetStatus('review');
+                } else {
+                    usdtStartPolling();
+                    usdtShowPayPage();
+                }
+            } catch (e) { console.warn('[USDT] تعذّرت استعادة الطلب المعلّق:', e); }
+        }
 
         function usdtEl(id) { return document.getElementById(id); }
         function usdtFormatTime(sec) {
@@ -1916,6 +1982,7 @@ body.english-mode #accountModal > div > button {
         }
         // انتهت المهلة (وفترة السماح إن وُجدت) دون تأكيد من الخادم: نوقف التحقق ونسمح بإنشاء طلب جديد.
         function usdtExpireView() {
+            clearPendingUsdtLocally(usdtState.ownerId);
             usdtStopTimer();
             usdtStopPolling();
             usdtSetStatus('expired');
@@ -1988,6 +2055,7 @@ body.english-mode #accountModal > div > button {
             const snap = usdtState.snapshot || {};
             const networkKey = usdtState.networkKey;
             const orderNumber = String(order.order_number);
+            clearPendingUsdtLocally(usdtState.ownerId);
             usdtStopTimer();
             usdtStopPolling();
             usdtState.order = null;
@@ -2058,6 +2126,7 @@ body.english-mode #accountModal > div > button {
             usdtUpdateButtons();
             usdtState.expiresMs = v.expMs;   // من الخادم فقط
             usdtState.graceMs = v.graceMs;
+            savePendingUsdtLocally();
             usdtEl('usdtGraceUntil').textContent = usdtFormatDate(v.graceMs);
             usdtEl('usdtGraceRow').classList.remove('hidden');
             usdtStartCountdown(usdtState.expiresMs);
@@ -2153,6 +2222,7 @@ body.english-mode #accountModal > div > button {
             st.className = 'text-[11px] mb-3 leading-relaxed text-emerald-400';
 
             cart = [];
+            saveCartLocally();
             idemSig = null;
             updateCartUI();
             document.getElementById('checkoutForm').reset();
@@ -2900,11 +2970,13 @@ body.english-mode #accountModal > div > button {
             supabaseClient.auth.getSession().then(({ data }) => {
                 window.currentUser = data && data.session ? data.session.user : null;
                 updateAuthUI();
+                if (window.currentUser) restorePendingUsdtLocally(window.currentUser.id);
             });
             supabaseClient.auth.onAuthStateChange((event, session) => {
                 window.currentUser = session ? session.user : null;
                 setTimeout(() => {
                     updateAuthUI();
+                    if (window.currentUser) restorePendingUsdtLocally(window.currentUser.id);
                     if (event === 'SIGNED_IN') closeAuthModal();
                 }, 0);
             });
