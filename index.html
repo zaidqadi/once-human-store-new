@@ -541,7 +541,7 @@
     <!-- Delivery Info Modal -->
     <div id="deliveryModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onclick="if(event.target===this) closeDelivery()">
         <div class="bg-slate-950 border border-slate-800 rounded-3xl max-w-lg w-full p-6 relative shadow-2xl overflow-y-auto overscroll-contain max-h-[90vh]">
-            <button type="button" onclick="closeDelivery()" class="absolute top-4 left-4 text-slate-400 hover:text-white p-2" aria-label="إغلاق">
+            <button type="button" onclick="closeDelivery()" class="absolute top-4 [inset-inline-start:1rem] text-slate-400 hover:text-white p-2" aria-label="إغلاق">
                 <i class="fa-solid fa-xmark text-xl"></i>
             </button>
             <h3 class="text-xl font-bold text-white mb-1 flex items-center gap-2">
@@ -580,7 +580,7 @@
     <!-- Refund Policy Modal -->
     <div id="refundModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onclick="if(event.target===this) closeRefundPolicy()">
         <div class="bg-slate-950 border border-red-500/30 rounded-3xl max-w-lg w-full p-6 relative shadow-2xl overflow-y-auto overscroll-contain max-h-[90vh]">
-            <button type="button" onclick="closeRefundPolicy()" class="absolute top-4 left-4 text-slate-400 hover:text-white p-2" aria-label="إغلاق">
+            <button type="button" onclick="closeRefundPolicy()" class="absolute top-4 [inset-inline-start:1rem] text-slate-400 hover:text-white p-2" aria-label="إغلاق">
                 <i class="fa-solid fa-xmark text-xl"></i>
             </button>
             <h3 class="text-xl font-bold text-white mb-1 flex items-center gap-2">
@@ -626,7 +626,7 @@
     <!-- Checkout Modal -->
     <div id="checkoutModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
         <div class="bg-slate-950 border border-slate-800 rounded-3xl max-w-lg w-full p-6 relative shadow-2xl overflow-y-auto max-h-[90vh]">
-            <button onclick="closeCheckoutModal()" class="absolute top-4 left-4 text-slate-400 hover:text-white p-2">
+            <button onclick="closeCheckoutModal()" class="absolute top-4 [inset-inline-start:1rem] text-slate-400 hover:text-white p-2">
                 <i class="fa-solid fa-xmark text-xl"></i>
             </button>
             
@@ -787,7 +787,6 @@
 
             <p id="usdtWarn" class="text-[10px] text-amber-400 leading-relaxed"><i class="fa-solid fa-triangle-exclamation ml-1"></i> أرسل عملة USDT فقط وعلى الشبكة المذكورة بالضبط. الإرسال على شبكة أخرى أو بعملة مختلفة قد يضيّع المبلغ.</p>
 
-            <button type="button" onclick="usdtRequestCancel()" class="w-full bg-red-950/50 hover:bg-red-900/60 border border-red-500/40 hover:border-red-400 text-red-300 hover:text-red-200 font-bold py-3 rounded-xl text-xs transition"><i class="fa-solid fa-ban ml-1"></i> إلغاء الطلب وإلغاء حجز المنتجات</button>
         </div>
 
         <div id="usdtCloseConfirm" class="hidden fixed inset-0 z-[70] items-center justify-center p-4 bg-black/85 backdrop-blur-sm" role="alertdialog" aria-modal="true" aria-label="تنبيه">
@@ -798,8 +797,8 @@
                 <p id="usdtCloseHint" class="text-[11px] text-amber-400 leading-relaxed mb-4">يمكنك العودة إلى طلباتك لإكمال الدفع قبل انتهاء الوقت.</p>
                 <p id="usdtCloseError" class="hidden text-[11px] text-red-400 font-bold leading-relaxed mb-3"></p>
                 <div class="flex flex-col gap-2">
-                    <button type="button" id="usdtCloseStayBtn" onclick="usdtCloseDismiss()" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold py-3 rounded-xl text-sm transition">متابعة الدفع</button>
-                    <button type="button" id="usdtCloseConfirmBtn" onclick="usdtConfirmClose()" class="w-full bg-starlight hover:bg-cyan-400 text-slate-950 font-black py-3 rounded-xl text-sm transition">إغلاق الصفحة مع الاحتفاظ بالطلب</button>
+                    <button type="button" id="usdtCloseStayBtn" onclick="usdtCloseDismiss()" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold py-3 rounded-xl text-sm transition">إكمال الدفع</button>
+                    <button type="button" id="usdtCloseConfirmBtn" onclick="usdtConfirmCancel()" class="w-full bg-red-950/70 hover:bg-red-900 border border-red-500/40 text-red-200 font-black py-3 rounded-xl text-sm transition">إلغاء الدفع</button>
                 </div>
             </div>
         </div>
@@ -865,7 +864,7 @@
     <!-- Auth Modal (Google / Discord / Email & Password / Magic Link) -->
     <div id="authModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onclick="if(event.target===this) closeAuthModal()">
         <div class="bg-slate-950 border border-slate-800 rounded-3xl max-w-sm w-full p-6 relative shadow-2xl overflow-y-auto overscroll-contain max-h-[90vh]">
-            <button type="button" onclick="closeAuthModal()" class="absolute top-4 left-4 text-slate-400 hover:text-white p-2" aria-label="إغلاق">
+            <button type="button" onclick="closeAuthModal()" class="absolute top-4 [inset-inline-start:1rem] text-slate-400 hover:text-white p-2" aria-label="إغلاق">
                 <i class="fa-solid fa-xmark text-xl"></i>
             </button>
             <h3 id="authTitle" class="text-xl font-bold text-white mb-1 flex items-center gap-2">
@@ -926,7 +925,7 @@
     <!-- Account Modal -->
     <div id="accountModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onclick="if(event.target===this) closeAccountModal()">
         <div class="bg-slate-950 border border-slate-800 rounded-3xl max-w-md w-full p-6 relative shadow-2xl overflow-y-auto overscroll-contain max-h-[90vh]">
-            <button type="button" onclick="closeAccountModal()" class="absolute top-4 left-4 text-slate-400 hover:text-white p-2" aria-label="إغلاق">
+            <button type="button" onclick="closeAccountModal()" class="absolute top-4 [inset-inline-start:1rem] text-slate-400 hover:text-white p-2" aria-label="إغلاق">
                 <i class="fa-solid fa-xmark text-xl"></i>
             </button>
             <div id="accountInfo" class="flex items-center gap-4 mb-5"></div>
@@ -1741,6 +1740,13 @@
             try {
                 const status = await usdtFetchOrderStatus(order.order_id, ownerId);
                 if (!window.currentUser || window.currentUser.id !== ownerId) return;
+                if (status === 'expired') {
+                    clearPendingUsdtLocally(ownerId);
+                    if (typeof showOrderExpiredNotice === 'function') showOrderExpiredNotice(order.order_id);
+                    const expiredModal = usdtEl('orderExpiredModal');
+                    if (expiredModal) { expiredModal.classList.remove('hidden'); expiredModal.classList.add('flex'); }
+                    return;
+                }
                 if (status !== 'pending_payment' && status !== 'under_review') {
                     clearPendingUsdtLocally(ownerId);
                     return;
@@ -1902,44 +1908,33 @@
             if (d) { d.classList.toggle('hidden', !show); d.classList.toggle('flex', show); }
         }
         function usdtRequestClose() {
-            // زر X العلوي يخفي صفحة الدفع فقط ويُبقي الطلب قائماً.
+            // زر الإغلاق العلوي يعرض الخيارين فقط: متابعة الدفع أو إلغاء الطلب من الخادم.
             const title = usdtEl('usdtCloseTitle');
             const message = usdtEl('usdtCloseMessage');
             const hint = usdtEl('usdtCloseHint');
-            const confirmBtn = usdtEl('usdtCloseConfirmBtn');
-            if (title) title.textContent = 'إغلاق صفحة الدفع؟';
-            if (message) message.textContent = 'سيتم إغلاق صفحة الدفع فقط. سيبقى طلبك محفوظاً بانتظار الدفع حتى انتهاء المهلة.';
-            if (hint) hint.textContent = 'يمكنك العودة إلى صفحة الدفع قبل انتهاء الوقت.';
-            if (confirmBtn) { confirmBtn.textContent = 'إغلاق الصفحة مع الاحتفاظ بالطلب'; confirmBtn.onclick = usdtConfirmClose; }
-            usdtCloseDialog(true);
-        }
-        function usdtRequestCancel() {
-            // زر أسفل صفحة الدفع يطلب إلغاء الطلب وتحرير المخزون من جهة الخادم.
-            const title = usdtEl('usdtCloseTitle');
-            const message = usdtEl('usdtCloseMessage');
-            const hint = usdtEl('usdtCloseHint');
-            const confirmBtn = usdtEl('usdtCloseConfirmBtn');
+            const continueBtn = usdtEl('usdtCloseStayBtn');
+            const cancelBtn = usdtEl('usdtCloseConfirmBtn');
             const err = usdtEl('usdtCloseError');
             if (err) { err.textContent = ''; err.classList.add('hidden'); }
-            if (title) title.textContent = 'إلغاء الطلب والدفع؟';
-            if (message) message.textContent = 'سيتم إلغاء طلب الدفع الحالي. إذا كان الطلب ما زال قابلاً للإلغاء، سيحرر الخادم الكمية المحجوزة ويعيدها إلى المخزون.';
-            if (hint) hint.textContent = 'لا تغلق هذه النافذة إذا كنت قد أرسلت التحويل؛ تواصل مع الدعم أولاً.';
-            if (confirmBtn) { confirmBtn.textContent = 'تأكيد إلغاء الطلب والحجز'; confirmBtn.onclick = usdtConfirmCancel; }
+            if (title) title.textContent = 'خيارات الدفع';
+            if (message) message.textContent = 'هل تريد العودة لإكمال الدفع أم إلغاء الطلب؟';
+            if (hint) hint.textContent = 'إذا أرسلت التحويل بالفعل فلا تلغِ الطلب؛ تواصل مع الدعم. وإلا فسيطلب الموقع من الخادم إلغاء الطلب وتحرير الكمية المحجوزة إذا كان ذلك مسموحاً.';
+            if (continueBtn) { continueBtn.textContent = 'إكمال الدفع'; continueBtn.onclick = usdtCloseDismiss; }
+            if (cancelBtn) {
+                cancelBtn.textContent = 'إلغاء الدفع';
+                cancelBtn.onclick = usdtConfirmCancel;
+                cancelBtn.className = 'w-full bg-red-950/70 hover:bg-red-900 border border-red-500/40 text-red-200 font-black py-3 rounded-xl text-sm transition';
+            }
             usdtCloseDialog(true);
         }
         function usdtCloseDismiss() {
             usdtCloseDialog(false);
-            // أعد إعداد نافذة التأكيد لوضع الإغلاق العادي في المرة القادمة.
-            const confirmBtn = usdtEl('usdtCloseConfirmBtn');
-            if (confirmBtn) { confirmBtn.textContent = 'إغلاق الصفحة مع الاحتفاظ بالطلب'; confirmBtn.onclick = usdtConfirmClose; }
-        }
-        function usdtConfirmClose() {
-            usdtCloseDialog(false);
-            usdtBackToCheckout();
-            const reminder = usdtEl('pendingOrderReminder');
-            if (reminder && usdtState.order) {
-                reminder.classList.remove('hidden');
-                usdtStartCountdown(usdtState.expiresMs);
+            // هذا الخيار يعني متابعة الدفع؛ لا يغيّر الطلب أو الحجز.
+            const cancelBtn = usdtEl('usdtCloseConfirmBtn');
+            if (cancelBtn) {
+                cancelBtn.textContent = 'إلغاء الدفع';
+                cancelBtn.onclick = usdtConfirmCancel;
+                cancelBtn.className = 'w-full bg-red-950/70 hover:bg-red-900 border border-red-500/40 text-red-200 font-black py-3 rounded-xl text-sm transition';
             }
         }
         async function usdtConfirmCancel() {
@@ -1956,8 +1951,11 @@
             if (stay) stay.disabled = true;
             if (err) { err.textContent = ''; err.classList.add('hidden'); }
             try {
-                const { error } = await supabaseClient.rpc('cancel_my_order', { p_order_id: order.order_id });
+                const { data: cancelResult, error } = await supabaseClient.rpc('cancel_my_order', { p_order_id: order.order_id });
                 if (error) throw error;
+                if (cancelResult === false || (cancelResult && typeof cancelResult === 'object' && (cancelResult.success === false || cancelResult.ok === false))) {
+                    throw new Error((cancelResult && (cancelResult.error || cancelResult.message)) || 'تعذّر إلغاء الطلب من الخادم.');
+                }
                 usdtStopTimer();
                 usdtStopPolling();
                 clearPendingUsdtLocally(usdtState.ownerId);
@@ -2054,6 +2052,8 @@
         }
         // انتهت المهلة (وفترة السماح إن وُجدت) دون تأكيد من الخادم: نوقف التحقق ونسمح بإنشاء طلب جديد.
         function usdtExpireView() {
+            // لا تصل الدالة هنا إلا بعد أن يؤكد verify-usdt-payment و orders.status انتهاء الطلب من الخادم.
+            const expiredOrderId = usdtState.order && usdtState.order.order_id;
             clearPendingUsdtLocally(usdtState.ownerId);
             usdtStopTimer();
             usdtStopPolling();
@@ -2062,11 +2062,17 @@
             if (topTimerWrap) topTimerWrap.classList.add('hidden');
             const reminder = usdtEl('pendingOrderReminder');
             if (reminder) reminder.classList.add('hidden');
+            usdtCloseDialog(false);
+            usdtHidePayPage();
             usdtState.order = null;
             usdtState.snapshot = null;
             usdtState.ownerId = null;
             idemSig = null;   // مفتاح جديد للطلب التالي حتى لا يُعاد الطلب المنتهي نفسه
             usdtUpdateButtons();
+            // استخدم نافذة فشل الطلب الموجودة بدلاً من ترك صفحة الدفع مفتوحة بعد انتهاء المهلة.
+            if (expiredOrderId && typeof showOrderExpiredNotice === 'function') showOrderExpiredNotice(expiredOrderId);
+            const expiredModal = usdtEl('orderExpiredModal');
+            if (expiredModal) { expiredModal.classList.remove('hidden'); expiredModal.classList.add('flex'); }
         }
         // يقرأ حالة الطلب من الخادم (جدول orders بنفس طريقة "طلباتي") ولا يعتمد على شكل ردّ verify-usdt-payment.
         async function usdtFetchOrderStatus(orderId, ownerId) {
@@ -3163,7 +3169,7 @@
         const m = $('adminModal'); m.innerHTML = '';
         const box = mk('div', 'bg-slate-950 border border-slate-800 rounded-3xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-5 relative');
         box.appendChild(mk('h3', 'text-white font-bold mb-3 pl-8', title));
-        const x = mk('button', 'absolute top-4 left-4 text-slate-400 hover:text-white'); x.type = 'button';
+        const x = mk('button', 'absolute top-4 [inset-inline-start:1rem] text-slate-400 hover:text-white'); x.type = 'button';
         x.appendChild(mk('i', 'fa-solid fa-xmark text-xl')); x.onclick = closeModal; box.appendChild(x);
         box.appendChild(body);
         if (buttons) { const f = mk('div', 'flex gap-2 mt-4'); buttons.forEach(b => f.appendChild(b)); box.appendChild(f); }
@@ -3721,6 +3727,16 @@
 /* ================= ONCE HUMAN STORE: Arabic / English ================= */
 (() => {
   const translations = {
+    'خيارات الدفع':'Payment options',
+    'هل تريد العودة لإكمال الدفع أم إلغاء الطلب؟':'Would you like to continue payment or cancel the order?',
+    'عند الإلغاء سيطلب الموقع من الخادم إلغاء الطلب وتحرير الكمية المحجوزة إذا كان الطلب لا يزال قابلاً للإلغاء.':'If you cancel, the server will ask to cancel the order and release reserved stock if the order is still eligible.',
+    'إذا أرسلت التحويل بالفعل فلا تلغِ الطلب؛ تواصل مع الدعم. وإلا فسيطلب الموقع من الخادم إلغاء الطلب وتحرير الكمية المحجوزة إذا كان ذلك مسموحاً.':'If you have already sent the transfer, do not cancel the order; contact support. Otherwise, the server will cancel it and release reserved stock if allowed.',
+    'إكمال الدفع':'Continue payment',
+    'إلغاء الدفع':'Cancel payment',
+    'جارٍ إلغاء الطلب…':'Cancelling order…',
+    'تعذّر إلغاء الطلب من الخادم.':'The server could not cancel the order.',
+    'انتهت مهلة الطلب':'Order expired',
+    'فشلت عملية الدفع، انتهت مهلة الطلب.':'Payment failed because the payment deadline expired.',
     'إغلاق صفحة الدفع':'Close Payment Page','إغلاق صفحة الدفع؟':'Close the payment page?',
     'إذا أغلقت صفحة الدفع سيتم إلغاء الطلب وإعادة المخزون.':'If you close the payment page, the order will be cancelled and the stock released.',
     'سيتم إغلاق صفحة الدفع فقط. سيبقى طلبك محفوظًا بانتظار الدفع حتى انتهاء المهلة.':'Only the payment page will close. Your order will remain pending until the timer expires.',
