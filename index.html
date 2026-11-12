@@ -1098,13 +1098,24 @@ body.english-mode #accountModal > div > button {
                 updateCartUI();
             } catch(e) { console.error('[Catalog]', e); }
         }
+        // المخزون المتاح للعرض = مخزون قاعدة البيانات ناقص الكمية الموجودة في سلة هذا الزائر.
+        // الحجز الفعلي المشترك بين جميع الزوار يتم عند إنشاء الطلب والتحقق الخادمي، وليس بمجرد فتح الصفحة.
+        function getCartQty(productId) {
+            const item = cart.find(i => i.id === productId);
+            return item ? Math.max(0, Number(item.qty) || 0) : 0;
+        }
+        function getAvailableStock(p) {
+            if (!p || !catalogReady || !p.dbId) return 0;
+            return Math.max(0, (Number(p.stock) || 0) - getCartQty(p.id));
+        }
         function isOutOfStock(p) {
-            return catalogReady && (!p.dbId || !(Number(p.stock) > 0));
+            return catalogReady && (!p.dbId || getAvailableStock(p) <= 0);
         }
 
         function stockLabel(p) {
             if(!catalogReady || isOutOfStock(p)) return '';
-            if(p.stock <= 5) return '<span class="text-[10px] text-amber-400 font-bold block mt-1">متبقي ' + p.stock + ' فقط</span>';
+            const available = getAvailableStock(p);
+            if(available <= 5) return '<span class="text-[10px] text-amber-400 font-bold block mt-1">متبقي ' + available + ' فقط</span>';
             return '';
         }
 
@@ -1142,7 +1153,7 @@ body.english-mode #accountModal > div > button {
                 const price = (product.priceUSD * rates[currentCurrency].rate).toFixed(2);
                 const soldOut = isOutOfStock(product);
                 return `
-                    <div onclick="addToCart(${product.id}, this.querySelector('img'))" class="cursor-pointer bg-cardBg border ${soldOut ? 'border-red-500/30' : 'border-slate-800 hover:border-starlight/50'} rounded-2xl overflow-hidden group flex flex-col justify-between transition-all duration-300 hover:-translate-y-1 shadow-lg">
+                    <div onclick="openProductModal(${product.id})" class="cursor-pointer bg-cardBg border ${soldOut ? 'border-red-500/30' : 'border-slate-800 hover:border-starlight/50'} rounded-2xl overflow-hidden group flex flex-col justify-between transition-all duration-300 hover:-translate-y-1 shadow-lg">
                         <div class="relative overflow-hidden h-48">
                             <img src="${product.image}" alt="${product.name}" class="w-full h-full object-cover ${soldOut ? 'opacity-40 grayscale' : 'group-hover:scale-110 opacity-90 group-hover:opacity-100'} transition duration-500">
                             ${soldOut ? `
@@ -1177,7 +1188,7 @@ body.english-mode #accountModal > div > button {
                                     <button onclick="event.stopPropagation(); openProductModal(${product.id})" class="p-2.5 bg-slate-900 hover:bg-slate-800 text-slate-300 rounded-xl border border-slate-700 transition" title="معاينة">
                                         <i class="fa-solid fa-eye text-xs"></i>
                                     </button>
-                                    <button ${soldOut ? 'disabled' : ''} onclick="event.stopPropagation(); addToCart(${product.id}, this.closest('.group').querySelector('img'))" class="${soldOut ? 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700' : 'bg-starlight hover:bg-cyan-400 text-slate-950 shadow-md'} font-extrabold px-3 py-2 rounded-xl text-xs flex items-center gap-1.5 transition clip-btn">
+                                    <button ${soldOut ? 'disabled' : ''} onclick="event.stopPropagation(); openProductModal(${product.id})" class="${soldOut ? 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700' : 'bg-starlight hover:bg-cyan-400 text-slate-950 shadow-md'} font-extrabold px-3 py-2 rounded-xl text-xs flex items-center gap-1.5 transition clip-btn">
                                         <i class="${soldOut ? 'fa-solid fa-ban' : 'fa-solid fa-cart-plus'}"></i> ${soldOut ? 'غير متوفر' : 'إضافة'}
                                     </button>
                                 </div>
@@ -1235,7 +1246,9 @@ body.english-mode #accountModal > div > button {
                 cart.push({ ...product, qty: 1 });
             }
             updateCartUI();
+            // شغّل حركة الصورة قبل إعادة رسم البطاقات حتى يبقى عنصر المصدر متاحاً للحركة.
             flyToCart(sourceImg);
+            renderProducts();
             showCartToast(product.name, cart.find(i => i.id === productId).qty);
         }
 
@@ -1325,6 +1338,7 @@ body.english-mode #accountModal > div > button {
         function removeFromCart(productId) {
             cart = cart.filter(i => i.id !== productId);
             updateCartUI();
+            renderProducts();
         }
 
         function updateQty(productId, delta) {
@@ -1336,6 +1350,7 @@ body.english-mode #accountModal > div > button {
                     removeFromCart(productId);
                 } else {
                     updateCartUI();
+                    renderProducts();
                 }
             }
         }
@@ -1751,6 +1766,12 @@ body.english-mode #accountModal > div > button {
             usdtEl('usdtQrWrap').classList.add('hidden');
             usdtEl('usdtCountdown').textContent = '--:--';   // المهلة الحقيقية تأتي من payment_expires_at بعد إنشاء الطلب
             usdtEl('usdtCountdown').classList.remove('text-red-400');
+            ['usdtTopCountdown','pendingOrderReminderTimer'].forEach(id => {
+                const timer = usdtEl(id);
+                if (timer) { timer.textContent = '--:--'; timer.classList.remove('text-red-400'); }
+            });
+            const topTimerWrap = usdtEl('usdtTopTimerWrap');
+            if (topTimerWrap) topTimerWrap.classList.add('hidden');
             usdtSetStatus('idle');
             usdtUpdateButtons();
         }
@@ -1801,6 +1822,7 @@ body.english-mode #accountModal > div > button {
             if (reminder) reminder.classList.add('hidden');
             const timerWrap = usdtEl('usdtTopTimerWrap');
             if (timerWrap) timerWrap.classList.toggle('hidden', !usdtState.order || usdtEl('usdtPaymentStatus').dataset.state === 'expired');
+            if (usdtState.order) usdtStartCountdown(usdtState.expiresMs);
         }
         function usdtHidePayPage() {
             const p = usdtEl('usdtPayPage');
@@ -1817,7 +1839,10 @@ body.english-mode #accountModal > div > button {
             usdtCloseDialog(false);
             usdtBackToCheckout();
             const reminder = usdtEl('pendingOrderReminder');
-            if (reminder && usdtState.order) reminder.classList.remove('hidden');
+            if (reminder && usdtState.order) {
+                reminder.classList.remove('hidden');
+                usdtStartCountdown(usdtState.expiresMs);
+            }
         }
         function usdtCloseDismiss() { usdtCloseDialog(false); }
         function usdtConfirmClose() {
@@ -1868,16 +1893,26 @@ body.english-mode #accountModal > div > button {
             usdtStopTimer();
             const tick = () => {
                 const left = Math.ceil((expiresAtMs - Date.now()) / 1000);
-                usdtEl('usdtCountdown').textContent = usdtFormatTime(left);
+                const value = usdtFormatTime(left);
+                const mainTimer = usdtEl('usdtCountdown');
+                const topTimer = usdtEl('usdtTopCountdown');
+                const reminderTimer = usdtEl('pendingOrderReminderTimer');
+                if (mainTimer) mainTimer.textContent = value;
+                if (topTimer) topTimer.textContent = value;
+                if (reminderTimer) reminderTimer.textContent = value;
                 if (left > 0) return;
                 usdtStopTimer();
-                usdtEl('usdtCountdown').classList.add('text-red-400');
-                // لا يقرر المتصفح انتهاء الطلب اعتماداً على الساعة المحلية.
-                // يستمر التحقق حتى يعيد الخادم الحالة النهائية بعد فحص Binance.
+                if (mainTimer) mainTimer.classList.add('text-red-400');
+                if (topTimer) topTimer.classList.add('text-red-400');
+                if (reminderTimer) reminderTimer.classList.add('text-red-400');
+                // لا يقرر المتصفح انتهاء الطلب اعتماداً على الساعة المحلية؛ يبقى التحقق الخادمي فعالاً.
                 usdtSetStatus('grace');
             };
             tick();
-            if (usdtState.order && !usdtState.timer && usdtEl('usdtCountdown').textContent !== '00:00') usdtState.timer = setInterval(tick, 1000);
+            // استمر بتحديث العدادات الثلاثة حتى عند إغلاق صفحة الدفع والعودة للمتجر.
+            if (usdtState.order && !usdtState.timer && Date.now() < expiresAtMs) {
+                usdtState.timer = setInterval(tick, 1000);
+            }
         }
         // انتهت المهلة (وفترة السماح إن وُجدت) دون تأكيد من الخادم: نوقف التحقق ونسمح بإنشاء طلب جديد.
         function usdtExpireView() {
