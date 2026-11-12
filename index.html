@@ -1316,7 +1316,7 @@
             if(!catalogReady) { alert('جاري تحميل المخزون، حاول بعد لحظات.'); return false; }
             if(!product.dbId || !(product.stock > 0)) return false;
             const item = cart.find(i => String(i.id) === String(productId) || String(i.dbId) === String(productId));
-            if(item && item.qty >= product.stock) { alert('وصلت إلى أقصى كمية متاحة في المخزون (' + product.stock + ').'); return false; }
+            if(item && item.qty >= product.stock) { showStockNotice(product.name, product.stock); return false; }
             if(item) {
                 item.qty++;
             } else {
@@ -1414,6 +1414,49 @@
             }, 1800);
         }
 
+        // إشعار المخزون: يظهر عند محاولة تجاوز الكمية المتاحة (بنفس هوية الموقع)
+        let stockToastTimer;
+        function showStockNotice(name, stock) {
+            const en = document.documentElement.lang === 'en';
+            let box = document.getElementById('stockToast');
+            if(!box) {
+                box = document.createElement('div');
+                box.id = 'stockToast';
+                box.setAttribute('role', 'status');
+                box.setAttribute('aria-live', 'polite');
+                box.style.cssText = 'position:fixed;left:50%;bottom:24px;z-index:90;width:max-content;max-width:min(92vw,380px);pointer-events:none;' +
+                    'display:flex;align-items:center;gap:12px;background:linear-gradient(135deg,#0f172a,#1e1b0f);border:1px solid rgba(251,191,36,0.55);' +
+                    'color:#e2e8f0;border-radius:14px;padding:12px 16px;box-shadow:0 10px 34px rgba(0,0,0,0.55),0 0 0 4px rgba(251,191,36,0.08);' +
+                    'opacity:0;transform:translate(-50%,16px);transition:opacity .25s ease, transform .25s ease;';
+                const ic = document.createElement('div');
+                ic.style.cssText = 'flex:none;width:34px;height:34px;border-radius:9999px;display:flex;align-items:center;justify-content:center;' +
+                    'background:rgba(251,191,36,0.15);color:#fbbf24;';
+                const i = document.createElement('i'); i.className = 'fa-solid fa-box-open'; ic.appendChild(i);
+                const tx = document.createElement('div'); tx.style.cssText = 'min-width:0;line-height:1.5;';
+                const t = document.createElement('div'); t.id = 'stockToastTitle'; t.style.cssText = 'font-size:13px;font-weight:900;color:#fbbf24;';
+                const n = document.createElement('div'); n.id = 'stockToastName'; n.style.cssText = 'font-size:11px;font-weight:700;color:#cbd5e1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';
+                const m = document.createElement('div'); m.id = 'stockToastMsg'; m.style.cssText = 'font-size:11px;font-weight:600;color:#94a3b8;';
+                tx.appendChild(t); tx.appendChild(n); tx.appendChild(m);
+                box.appendChild(ic); box.appendChild(tx);
+                document.body.appendChild(box);
+            }
+            const qty = Math.max(0, Number(stock) || 0);
+            document.getElementById('stockToastTitle').textContent = en ? 'Stock limit reached' : 'وصلت للحد الأقصى';
+            document.getElementById('stockToastName').textContent = name || '';
+            document.getElementById('stockToastMsg').textContent = qty > 0
+                ? (en ? 'You already added all available stock (' + qty + ').' : 'أضفت كل المخزون المتوفر من هذا المنتج (' + qty + ').')
+                : (en ? 'This product is out of stock.' : 'نفد المخزون من هذا المنتج.');
+            requestAnimationFrame(() => {
+                box.style.opacity = '1';
+                box.style.transform = 'translate(-50%,0)';
+            });
+            clearTimeout(stockToastTimer);
+            stockToastTimer = setTimeout(() => {
+                box.style.opacity = '0';
+                box.style.transform = 'translate(-50%,16px)';
+            }, 2600);
+        }
+
         function removeFromCart(productId) {
             cart = cart.filter(i => String(i.id) !== String(productId) && String(i.dbId) !== String(productId));
             saveCartLocally();
@@ -1424,7 +1467,7 @@
         function updateQty(productId, delta) {
             const item = cart.find(i => String(i.id) === String(productId) || String(i.dbId) === String(productId));
             if(item) {
-                if(delta > 0 && item.stock !== undefined && item.qty >= item.stock) { alert('وصلت إلى أقصى كمية متاحة في المخزون.'); return; }
+                if(delta > 0 && item.stock !== undefined && item.qty >= item.stock) { showStockNotice(item.name, item.stock); return; }
                 item.qty += delta;
                 if(item.qty <= 0) {
                     removeFromCart(productId);
