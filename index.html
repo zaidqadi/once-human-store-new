@@ -196,6 +196,76 @@
 }
 </style>
 
+<style id="responsive-polish">
+/* ===== تحسينات التجاوب: هاتف / تابلت / كمبيوتر ===== */
+html,body{max-width:100%;overflow-x:hidden}
+img,video{max-width:100%}
+#cartItemsContainer h5,#cartItemsContainer .truncate{min-width:0}
+
+/* تابلت (641–900px): لا يضيق الشريط العلوي */
+@media (min-width:641px) and (max-width:900px){
+  header h1 + p{display:none}
+  header h1{font-size:1.15rem}
+  header .flex.items-center.justify-between.h-20{gap:10px}
+  #languageSelector,#currencySelector{padding:8px 6px}
+}
+
+/* هاتف */
+@media (max-width:640px){
+  /* أزرار السلة (+ / − / حذف) بحجم مناسب للمس */
+  #cartItemsContainer button{min-width:32px;min-height:32px;display:inline-flex;align-items:center;justify-content:center}
+  #cartItemsContainer .rounded-lg.p-1{gap:4px}
+  #cartItemsContainer img{width:3.25rem;height:3.25rem}
+  /* إشعار المخزون فوق زر المساعدة ولا يتجاوز عرض الشاشة */
+  #stockToast{bottom:86px !important;max-width:92vw !important}
+  /* النوافذ الصغيرة تتمرر داخل الشاشة */
+  #deliveryModal > div,#refundModal > div,#termsModal > div{max-height:92vh;max-height:92dvh;padding:18px}
+  /* أزرار البطاقات لا تنكسر */
+  #productsGrid .p-5{padding:1rem}
+  #productsGrid .text-lg{font-size:1rem}
+  /* صفحة الدفع USDT */
+  #usdtPayPage .max-w-md{padding-left:12px;padding-right:12px}
+  #usdtQr{max-width:100%}
+  #usdtQr canvas,#usdtQr img{max-width:100%;height:auto}
+  #usdtAddress{font-size:10px}
+  /* لوحة الإدارة: الجداول تتمرر أفقياً */
+  #adminList{-webkit-overflow-scrolling:touch}
+  #adminModal > div{max-width:100%;max-height:92vh;max-height:92dvh;overflow-y:auto}
+  /* التذييل لا يختفي خلف زر المساعدة */
+  footer .grid{gap:1.5rem}
+}
+
+/* شاشات صغيرة جداً (≤360px) */
+@media (max-width:360px){
+  header h1{font-size:15px}
+  header h1 span{display:none}
+  #languageSelector,#currencySelector{font-size:10px;padding:8px 4px}
+  section.relative h2{font-size:1.4rem}
+}
+
+/* كمبيوتر */
+@media (min-width:1024px){
+  #productsGrid{gap:1.5rem}
+  #cartDrawer .max-w-md{max-width:26rem}
+  #productModal > div{max-width:42rem}
+}
+@media (min-width:1536px){
+  header > div,main,section.relative,footer > div{max-width:88rem}
+}
+
+/* شاشات اللمس: لا تأثير hover يعلق */
+@media (hover:none){
+  #productsGrid > div:hover{transform:none}
+}
+
+/* ارتفاع الشاشة الأفقي على الهاتف */
+@media (max-height:480px) and (orientation:landscape){
+  #productModal > div,#checkoutModal > div,#authModal > div,#accountModal > div,
+  #deliveryModal > div,#refundModal > div,#termsModal > div{max-height:96vh;max-height:96dvh}
+  #stockToast,#cartToast{bottom:12px !important}
+}
+</style>
+
 <style id="floating-help-widget-styles">
   #floatingHelpWidget { position:fixed; right:22px; bottom:22px; z-index:45; direction:rtl; }
   html[dir="ltr"] #floatingHelpWidget { right:auto; left:22px; direction:ltr; }
