@@ -473,6 +473,7 @@
                     <ul class="space-y-2">
                         <li><a href="#" onclick="return openRefundPolicy(event)" class="hover:text-starlight transition">سياسة الاسترجاع والضمان</a></li>
                         <li><a href="#" onclick="return openDelivery(event)" class="hover:text-starlight transition">كيفية تسليم المنتجات</a></li>
+                        <li><a href="#" onclick="return openTerms(event)" class="hover:text-starlight transition">شروط الاستخدام وإخلاء المسؤولية</a></li>
                         <li><a href="https://discord.gg/vbRgT4vvc" target="_blank" class="hover:text-starlight transition">التواصل عبر ديسكورد</a></li>
                     </ul>
                 </div>
@@ -876,6 +877,11 @@
             <div id="authNotice" class="hidden bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 mb-4 text-xs text-amber-300 font-bold leading-relaxed">
                 <i class="fa-solid fa-circle-info ml-1"></i> يلزم تسجيل الدخول قبل إتمام عملية الشراء.
             </div>
+            <label class="flex items-start gap-2 bg-slate-900 border border-slate-800 rounded-xl p-3 mb-3 cursor-pointer text-[11px] text-slate-300 leading-relaxed">
+                <input type="checkbox" id="termsCheck" class="mt-0.5 w-4 h-4 accent-cyan-400 shrink-0">
+                <span>أقرّ بأنني قرأت وأوافق على <a href="#" onclick="return openTerms(event)" class="text-starlight underline font-bold">شروط الاستخدام وإخلاء المسؤولية</a>، وأتحمل مسؤولية استخدامي للموقع.</span>
+            </label>
+            <p id="termsErr" class="hidden text-[11px] text-red-400 font-bold mb-3 leading-relaxed"></p>
             <div class="space-y-3">
                 <button type="button" onclick="signInWith('google')" class="w-full bg-white hover:bg-slate-200 text-slate-900 font-bold py-3 rounded-xl transition flex items-center justify-center gap-3 text-sm">
                     <i class="fab fa-google"></i> المتابعة عبر Google
@@ -921,6 +927,50 @@
 
             <p id="authMsg" class="hidden text-[11px] mt-4 leading-relaxed"></p>
             <p class="text-[10px] text-slate-600 mt-4 leading-relaxed">نحفظ فقط الاسم والبريد وصورة الحساب ومزوّد الدخول لربط طلباتك بك.</p>
+        </div>
+    </div>
+
+    <!-- Terms of Use & Disclaimer Modal -->
+    <style>html[lang="en"] .terms-ar{display:none} html:not([lang="en"]) .terms-en{display:none}</style>
+    <div id="termsModal" class="fixed inset-0 z-[90] hidden items-center justify-center p-4 bg-black/85 backdrop-blur-sm" onclick="if(event.target===this) closeTerms()">
+        <div class="bg-slate-950 border border-slate-800 rounded-3xl max-w-lg w-full p-6 relative shadow-2xl overflow-y-auto overscroll-contain max-h-[90vh]">
+            <button type="button" onclick="closeTerms()" class="absolute top-4 [inset-inline-end:1rem] text-slate-400 hover:text-white p-2" aria-label="إغلاق">
+                <i class="fa-solid fa-xmark text-xl"></i>
+            </button>
+            <h3 class="text-xl font-bold text-white mb-1 flex items-center gap-2 pe-10">
+                <i class="fa-solid fa-file-contract text-starlight"></i> شروط الاستخدام وإخلاء المسؤولية
+            </h3>
+            <p class="text-[11px] text-slate-500 mb-4">آخر تحديث: 12 نوفمبر 2026 • الإصدار 2026-11-12</p>
+<div class="terms-ar space-y-3 text-sm text-slate-300 leading-relaxed" dir="rtl">
+<div><h4 class="text-white font-bold text-xs mb-1">1. القبول والأهلية</h4><p class="text-xs text-slate-400">بإنشاء حساب أو استخدام الموقع أو إتمام أي عملية شراء فإنك تقرّ بأنك قرأت هذه الشروط وفهمتها وتوافق عليها كاملة. إن لم توافق فلا تستخدم الموقع. يُشترط أن تكون قد بلغت سن الرشد القانوني في بلدك، أو أن تستخدم الموقع بموافقة وليّ أمرك.</p></div>
+<div><h4 class="text-white font-bold text-xs mb-1">2. طبيعة الموقع</h4><p class="text-xs text-slate-400">هذا الموقع متجر مستقل لبيع عناصر وخدمات داخل لعبة Once Human، وهو غير تابع للشركة المطورة للعبة ولا مرخّص منها.</p></div>
+<div><h4 class="text-white font-bold text-xs mb-1">3. مخاطر شروط اللعبة وحظر الحسابات</h4><p class="text-xs text-slate-400">تقرّ بأن شراء أو استلام عناصر أو خدمات داخل اللعبة من طرف ثالث قد يخالف شروط استخدام اللعبة، وقد يعرّض حسابك لإجراءات من الشركة المطورة مثل التحذير أو التعليق أو الحظر أو حذف العناصر. أنت تتحمل وحدك هذه المخاطر وكامل المسؤولية عن قرارك بالشراء، والموقع لا يضمن عدم حدوثها.</p></div>
+<div><h4 class="text-white font-bold text-xs mb-1">4. صحة البيانات</h4><p class="text-xs text-slate-400">أنت مسؤول عن صحة البيانات التي تدخلها: اسم الشخصية، ومنطقة السيرفر، وحساب ديسكورد، والمنتج المطلوب. التأخير أو الفشل الناتج عن بيانات خاطئة لا يتحمله الموقع.</p></div>
+<div><h4 class="text-white font-bold text-xs mb-1">5. الدفع بعملة USDT</h4><p class="text-xs text-slate-400">أنت مسؤول عن اختيار الشبكة الصحيحة وعنوان الإيداع والمبلغ بدقة. التحويلات التي تُرسل على شبكة خاطئة أو إلى عنوان خاطئ أو بمبلغ أو عملة مختلفة قد تضيع ولا يمكن استرجاعها، ولا يتحمل الموقع مسؤوليتها. رسوم الشبكة على عاتقك.</p></div>
+<div><h4 class="text-white font-bold text-xs mb-1">6. الاسترجاع</h4><p class="text-xs text-slate-400">جميع المبيعات نهائية ولا يوجد استرجاع أو استبدال بعد الدفع، وفق سياسة الاسترجاع والضمان المنشورة في الموقع، وذلك دون الإخلال بأي حقوق لا يجوز التنازل عنها بموجب القانون الواجب التطبيق عليك.</p></div>
+<div><h4 class="text-white font-bold text-xs mb-1">7. التسليم</h4><p class="text-xs text-slate-400">مواعيد التسليم تقديرية وتعتمد على توفر المشرف وعلى تواصلك معه عبر ديسكورد، وقد تتأخر لأسباب خارجة عن إرادة الموقع.</p></div>
+<div><h4 class="text-white font-bold text-xs mb-1">8. إخلاء المسؤولية من الضمانات</h4><p class="text-xs text-slate-400">يُقدَّم الموقع وخدماته «كما هي» و«حسب التوفر» دون أي ضمانات صريحة أو ضمنية، ومنها استمرارية الخدمة أو خلوها من الأخطاء أو الانقطاع.</p></div>
+<div><h4 class="text-white font-bold text-xs mb-1">9. تحديد المسؤولية</h4><p class="text-xs text-slate-400">بأقصى حد يسمح به القانون، لا يتحمل الموقع ولا القائمون عليه أي أضرار غير مباشرة أو تبعية أو خسائر ناتجة عن استخدام الموقع، ومنها فقدان حساب اللعبة أو تقدمك فيها أو أي بيانات. وفي جميع الأحوال لا تتجاوز مسؤوليتنا الإجمالية قيمة الطلب محل النزاع. لا يشمل هذا التحديد أي مسؤولية لا يجوز قانوناً استبعادها أو تقييدها.</p></div>
+<div><h4 class="text-white font-bold text-xs mb-1">10. التعويض</h4><p class="text-xs text-slate-400">توافق على تعويض الموقع والقائمين عليه وإبراء ذمتهم من أي مطالبة أو خسارة أو تكلفة تنشأ عن مخالفتك لهذه الشروط، أو تقديمك بيانات غير صحيحة، أو استخدامك لما اشتريته بما يخالف شروط اللعبة أو القانون.</p></div>
+<div><h4 class="text-white font-bold text-xs mb-1">11. حل النزاعات</h4><p class="text-xs text-slate-400">قبل اتخاذ أي إجراء قانوني، توافق على التواصل مع الدعم عبر ديسكورد ومحاولة حل المشكلة ودياً، وإعطائنا مهلة 14 يوماً على الأقل للرد والمعالجة.</p></div>
+<div><h4 class="text-white font-bold text-xs mb-1">12. إيقاف الحساب</h4><p class="text-xs text-slate-400">يحق للموقع رفض أي طلب أو إيقاف أي حساب عند الاشتباه في احتيال أو إساءة استخدام أو مخالفة لهذه الشروط.</p></div>
+<div><h4 class="text-white font-bold text-xs mb-1">13. التعديل وصحة الشروط</h4><p class="text-xs text-slate-400">يجوز تعديل هذه الشروط في أي وقت، ويُعدّ استمرارك في استخدام الموقع بعد التعديل موافقة عليها. وإذا اعتُبر أي بند باطلاً أو غير قابل للتنفيذ فباقي البنود تبقى سارية.</p></div>
+</div>
+<div class="terms-en space-y-3 text-sm text-slate-300 leading-relaxed" dir="ltr">
+<div><h4 class="text-white font-bold text-xs mb-1">1. Acceptance and eligibility</h4><p class="text-xs text-slate-400">By creating an account, using the site, or placing any order, you confirm that you have read, understood and agree to these terms in full. If you do not agree, do not use the site. You must have reached the age of legal majority in your country, or use the site with the consent of a parent or guardian.</p></div>
+<div><h4 class="text-white font-bold text-xs mb-1">2. Nature of the site</h4><p class="text-xs text-slate-400">This site is an independent store selling in-game items and services for Once Human. It is not affiliated with, or authorized by, the game's developer.</p></div>
+<div><h4 class="text-white font-bold text-xs mb-1">3. Game-rules and account-ban risk</h4><p class="text-xs text-slate-400">You acknowledge that buying or receiving in-game items or services from a third party may violate the game's terms of use and may expose your account to action by the developer, such as warnings, suspension, bans or removal of items. You alone bear these risks and full responsibility for your decision to buy, and the site does not guarantee that they will not occur.</p></div>
+<div><h4 class="text-white font-bold text-xs mb-1">4. Accuracy of your details</h4><p class="text-xs text-slate-400">You are responsible for the accuracy of the details you enter: character name, server region, Discord account and requested product. The site is not responsible for delays or failures caused by incorrect details.</p></div>
+<div><h4 class="text-white font-bold text-xs mb-1">5. USDT payments</h4><p class="text-xs text-slate-400">You are responsible for choosing the correct network, deposit address and amount precisely. Transfers sent on the wrong network, to the wrong address, or with a different amount or currency may be lost and cannot be recovered, and the site is not responsible for them. Network fees are your responsibility.</p></div>
+<div><h4 class="text-white font-bold text-xs mb-1">6. Refunds</h4><p class="text-xs text-slate-400">All sales are final, with no refunds or exchanges after payment, under the Refund & Warranty Policy published on the site, without affecting any rights that cannot be waived under the law applicable to you.</p></div>
+<div><h4 class="text-white font-bold text-xs mb-1">7. Delivery</h4><p class="text-xs text-slate-400">Delivery times are estimates and depend on moderator availability and on you contacting them on Discord. Delays may occur for reasons beyond the site's control.</p></div>
+<div><h4 class="text-white font-bold text-xs mb-1">8. Disclaimer of warranties</h4><p class="text-xs text-slate-400">The site and its services are provided “as is” and “as available” without any express or implied warranties, including continuity of service or freedom from errors or interruptions.</p></div>
+<div><h4 class="text-white font-bold text-xs mb-1">9. Limitation of liability</h4><p class="text-xs text-slate-400">To the maximum extent permitted by law, the site and its operators are not liable for any indirect or consequential damages or losses arising from use of the site, including loss of your game account, your progress or any data. In all cases our total liability will not exceed the value of the order in dispute. This limitation does not apply to any liability that cannot lawfully be excluded or limited.</p></div>
+<div><h4 class="text-white font-bold text-xs mb-1">10. Indemnity</h4><p class="text-xs text-slate-400">You agree to indemnify and hold harmless the site and its operators from any claim, loss or cost arising from your breach of these terms, your provision of incorrect details, or your use of what you bought in violation of the game's rules or the law.</p></div>
+<div><h4 class="text-white font-bold text-xs mb-1">11. Dispute resolution</h4><p class="text-xs text-slate-400">Before taking any legal action, you agree to contact support on Discord and try to resolve the issue amicably, giving us at least 14 days to respond and address it.</p></div>
+<div><h4 class="text-white font-bold text-xs mb-1">12. Account suspension</h4><p class="text-xs text-slate-400">The site may refuse any order or suspend any account where fraud, misuse or breach of these terms is suspected.</p></div>
+<div><h4 class="text-white font-bold text-xs mb-1">13. Changes and severability</h4><p class="text-xs text-slate-400">These terms may be changed at any time, and continuing to use the site after a change means you accept it. If any provision is held invalid or unenforceable, the remaining provisions stay in effect.</p></div>
+</div>
         </div>
     </div>
 
@@ -2414,6 +2464,9 @@
         function closeRefundPolicy() { hideInfoModal('refundModal'); }
         function openDelivery(event) { return showInfoModal('deliveryModal', event); }
         function closeDelivery() { hideInfoModal('deliveryModal'); }
+        function openTerms(event) { return showInfoModal('termsModal', event); }
+        function closeTerms() { hideInfoModal('termsModal'); }
+        document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeTerms(); });
 
         document.addEventListener('keydown', (e) => {
             if(e.key === 'Escape') { closeRefundPolicy(); closeDelivery(); }
@@ -2428,6 +2481,35 @@
     <!-- Supabase Auth + حفظ الطلبات (يستخدم supabaseClient الحالي) -->
     <script>
         window.currentUser = null;
+        // ===== الموافقة الإلزامية على الشروط =====
+        const TERMS_VERSION = '2026-11-12';
+        const TERMS_PENDING_KEY = 'oncehuman_pending_terms';
+        function requireTerms() {
+            const c = document.getElementById('termsCheck'), e = document.getElementById('termsErr');
+            if (c && c.checked) { if (e) e.classList.add('hidden'); return true; }
+            if (e) { e.textContent = 'يجب الموافقة على شروط الاستخدام وإخلاء المسؤولية للمتابعة.'; e.classList.remove('hidden'); }
+            if (c) c.focus();
+            return false;
+        }
+        function termsMeta() { return { terms_accepted: true, terms_version: TERMS_VERSION, terms_accepted_at: new Date().toISOString() }; }
+        function rememberTermsAcceptance() {
+            try { localStorage.setItem(TERMS_PENDING_KEY, JSON.stringify(termsMeta())); } catch (e) { console.warn('[Terms]', e); }
+        }
+        // بعد أي دخول ناجح: تُحفظ الموافقة في بيانات حساب المستخدم (user_metadata) على Supabase.
+        async function applyPendingTermsAcceptance() {
+            let raw = null;
+            try { raw = localStorage.getItem(TERMS_PENDING_KEY); } catch (e) {}
+            if (!raw || !supabaseClient || !window.currentUser) return;
+            let meta; try { meta = JSON.parse(raw); } catch (e) { try { localStorage.removeItem(TERMS_PENDING_KEY); } catch (_) {} return; }
+            if (!meta || meta.terms_accepted !== true) { try { localStorage.removeItem(TERMS_PENDING_KEY); } catch (_) {} return; }
+            const m = window.currentUser.user_metadata || {};
+            if (m.terms_accepted && m.terms_version === meta.terms_version) { try { localStorage.removeItem(TERMS_PENDING_KEY); } catch (_) {} return; }
+            try {
+                const { error } = await supabaseClient.auth.updateUser({ data: meta });
+                if (error) console.warn('[Terms] تعذّر حفظ الموافقة:', error.message);
+                else { try { localStorage.removeItem(TERMS_PENDING_KEY); } catch (_) {} }
+            } catch (e) { console.warn('[Terms]', e); }
+        }
         const PROVIDER_LABELS = { google: 'Google', discord: 'Discord', email: 'البريد الإلكتروني' };
         const ORDER_STATUS_LABELS = {
             pending_payment: 'بانتظار الدفع', under_review: 'قيد مراجعة الدفع', pending: 'قيد المعالجة', processing: 'قيد التنفيذ', paid: 'مدفوع', completed: 'مكتمل',
@@ -2511,6 +2593,8 @@
 
         function openAuthModal(loginRequired) {
             document.getElementById('authNotice').classList.toggle('hidden', !loginRequired);
+            const tc = document.getElementById('termsCheck'); if (tc) tc.checked = false;
+            const te = document.getElementById('termsErr'); if (te) te.classList.add('hidden');
             authMsg('');
             setAuthMode('login');
             showModal('authModal');
@@ -2520,6 +2604,8 @@
 
         async function signInWith(provider) {
             if (!supabaseClient) { authMsg('تعذّر تحميل مكتبة Supabase.', true); return; }
+            if (!requireTerms()) return;
+            rememberTermsAcceptance();
             authMsg('جاري التحويل إلى ' + (PROVIDER_LABELS[provider] || provider) + '…', false);
             try {
                 const { error } = await supabaseClient.auth.signInWithOAuth({
@@ -2588,6 +2674,8 @@
                 if (password !== document.getElementById('authPasswordConfirm').value) { authMsg('كلمتا المرور غير متطابقتين.', true); return false; }
             }
 
+            if (authMode === 'signup' && !requireTerms()) return false;
+            if (authMode === 'signup') rememberTermsAcceptance();
             setAuthBusy(true);
             authMsg(authMode === 'signup' ? 'جاري إنشاء الحساب…' : 'جاري تسجيل الدخول…', false);
             try {
@@ -2595,7 +2683,7 @@
                     const { data, error } = await supabaseClient.auth.signUp({
                         email: email,
                         password: password,
-                        options: { emailRedirectTo: authRedirectUrl() }
+                        options: { emailRedirectTo: authRedirectUrl(), data: termsMeta() }
                     });
                     if (error) throw error;
                     if (data && data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
@@ -2624,12 +2712,14 @@
             if (!supabaseClient) { authMsg('تعذّر تحميل مكتبة Supabase.', true); return; }
             const email = document.getElementById('authEmail').value.trim();
             if (!isValidEmail(email)) { authMsg('أدخل بريدك الإلكتروني أولاً لنرسل لك الرابط.', true); return; }
+            if (!requireTerms()) return;
+            rememberTermsAcceptance();
             setAuthBusy(true);
             authMsg('جاري إرسال رابط الدخول…', false);
             try {
                 const { error } = await supabaseClient.auth.signInWithOtp({
                     email: email,
-                    options: { emailRedirectTo: authRedirectUrl() }
+                    options: { emailRedirectTo: authRedirectUrl(), data: termsMeta() }
                 });
                 if (error) throw error;
                 authMsg('أرسلنا رابط الدخول إلى ' + email + '. افتح بريدك واضغط على الرابط لإكمال الدخول.', false, true);
@@ -3105,14 +3195,14 @@
             supabaseClient.auth.getSession().then(({ data }) => {
                 window.currentUser = data && data.session ? data.session.user : null;
                 updateAuthUI();
-                if (window.currentUser) restorePendingUsdtLocally(window.currentUser.id);
+                if (window.currentUser) { restorePendingUsdtLocally(window.currentUser.id); applyPendingTermsAcceptance(); }
             });
             supabaseClient.auth.onAuthStateChange((event, session) => {
                 window.currentUser = session ? session.user : null;
                 setTimeout(() => {
                     updateAuthUI();
                     if (window.currentUser) restorePendingUsdtLocally(window.currentUser.id);
-                    if (event === 'SIGNED_IN') closeAuthModal();
+                    if (event === 'SIGNED_IN') { closeAuthModal(); applyPendingTermsAcceptance(); }
                 }, 0);
             });
         });
@@ -3854,7 +3944,7 @@
     'لأي استفسار قبل الشراء، تواصل معنا عبر الديسكورد.':'For questions before purchasing, contact us on Discord.',
     'إتمام الطلب والتحقق من الحساب':'Checkout & Account Verification','اسم حسابك في الديسكورد (Discord Username) *':'Your Discord Username *',
     'ضروري لفتح تذكرة وتكليف المشرف بتسليمك الطلب داخل اللعبة.':'Required to open a ticket and arrange in-game delivery.',
-    'منطقة السيرفر (Region) *':'Server Region *','اختر طريقة الدفع المناسبة':'Choose a Payment Method','بإتمامك الدفع فإنك توافق على سياسة الاسترجاع والضمان: جميع المبيعات نهائية ولا يوجد استرجاع بعد الدفع.':'By completing payment you agree to the Refund & Warranty Policy: all sales are final and non-refundable after payment.','PayPal / بطاقة':'PayPal / Card',
+    'منطقة السيرفر (Region) *':'Server Region *','اختر طريقة الدفع المناسبة':'Choose a Payment Method','أقرّ بأنني قرأت وأوافق على':'I confirm that I have read and agree to the','شروط الاستخدام وإخلاء المسؤولية':'Terms of Use & Disclaimer','، وأتحمل مسؤولية استخدامي للموقع.':', and I accept responsibility for my use of the site.','يجب الموافقة على شروط الاستخدام وإخلاء المسؤولية للمتابعة.':'You must agree to the Terms of Use & Disclaimer to continue.','آخر تحديث: 12 نوفمبر 2026 • الإصدار 2026-11-12':'Last updated: 12 November 2026 • Version 2026-11-12','بإتمامك الدفع فإنك توافق على سياسة الاسترجاع والضمان: جميع المبيعات نهائية ولا يوجد استرجاع بعد الدفع.':'By completing payment you agree to the Refund & Warranty Policy: all sales are final and non-refundable after payment.','PayPal / بطاقة':'PayPal / Card',
     'المبلغ الاجمالي للشراء:':'Order Total:','يتم الدفع بالدولار الأمريكي (USD) عبر PayPal، ويمكنك الدفع بالبطاقة البنكية من نفس النافذة.':'Payment is processed in USD via PayPal. You can also pay by bank card in the same window.',
     'اختر شبكة التحويل':'Choose Transfer Network','الشبكة:':'Network:','المبلغ:':'Amount:','عنوان المحفظة:':'Wallet Address:',
     'نسخ':'Copy','أرسل عملة USDT فقط وعلى الشبكة المذكورة بالضبط. الإرسال على شبكة أخرى أو بعملة مختلفة قد يضيّع المبلغ.':'Send USDT only on the exact network shown. Using another network or currency may result in lost funds.',
