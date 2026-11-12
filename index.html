@@ -726,10 +726,14 @@ body.english-mode #accountModal > div > button {
     <div id="usdtPayPage" class="fixed inset-0 z-[60] hidden flex-col bg-slate-950 overflow-y-auto overscroll-contain" role="dialog" aria-modal="true" aria-label="إكمال الدفع عبر USDT">
         <div class="sticky top-0 z-10 bg-slate-950/95 backdrop-blur border-b border-slate-800">
             <div class="max-w-md w-full mx-auto flex items-center gap-3 px-4 py-3">
-                <button type="button" onclick="usdtRequestClose()" aria-label="إغلاق" class="w-9 h-9 flex-none rounded-full bg-slate-900 border border-slate-700 text-slate-300 hover:text-white hover:border-red-400 transition flex items-center justify-center">
+                <button type="button" onclick="usdtRequestClose()" aria-label="إغلاق صفحة الدفع" title="إغلاق صفحة الدفع" class="w-9 h-9 flex-none rounded-full bg-slate-900 border border-slate-700 text-slate-300 hover:text-white hover:border-red-400 transition flex items-center justify-center">
                     <i class="fa-solid fa-xmark text-lg"></i>
                 </button>
                 <h3 class="text-base font-black text-white flex items-center gap-2"><i class="fa-solid fa-coins text-emerald-400"></i> إكمال الدفع عبر USDT</h3>
+                <div id="usdtTopTimerWrap" class="ms-auto flex-none text-center rounded-lg border border-amber-500/30 bg-amber-500/10 px-2 py-1">
+                    <span class="block text-[9px] text-amber-200">الوقت المتبقي</span>
+                    <b id="usdtTopCountdown" class="font-mono text-sm text-amber-300" dir="ltr">--:--</b>
+                </div>
             </div>
         </div>
 
@@ -788,12 +792,12 @@ body.english-mode #accountModal > div > button {
             <div class="bg-slate-950 border border-red-500/40 rounded-3xl max-w-sm w-full p-6 text-center shadow-2xl">
                 <div class="w-14 h-14 bg-red-500/10 text-red-300 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-red-500/30 text-2xl"><i class="fa-solid fa-triangle-exclamation"></i></div>
                 <h3 class="text-lg font-black text-white mb-2">إغلاق صفحة الدفع؟</h3>
-                <p class="text-sm text-slate-300 leading-relaxed mb-2">إذا أغلقت صفحة الدفع سيتم إلغاء الطلب وإعادة المخزون.</p>
-                <p class="text-[11px] text-amber-400 leading-relaxed mb-4">لا ترسل أي مبلغ إلى عنوان الإيداع بعد إلغاء الطلب.</p>
+                <p class="text-sm text-slate-300 leading-relaxed mb-2">سيتم إغلاق صفحة الدفع فقط. سيبقى طلبك محفوظًا بانتظار الدفع حتى انتهاء المهلة.</p>
+                <p class="text-[11px] text-amber-400 leading-relaxed mb-4">يمكنك العودة إلى طلباتك لإكمال الدفع قبل انتهاء الوقت.</p>
                 <p id="usdtCloseError" class="hidden text-[11px] text-red-400 font-bold leading-relaxed mb-3"></p>
                 <div class="flex flex-col gap-2">
-                    <button type="button" id="usdtCloseStayBtn" onclick="usdtCloseDismiss()" class="w-full bg-starlight hover:bg-cyan-400 text-slate-950 font-black py-3 rounded-xl text-sm transition">متابعة الدفع</button>
-                    <button type="button" id="usdtCloseConfirmBtn" onclick="usdtConfirmClose()" class="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-3 rounded-xl text-sm transition disabled:opacity-60 disabled:cursor-not-allowed">إغلاق وإلغاء الطلب</button>
+                    <button type="button" id="usdtCloseStayBtn" onclick="usdtCloseDismiss()" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold py-3 rounded-xl text-sm transition">متابعة الدفع</button>
+                    <button type="button" id="usdtCloseConfirmBtn" onclick="usdtConfirmClose()" class="w-full bg-starlight hover:bg-cyan-400 text-slate-950 font-black py-3 rounded-xl text-sm transition">إغلاق الصفحة مع الاحتفاظ بالطلب</button>
                 </div>
             </div>
         </div>
@@ -828,7 +832,7 @@ body.english-mode #accountModal > div > button {
     <!-- Pending Order Payment Modal -->
     <div id="pendingPaymentModal" class="fixed inset-0 z-[70] hidden items-center justify-center p-4 bg-black/85 backdrop-blur-sm">
         <div class="bg-slate-950 border border-amber-500/40 rounded-3xl max-w-md w-full p-6 text-center shadow-2xl relative">
-            <button type="button" onclick="closePendingPaymentModal()" aria-label="إغلاق" class="absolute top-3 left-3 w-9 h-9 rounded-full bg-slate-900 text-slate-300 hover:text-white">×</button>
+            <button type="button" onclick="closePendingPaymentModal()" aria-label="إغلاق" class="absolute top-3 w-9 h-9 rounded-full bg-slate-900 text-slate-300 hover:text-white" style="inset-inline-start:12px"><span aria-hidden="true">×</span></button>
             <div class="w-14 h-14 bg-amber-500/10 text-amber-300 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-amber-500/30 text-2xl">
                 <i class="fa-regular fa-clock"></i>
             </div>
@@ -1726,6 +1730,8 @@ body.english-mode #accountModal > div > button {
             usdtStopTimer();
             usdtStopPolling();
             usdtState.order = null;
+            const reminder = usdtEl('pendingOrderReminder');
+            if (reminder) reminder.classList.add('hidden');
             usdtState.networkKey = null;
             usdtState.snapshot = null;
             usdtState.ownerId = null;
@@ -1791,6 +1797,10 @@ body.english-mode #accountModal > div > button {
             const p = usdtEl('usdtPayPage');
             p.classList.remove('hidden'); p.classList.add('flex');
             p.scrollTop = 0;
+            const reminder = usdtEl('pendingOrderReminder');
+            if (reminder) reminder.classList.add('hidden');
+            const timerWrap = usdtEl('usdtTopTimerWrap');
+            if (timerWrap) timerWrap.classList.toggle('hidden', !usdtState.order || usdtEl('usdtPaymentStatus').dataset.state === 'expired');
         }
         function usdtHidePayPage() {
             const p = usdtEl('usdtPayPage');
@@ -1798,41 +1808,21 @@ body.english-mode #accountModal > div > button {
             p.classList.add('hidden'); p.classList.remove('flex');
             const d = usdtEl('usdtCloseConfirm'); if (d) { d.classList.add('hidden'); d.classList.remove('flex'); }
         }
-        // إغلاق صفحة الدفع = إلغاء الطلب (بعد تأكيد المستخدم). الإلغاء يتم عبر cancel_my_order نفسها المستخدمة في "طلباتي".
+        // إغلاق صفحة الدفع يخفي الواجهة فقط؛ الطلب ومتابعة التحقق والمهلة تبقى فعّالة.
         function usdtCloseDialog(show) {
             const d = usdtEl('usdtCloseConfirm');
-            d.classList.toggle('hidden', !show); d.classList.toggle('flex', show);
+            if (d) { d.classList.toggle('hidden', !show); d.classList.toggle('flex', show); }
         }
         function usdtRequestClose() {
-            if (!usdtState.order) { usdtBackToCheckout(); return; }   // لا طلب قائم (انتهى مثلاً): إغلاق مباشر
-            usdtEl('usdtCloseError').classList.add('hidden');
-            usdtEl('usdtCloseConfirmBtn').disabled = false;
-            usdtCloseDialog(true);
+            usdtCloseDialog(false);
+            usdtBackToCheckout();
+            const reminder = usdtEl('pendingOrderReminder');
+            if (reminder && usdtState.order) reminder.classList.remove('hidden');
         }
         function usdtCloseDismiss() { usdtCloseDialog(false); }
-        async function usdtConfirmClose() {
-            const order = usdtState.order;
-            if (!order) { usdtCloseDialog(false); usdtBackToCheckout(); return; }
-            const btn = usdtEl('usdtCloseConfirmBtn'), err = usdtEl('usdtCloseError');
-            btn.disabled = true; err.classList.add('hidden');
-            try {
-                const { error } = await supabaseClient.rpc('cancel_my_order', { p_order_id: order.order_id });
-                if (error) throw error;
-            } catch (e) {
-                // فشل الإلغاء (مثلاً تم الدفع أو تغيّرت الحالة): يبقى الطلب كما هو ولا نغلق الصفحة.
-                err.textContent = friendlyError(e);
-                err.classList.remove('hidden');
-                btn.disabled = false;
-                return;
-            }
-            if (usdtState.order !== order) { usdtCloseDialog(false); return; }
-            usdtStopTimer(); usdtStopPolling();
-            usdtState.order = null; usdtState.snapshot = null; usdtState.ownerId = null;
-            idemSig = null;
-            usdtCloseDialog(false);
-            usdtResetView();
-            usdtSetStatus('expired', 'تم إلغاء الطلب وإعادة المخزون.');
-            if (typeof loadCatalog === 'function') loadCatalog();
+        function usdtConfirmClose() {
+            // توافق مع أي استدعاء قديم: لا يتم إلغاء الطلب عند إغلاق الصفحة.
+            usdtRequestClose();
         }
         // الطلب القائم يبقى قيد المتابعة عند الرجوع؛ إن انتهى الطلب نعيد العرض للإنشاء من جديد.
         function usdtBackToCheckout() {
@@ -1894,6 +1884,10 @@ body.english-mode #accountModal > div > button {
             usdtStopTimer();
             usdtStopPolling();
             usdtSetStatus('expired');
+            const topTimerWrap = usdtEl('usdtTopTimerWrap');
+            if (topTimerWrap) topTimerWrap.classList.add('hidden');
+            const reminder = usdtEl('pendingOrderReminder');
+            if (reminder) reminder.classList.add('hidden');
             usdtState.order = null;
             usdtState.snapshot = null;
             usdtState.ownerId = null;
@@ -1962,6 +1956,8 @@ body.english-mode #accountModal > div > button {
             usdtStopTimer();
             usdtStopPolling();
             usdtState.order = null;
+            const reminder = usdtEl('pendingOrderReminder');
+            if (reminder) reminder.classList.add('hidden');
             usdtState.snapshot = null;
             usdtState.ownerId = null;
             usdtUpdateButtons();
@@ -3548,6 +3544,10 @@ body.english-mode #accountModal > div > button {
   const translations = {
     'إغلاق صفحة الدفع':'Close Payment Page','إغلاق صفحة الدفع؟':'Close the payment page?',
     'إذا أغلقت صفحة الدفع سيتم إلغاء الطلب وإعادة المخزون.':'If you close the payment page, the order will be cancelled and the stock released.',
+    'سيتم إغلاق صفحة الدفع فقط. سيبقى طلبك محفوظًا بانتظار الدفع حتى انتهاء المهلة.':'Only the payment page will close. Your order will remain pending until the timer expires.',
+    'يمكنك العودة إلى طلباتك لإكمال الدفع قبل انتهاء الوقت.':'You can return to My Orders to complete payment before time runs out.',
+    'إغلاق الصفحة مع الاحتفاظ بالطلب':'Close page and keep order','الوقت المتبقي':'Time left','إغلاق صفحة الدفع':'Close Payment Page',
+    'طلبك بانتظار الدفع':'Your order is awaiting payment','اضغط للعودة وإكمال الدفع قبل انتهاء المهلة':'Tap to return and complete payment before the timer expires',
     'لا ترسل أي مبلغ إلى عنوان الإيداع بعد إلغاء الطلب.':'Do not send any funds to the deposit address after the order is cancelled.',
     'متابعة الدفع':'Continue Payment','إغلاق وإلغاء الطلب':'Close & Cancel Order','تم إلغاء الطلب وإعادة المخزون.':'Order cancelled and stock released.',
     'إكمال الدفع عبر USDT':'Complete USDT Payment','انتقل لإكمال الدفع':'Continue to Payment','العودة إلى صفحة الدفع':'Back to Payment Page',
@@ -3956,6 +3956,17 @@ body.english-mode #accountModal > div > button {
 </script>
 
 
+    <!-- Active payment reminder: remains visible on the storefront after closing the payment page. -->
+    <div id="pendingOrderReminder" class="hidden fixed top-2 left-1/2 -translate-x-1/2 z-[75] w-[calc(100%-24px)] max-w-md">
+      <button type="button" onclick="usdtShowPayPage()" class="w-full flex items-center justify-between gap-3 rounded-xl border border-amber-400/40 bg-slate-950/95 px-3 py-2 shadow-xl backdrop-blur">
+        <span class="min-w-0 text-start">
+          <span class="block text-[11px] font-black text-amber-200">طلبك بانتظار الدفع</span>
+          <span class="block text-[10px] text-slate-400">اضغط للعودة وإكمال الدفع قبل انتهاء المهلة</span>
+        </span>
+        <span id="pendingOrderReminderTimer" class="shrink-0 font-mono text-lg font-black text-amber-300" dir="ltr">--:--</span>
+      </button>
+    </div>
+
     <!-- Floating Interactive Help Center -->
     <div id="floatingHelpWidget">
       <section id="floatingHelpMenu" class="help-hidden" role="dialog" aria-modal="false" aria-label="مركز المساعدة">
@@ -4114,6 +4125,30 @@ body.english-mode #accountModal > div > button {
       document.addEventListener('click',e=>{const w=$('floatingHelpWidget');if(!w)return;const inside=(e.composedPath?e.composedPath():[]).includes(w)||w.contains(e.target);if(!inside)window.closeFloatingHelpMenu();});
       document.addEventListener('keydown',e=>{if(e.key==='Escape')window.closeFloatingHelpMenu();});
       document.addEventListener('store-language-changed',()=>{if(!$('floatingHelpMenu').classList.contains('help-hidden'))render();});
+
+      // Keep the floating support button on the main storefront only.
+      // Any active modal, preview, profile, checkout or dedicated payment page hides it.
+      const helpWidget = $('floatingHelpWidget');
+      const secondaryViewIsOpen = () => {
+        const overlays = document.querySelectorAll('.fixed.inset-0');
+        for (const el of overlays) {
+          if (el === helpWidget || helpWidget.contains(el)) continue;
+          if (!el.classList.contains('hidden') && getComputedStyle(el).display !== 'none') return true;
+        }
+        return false;
+      };
+      const syncHelpVisibility = () => {
+        if (!helpWidget) return;
+        const hide = secondaryViewIsOpen();
+        const desiredDisplay = hide ? 'none' : '';
+        if (helpWidget.style.display !== desiredDisplay) helpWidget.style.display = desiredDisplay;
+        if (hide) window.closeFloatingHelpMenu();
+      };
+      if (helpWidget) {
+        const viewObserver = new MutationObserver(syncHelpVisibility);
+        viewObserver.observe(document.body, {subtree:true, attributes:true, attributeFilter:['class','style']});
+        syncHelpVisibility();
+      }
     })();
     </script>
     <style id="floating-help-center-styles">
@@ -4125,6 +4160,8 @@ body.english-mode #accountModal > div > button {
       .help-rating-stars button.is-selected{color:#fbbf24}
       .help-rating-thanks{min-height:16px;color:#67e8f9;font-size:10px}
 
+      #pendingOrderReminder{direction:rtl}
+      html[dir="ltr"] #pendingOrderReminder{direction:ltr}
       #floatingHelpWidget{position:fixed;right:22px;bottom:22px;z-index:80;direction:rtl}html[dir="ltr"] #floatingHelpWidget{right:auto;left:22px;direction:ltr}
       #floatingHelpButton{width:58px;height:58px;border-radius:50%;display:grid;place-items:center;color:#06131b;background:linear-gradient(145deg,#a5f3fc,#22d3ee 55%,#0891b2);border:2px solid rgba(207,250,254,.9);box-shadow:0 8px 28px rgba(6,182,212,.35),0 0 0 5px rgba(34,211,238,.10)}#floatingHelpButton i{font-size:25px}@keyframes help-globe-spin{to{transform:rotate(360deg)}}
       #floatingHelpMenu{position:absolute;bottom:72px;right:0;width:min(370px,calc(100vw - 28px));max-height:min(75vh,650px);overflow:auto;padding:16px;border:1px solid rgba(100,116,139,.5);border-radius:20px;background:rgba(2,6,23,.98);color:#e2e8f0;box-shadow:0 18px 55px rgba(0,0,0,.6);backdrop-filter:blur(16px)}html[dir="ltr"] #floatingHelpMenu{right:auto;left:0}
