@@ -181,15 +181,30 @@
         html[dir="ltr"] .mr-1 { margin-right:0; margin-left:.25rem; }
         html[dir="ltr"] #dbStatus { right:auto !important; left:8px !important; }
 </style>
-<style>
-/* Close buttons follow the reading direction: right in Arabic, left in English. */
-#deliveryModal button[aria-label],
-#refundModal button[aria-label],
+<style id="bilingual-close-button-position-fix">
+/* Requested placement: English (LTR) = right; Arabic (RTL) = left. */
+#deliveryModal > div > button[aria-label],
+#refundModal > div > button[aria-label],
 #productModal > div > button,
 #checkoutModal > div > button,
-#authModal > div > button,
-#accountModal > div > button {
+#authModal > div > button[aria-label],
+#accountModal > div > button[aria-label],
+#pendingPaymentModal > div > button,
+#adminModal > div > button {
   left: auto !important;
+  right: 1rem !important;
+  inset-inline-start: auto !important;
+  inset-inline-end: 1rem !important;
+}
+html[dir="rtl"] #deliveryModal > div > button[aria-label],
+html[dir="rtl"] #refundModal > div > button[aria-label],
+html[dir="rtl"] #productModal > div > button,
+html[dir="rtl"] #checkoutModal > div > button,
+html[dir="rtl"] #authModal > div > button[aria-label],
+html[dir="rtl"] #accountModal > div > button[aria-label],
+html[dir="rtl"] #pendingPaymentModal > div > button,
+html[dir="rtl"] #adminModal > div > button {
+  left: 1rem !important;
   right: auto !important;
   inset-inline-start: 1rem !important;
   inset-inline-end: auto !important;
@@ -604,7 +619,7 @@
     <!-- Quick View Product Modal -->
     <div id="productModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
         <div class="bg-slate-950 border border-slate-800 rounded-3xl max-w-xl w-full p-6 relative shadow-2xl overflow-hidden">
-            <button onclick="closeProductModal()" class="absolute top-4 [inset-inline-start:1rem] text-slate-400 hover:text-white p-2 z-10">
+            <button onclick="closeProductModal()" class="absolute top-4 right-4 left-auto text-slate-400 hover:text-white p-2 z-10">
                 <i class="fa-solid fa-xmark text-xl"></i>
             </button>
             <div id="modalContent">
@@ -833,7 +848,7 @@
     <!-- Pending Order Payment Modal -->
     <div id="pendingPaymentModal" class="fixed inset-0 z-[70] hidden items-center justify-center p-4 bg-black/85 backdrop-blur-sm">
         <div class="bg-slate-950 border border-amber-500/40 rounded-3xl max-w-md w-full p-6 text-center shadow-2xl relative">
-            <button type="button" onclick="closePendingPaymentModal()" aria-label="إغلاق" class="absolute top-3 w-9 h-9 rounded-full bg-slate-900 text-slate-300 hover:text-white" style="inset-inline-start:12px"><span aria-hidden="true">×</span></button>
+            <button type="button" onclick="closePendingPaymentModal()" aria-label="إغلاق" class="absolute top-3 w-9 h-9 rounded-full bg-slate-900 text-slate-300 hover:text-white" style="right:1rem;left:auto"><span aria-hidden="true">×</span></button>
             <div class="w-14 h-14 bg-amber-500/10 text-amber-300 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-amber-500/30 text-2xl">
                 <i class="fa-regular fa-clock"></i>
             </div>
@@ -1488,6 +1503,46 @@
             document.getElementById('productModal').classList.remove('flex');
         }
 
+        // Branded, bilingual cancellation confirmation (replaces the browser alert).
+        function showOrderCancelledModal(orderId) {
+            const ar = !document.documentElement.lang || document.documentElement.lang === 'ar';
+            const old = document.getElementById('orderCancelledModal');
+            if (old) old.remove();
+            const overlay = document.createElement('div');
+            overlay.id = 'orderCancelledModal';
+            overlay.className = 'fixed inset-0 z-[120] flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md';
+            overlay.setAttribute('role','dialog'); overlay.setAttribute('aria-modal','true');
+            overlay.setAttribute('aria-labelledby','orderCancelledTitle');
+            overlay.dir = ar ? 'rtl' : 'ltr';
+            const title = ar ? 'تم إلغاء طلبك' : 'Your order was cancelled';
+            const desc = ar ? 'تم إلغاء الطلب بنجاح من الخادم.' : 'Your order has been successfully cancelled by the server.';
+            const note = ar ? 'لن تحتاج إلى اتخاذ أي إجراء إضافي. يمكنك العودة إلى المتجر ومتابعة التسوق.' : 'No further action is needed. You can return to the store and continue shopping.';
+            const orderLabel = ar ? 'رقم الطلب' : 'Order number';
+            const closeLabel = ar ? 'العودة إلى المتجر' : 'Back to Store';
+            const safeId = String(orderId || '—').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+            overlay.innerHTML = `
+              <section class="w-full max-w-md rounded-3xl border border-cyan-300/20 bg-gradient-to-br from-slate-900 via-slate-950 to-indigo-950 p-6 sm:p-8 text-center shadow-2xl shadow-cyan-950/30 relative overflow-hidden">
+                <div class="absolute -top-20 -right-16 h-48 w-48 rounded-full bg-cyan-400/10 blur-3xl pointer-events-none"></div>
+                <div class="mx-auto mb-5 grid h-20 w-20 place-items-center rounded-full border border-cyan-300/30 bg-cyan-400/10 text-cyan-300 shadow-lg shadow-cyan-900/20"><i class="fa-solid fa-circle-check text-4xl"></i></div>
+                <p class="mb-2 text-[10px] font-black tracking-[.25em] text-cyan-300">ONCE HUMAN STORE</p>
+                <h2 id="orderCancelledTitle" class="mb-3 text-2xl font-black text-white">${title}</h2>
+                <p class="mb-2 text-sm leading-7 text-slate-200">${desc}</p>
+                <p class="mb-5 text-xs leading-6 text-slate-400">${note}</p>
+                <div class="mb-6 rounded-xl border border-slate-700/70 bg-slate-900/80 px-4 py-3 text-start">
+                  <span class="block text-[10px] font-bold text-slate-500">${orderLabel}</span>
+                  <span class="mt-1 block break-all font-mono text-xs text-cyan-200" dir="ltr">${safeId}</span>
+                </div>
+                <button type="button" id="orderCancelledClose" class="w-full rounded-xl bg-gradient-to-r from-cyan-300 to-teal-300 px-5 py-3.5 text-sm font-black text-slate-950 shadow-lg shadow-cyan-950/30 transition hover:brightness-110">${closeLabel}</button>
+              </section>`;
+            document.body.appendChild(overlay);
+            const close = () => { overlay.remove(); document.body.style.overflow = ''; };
+            overlay.querySelector('#orderCancelledClose').addEventListener('click', close);
+            overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+            document.addEventListener('keydown', function onKey(e) { if (e.key === 'Escape') { close(); document.removeEventListener('keydown', onKey); } });
+            document.body.style.overflow = 'hidden';
+            overlay.querySelector('#orderCancelledClose').focus();
+        }
+
         // Checkout Modal Logic
         function openCheckoutModal() {
             if(cart.length === 0) {
@@ -1966,7 +2021,7 @@
                 const reminder = usdtEl('pendingOrderReminder');
                 if (reminder) reminder.classList.add('hidden');
                 if (typeof loadCatalog === 'function') await loadCatalog();
-                alert('تم إلغاء الطلب. إذا كان الطلب غير مدفوع، فقد أعاد الخادم الكمية المحجوزة إلى المخزون.');
+                showOrderCancelledModal(order.order_id);
             } catch (e) {
                 if (err) { err.textContent = friendlyError(e) || 'تعذّر إلغاء الطلب. قد يكون الدفع قد تأكد أو أن الطلب لم يعد قابلاً للإلغاء.'; err.classList.remove('hidden'); }
             } finally {
@@ -3768,7 +3823,7 @@
     'تصفح العروض الحصرية':'Browse Exclusive Offers','اطلب عبر الديسكورد':'Order via Discord',
     'تسليم آمن وفوري خلال 15 دقيقة':'Safe delivery within 15 minutes','حماية 100% بدون أي مخابرة حظر':'100% safe service with no ban risk',
     'دعم فني مباشر 24/7 على ديسكورد':'24/7 live support on Discord','يدعم جميع السيرفرات (NA, EU, SEA)':'Supports all regions (NA, EU, SEA)',
-    'أقسام المتجر':'Store Categories','السيرفر:':'Server:','جميع المناطق (ALL)':'All Regions (ALL)',
+    'أقسام المتجر':'Store Categories','السيرفر:':'Server:','جميع المناطق (ALL)':'All Regions (ALL)','جميع السيرفرات (Global)':'All Servers (Global)','جميع السيرفرات':'All Servers','أمريكا الشمالية':'North America','أوروبا':'Europe','آسيا':'Asia','أمريكا الجنوبية':'South America','الشرق الأوسط':'Middle East',
     'شمال أمريكا (NA)':'North America (NA)','أوروبا (EU)':'Europe (EU)','جنوب شرق آسيا (SEA)':'Southeast Asia (SEA)',
     'جميع المنتجات':'All Products','مخططات أسلحة ودروع':'Weapons & Armor Blueprints','Energy Links & عملات':'Energy Links & Currency',
     'مرافقين Deviants (Level 5)':'Deviants (Level 5)','التلفيل وقتل البوسات':'Leveling & Boss Runs',
