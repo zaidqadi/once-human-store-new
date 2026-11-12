@@ -199,7 +199,7 @@ body.english-mode #accountModal > div > button {
   html[dir="ltr"] #floatingHelpWidget { right:auto; left:22px; direction:ltr; }
   #floatingHelpButton { width:58px; height:58px; border-radius:9999px; display:flex; align-items:center; justify-content:center; color:#06131b; background:linear-gradient(145deg,#a5f3fc,#22d3ee 55%,#0891b2); border:2px solid rgba(207,250,254,.9); box-shadow:0 8px 28px rgba(6,182,212,.35),0 0 0 5px rgba(34,211,238,.10); transition:transform .2s,box-shadow .2s; }
   #floatingHelpButton:hover { transform:translateY(-3px) scale(1.04); box-shadow:0 12px 34px rgba(6,182,212,.48),0 0 0 7px rgba(34,211,238,.13); }
-  #floatingHelpButton i { font-size:27px; animation:help-globe-spin 12s linear infinite; }
+  #floatingHelpButton i { font-size:25px; }
   @keyframes help-globe-spin { to { transform:rotate(360deg); } }
   #floatingHelpMenu { position:absolute; bottom:72px; right:0; width:min(285px,calc(100vw - 32px)); padding:9px; border:1px solid rgba(100,116,139,.45); border-radius:18px; background:rgba(2,6,23,.97); box-shadow:0 18px 50px rgba(0,0,0,.55); backdrop-filter:blur(14px); }
   html[dir="ltr"] #floatingHelpMenu { right:auto; left:0; }
@@ -611,6 +611,16 @@ body.english-mode #accountModal > div > button {
         </div>
     </div>
 
+    <style id="usdt-pay-page-styles">
+        #usdtPayPage .usdt-dot{width:9px;height:9px;border-radius:9999px;background:#64748b;flex:0 0 9px;margin-top:5px}
+        #usdtPayPage[data-state="waiting"] .usdt-dot,#usdtPayPage[data-state="grace"] .usdt-dot{background:#fbbf24;animation:usdt-pulse 1.4s ease-in-out infinite}
+        #usdtPayPage[data-state="review"] .usdt-dot,#usdtPayPage[data-state="creating"] .usdt-dot{background:#38bdf8}
+        #usdtPayPage[data-state="expired"] .usdt-dot,#usdtPayPage[data-state="error"] .usdt-dot{background:#f87171}
+        @keyframes usdt-pulse{0%,100%{box-shadow:0 0 0 0 rgba(251,191,36,.55)}50%{box-shadow:0 0 0 7px rgba(251,191,36,0)}}
+        @media (prefers-reduced-motion:reduce){#usdtPayPage .usdt-dot{animation:none!important}}
+        #usdtPayPage{padding-top:env(safe-area-inset-top,0px)}
+    </style>
+
     <!-- Checkout Modal -->
     <div id="checkoutModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
         <div class="bg-slate-950 border border-slate-800 rounded-3xl max-w-lg w-full p-6 relative shadow-2xl overflow-y-auto max-h-[90vh]">
@@ -624,24 +634,28 @@ body.english-mode #accountModal > div > button {
 
             <form id="checkoutForm" onsubmit="handleCheckout(event)" class="space-y-4 text-xs">
                 <div>
+                    <label class="block text-slate-300 font-bold mb-1">اسم الشخصية في اللعبة *</label>
+                    <input type="text" required id="charName" placeholder="In-Game Name" class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-starlight outline-none">
+                </div>
+
+                <div>
                     <label class="block text-slate-300 font-bold mb-1">اسم حسابك في الديسكورد (Discord Username) *</label>
                     <input type="text" required id="discordUser" placeholder="مثال: player_one#0000 أو username" class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-starlight outline-none">
                     <p class="text-[10px] text-slate-500 mt-1">ضروري لفتح تذكرة وتكليف المشرف بتسليمك الطلب داخل اللعبة.</p>
                 </div>
 
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-slate-300 font-bold mb-1">منطقة السيرفر (Region) *</label>
-                        <select id="checkoutRegion" required class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-starlight outline-none">
-                            <option value="EU">أوروبا (EU)</option>
-                            <option value="NA">شمال أمريكا (NA)</option>
-                            <option value="SEA">جنوب شرق آسيا (SEA)</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-slate-300 font-bold mb-1">اسم الشخصية في اللعبة *</label>
-                        <input type="text" required id="charName" placeholder="In-Game Name" class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-starlight outline-none">
-                    </div>
+                <div>
+                    <label class="block text-slate-300 font-bold mb-1">منطقة السيرفر (Region) *</label>
+                    <select id="checkoutRegion" required class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-starlight outline-none">
+                        <option value="EU">أوروبا (EU)</option>
+                        <option value="NA">شمال أمريكا (NA)</option>
+                        <option value="SEA">جنوب شرق آسيا (SEA)</option>
+                    </select>
+                </div>
+
+                <div class="bg-slate-900/80 border border-slate-800 p-3 rounded-xl flex items-center justify-between text-sm">
+                    <span class="text-slate-400 font-bold">المبلغ الاجمالي للشراء:</span>
+                    <span id="checkoutTotal" class="text-starlight font-black text-lg text-glow">$0.00</span>
                 </div>
 
                 <div>
@@ -660,11 +674,6 @@ body.english-mode #accountModal > div > button {
                     </div>
                 </div>
 
-                <div class="bg-slate-900/80 border border-slate-800 p-3 rounded-xl flex items-center justify-between text-sm">
-                    <span class="text-slate-400 font-bold">المبلغ الاجمالي للشراء:</span>
-                    <span id="checkoutTotal" class="text-starlight font-black text-lg text-glow">$0.00</span>
-                </div>
-
                 <div id="paypalSection">
                     <div id="paypal-button-container"></div>
                     <p class="text-[10px] text-slate-500 mt-2">يتم الدفع بالدولار الأمريكي (USD) عبر PayPal، ويمكنك الدفع بالبطاقة البنكية من نفس النافذة.</p>
@@ -672,47 +681,107 @@ body.english-mode #accountModal > div > button {
 
                 <div id="usdtSection" class="hidden space-y-3">
                     <div>
-                        <label class="block text-slate-300 font-bold mb-1">اختر شبكة التحويل</label>
-                        <select id="usdtNetworkSelect" onchange="usdtOnNetworkChange()" class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-starlight outline-none">
+                        <label class="block text-slate-300 font-bold mb-2">اختر شبكة التحويل</label>
+                        <!-- العنصر الأصلي يبقى للمنطق (القيمة المرسلة للخادم)؛ البطاقات أدناه تغيّره فقط -->
+                        <select id="usdtNetworkSelect" onchange="usdtOnNetworkChange()" class="hidden" aria-hidden="true" tabindex="-1">
                             <option value="trc20">USDT - TRC20 (TRON)</option>
                             <option value="bsc">USDT - BSC (BEP20)</option>
                             <option value="polygon">USDT - Polygon POS</option>
                             <option value="solana">USDT - Solana</option>
                         </select>
-                    </div>
-                    <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 space-y-2">
-                        <div id="usdtOrderNumberRow" class="hidden flex justify-between"><span class="text-slate-400">رقم الطلب:</span><span id="usdtOrderNumber" class="text-white font-mono font-bold" dir="ltr"></span></div>
-                        <div class="flex justify-between"><span class="text-slate-400">الشبكة:</span><span id="usdtNetwork" class="text-white font-bold" dir="ltr"></span></div>
-                        <div class="flex justify-between"><span class="text-slate-400">المبلغ:</span><span id="usdtAmount" class="text-starlight font-black" dir="ltr"></span></div>
-                        <div>
-                            <span class="text-slate-400 block mb-1">عنوان الإيداع:</span>
-                            <div class="flex items-center gap-2">
-                                <code id="usdtAddress" class="flex-1 bg-slate-950 border border-slate-800 rounded-lg p-2 text-[11px] text-slate-200 break-all" dir="ltr">—</code>
-                                <button type="button" id="usdtCopyBtn" onclick="usdtCopyAddress(this)" disabled class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-[11px] font-bold whitespace-nowrap disabled:opacity-40 disabled:cursor-not-allowed">نسخ</button>
-                            </div>
-                        </div>
-                        <div id="usdtQrWrap" class="hidden flex justify-center pt-1">
-                            <div id="usdtQr" class="bg-white p-2 rounded-xl inline-flex items-center justify-center min-w-[176px] min-h-[176px] max-w-full" dir="ltr"></div>
-                        </div>
-                        <div class="flex justify-between items-center border-t border-slate-800 pt-2">
-                            <span class="text-slate-400">الوقت المتبقي للدفع:</span>
-                            <span id="usdtCountdown" class="text-white font-mono font-black text-sm" dir="ltr">--:--</span>
-                        </div>
-                        <div id="usdtGraceRow" class="hidden flex justify-between items-start gap-3">
-                            <span class="text-slate-400 whitespace-nowrap">يُراقَب التحويل حتى:</span>
-                            <span id="usdtGraceUntil" class="text-slate-300 text-left text-[11px]" dir="ltr"></span>
-                        </div>
-                        <div class="flex justify-between items-start gap-3">
-                            <span class="text-slate-400 whitespace-nowrap">حالة الدفع:</span>
-                            <span id="usdtPaymentStatus" class="text-slate-300 font-bold text-left leading-relaxed">لم يتم إنشاء الطلب بعد</span>
+                        <div id="usdtNetworkList" class="grid grid-cols-2 gap-2" dir="ltr">
+                            <label class="usdt-net-card border border-slate-800 bg-slate-900 p-3 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-starlight has-[:checked]:border-starlight has-[:checked]:bg-starlight/10 transition">
+                                <input type="radio" name="usdtNet" value="trc20" checked onchange="usdtPickNetwork(this.value)" class="hidden">
+                                <span class="text-xs font-black text-white">TRC20</span>
+                                <span class="text-[10px] text-slate-400">TRON</span>
+                            </label>
+                            <label class="usdt-net-card border border-slate-800 bg-slate-900 p-3 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-starlight has-[:checked]:border-starlight has-[:checked]:bg-starlight/10 transition">
+                                <input type="radio" name="usdtNet" value="bsc" onchange="usdtPickNetwork(this.value)" class="hidden">
+                                <span class="text-xs font-black text-white">BEP20</span>
+                                <span class="text-[10px] text-slate-400">BSC</span>
+                            </label>
+                            <label class="usdt-net-card border border-slate-800 bg-slate-900 p-3 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-starlight has-[:checked]:border-starlight has-[:checked]:bg-starlight/10 transition">
+                                <input type="radio" name="usdtNet" value="polygon" onchange="usdtPickNetwork(this.value)" class="hidden">
+                                <span class="text-xs font-black text-white">Polygon</span>
+                                <span class="text-[10px] text-slate-400">POS</span>
+                            </label>
+                            <label class="usdt-net-card border border-slate-800 bg-slate-900 p-3 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-starlight has-[:checked]:border-starlight has-[:checked]:bg-starlight/10 transition">
+                                <input type="radio" name="usdtNet" value="solana" onchange="usdtPickNetwork(this.value)" class="hidden">
+                                <span class="text-xs font-black text-white">Solana</span>
+                                <span class="text-[10px] text-slate-400">SOL</span>
+                            </label>
                         </div>
                     </div>
-                    <p id="usdtWarn" class="text-[10px] text-amber-400 leading-relaxed"><i class="fa-solid fa-triangle-exclamation ml-1"></i> أرسل عملة USDT فقط وعلى الشبكة المذكورة بالضبط. الإرسال على شبكة أخرى أو بعملة مختلفة قد يضيّع المبلغ.</p>
-                    <button type="button" id="usdtCreateOrderBtn" onclick="usdtCreateOrder()" class="w-full bg-starlight hover:bg-cyan-400 text-slate-950 font-black py-3.5 rounded-xl transition text-center shadow-lg clip-btn disabled:opacity-60 disabled:cursor-not-allowed">
-                        إنشاء الطلب وعرض عنوان الدفع <i class="fa-solid fa-wallet ml-1"></i>
+                    <p class="text-[10px] text-slate-500 leading-relaxed">اختر الشبكة التي ستحوّل منها بدقة؛ بعد المتابعة تظهر لك صفحة الدفع برمز QR وعنوان الإيداع والمبلغ.</p>
+                    <p id="usdtStep1Msg" class="hidden text-[11px] leading-relaxed font-bold" role="alert"></p>
+                    <button type="button" id="usdtCreateOrderBtn" onclick="usdtProceed()" class="w-full bg-starlight hover:bg-cyan-400 text-slate-950 font-black py-3.5 rounded-xl transition text-center shadow-lg clip-btn disabled:opacity-60 disabled:cursor-not-allowed">
+                        <span id="usdtCreateOrderLabel">انتقل لإكمال الدفع</span> <i class="fa-solid fa-arrow-left ml-1 ltr:rotate-180"></i>
                     </button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- USDT Payment Page (صفحة الدفع: QR + رقم الطلب + الشبكة + المبلغ + العنوان + الوقت + الحالة) -->
+    <div id="usdtPayPage" class="fixed inset-0 z-[60] hidden flex-col bg-slate-950 overflow-y-auto overscroll-contain" role="dialog" aria-modal="true" aria-label="إكمال الدفع عبر USDT">
+        <div class="sticky top-0 z-10 bg-slate-950/95 backdrop-blur border-b border-slate-800">
+            <div class="max-w-md w-full mx-auto flex items-center gap-3 px-4 py-3">
+                <button type="button" onclick="usdtBackToCheckout()" aria-label="رجوع" class="w-9 h-9 flex-none rounded-full bg-slate-900 border border-slate-700 text-slate-300 hover:text-white hover:border-starlight transition flex items-center justify-center">
+                    <i class="fa-solid fa-arrow-right ltr:rotate-180"></i>
+                </button>
+                <h3 class="text-base font-black text-white flex items-center gap-2"><i class="fa-solid fa-coins text-emerald-400"></i> إكمال الدفع عبر USDT</h3>
+            </div>
+        </div>
+
+        <div class="max-w-md w-full mx-auto px-4 pt-4 pb-24 space-y-3 text-xs">
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3">
+                <div id="usdtOrderNumberRow" class="hidden flex justify-between items-center gap-3"><span class="text-slate-400">رقم الطلب:</span><span id="usdtOrderNumber" class="text-white font-mono font-bold" dir="ltr"></span></div>
+                <div class="flex justify-between items-center gap-3"><span class="text-slate-400">الشبكة:</span><span id="usdtNetwork" class="text-white font-bold" dir="ltr"></span></div>
+                <div class="flex justify-between items-center gap-3">
+                    <span class="text-slate-400">المبلغ:</span>
+                    <span class="flex items-center gap-2">
+                        <span id="usdtAmount" class="text-starlight font-black text-sm" dir="ltr">—</span>
+                        <button type="button" id="usdtCopyAmountBtn" onclick="usdtCopyAmount(this)" disabled class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-[11px] font-bold whitespace-nowrap disabled:opacity-40 disabled:cursor-not-allowed">نسخ</button>
+                    </span>
+                </div>
+            </div>
+
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3">
+                <div id="usdtQrWrap" class="hidden flex flex-col items-center gap-2">
+                    <div id="usdtQr" class="bg-white p-2 rounded-xl inline-flex items-center justify-center min-w-[176px] min-h-[176px] max-w-full" dir="ltr"></div>
+                    <span class="text-[10px] text-slate-500">امسح الرمز للحصول على عنوان الإيداع</span>
+                </div>
+                <div>
+                    <span class="text-slate-400 block mb-1">عنوان الإيداع:</span>
+                    <div class="flex items-center gap-2">
+                        <code id="usdtAddress" class="flex-1 bg-slate-950 border border-slate-800 rounded-lg p-2 text-[11px] text-slate-200 break-all" dir="ltr">—</code>
+                        <button type="button" id="usdtCopyBtn" onclick="usdtCopyAddress(this)" disabled class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-[11px] font-bold whitespace-nowrap disabled:opacity-40 disabled:cursor-not-allowed">نسخ</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3">
+                <div class="flex justify-between items-center">
+                    <span class="text-slate-400">الوقت المتبقي للدفع:</span>
+                    <span id="usdtCountdown" class="text-white font-mono font-black text-base" dir="ltr">--:--</span>
+                </div>
+                <div id="usdtGraceRow" class="hidden flex justify-between items-start gap-3">
+                    <span class="text-slate-400 whitespace-nowrap">يُراقَب التحويل حتى:</span>
+                    <span id="usdtGraceUntil" class="text-slate-300 text-left text-[11px]" dir="ltr"></span>
+                </div>
+                <div class="flex justify-between items-start gap-3 border-t border-slate-800 pt-3">
+                    <span class="text-slate-400 whitespace-nowrap">حالة الدفع:</span>
+                    <span class="flex items-start gap-2 min-w-0">
+                        <span class="usdt-dot" aria-hidden="true"></span>
+                        <span id="usdtPaymentStatus" class="text-slate-300 font-bold text-left leading-relaxed" aria-live="polite">لم يتم إنشاء الطلب بعد</span>
+                    </span>
+                </div>
+                <p class="text-[10px] text-slate-500 leading-relaxed">يتم التحقق من التحويل تلقائياً أثناء بقاء هذه الصفحة مفتوحة.</p>
+            </div>
+
+            <p id="usdtWarn" class="text-[10px] text-amber-400 leading-relaxed"><i class="fa-solid fa-triangle-exclamation ml-1"></i> أرسل عملة USDT فقط وعلى الشبكة المذكورة بالضبط. الإرسال على شبكة أخرى أو بعملة مختلفة قد يضيّع المبلغ.</p>
+
+            <button type="button" onclick="usdtBackToCheckout()" class="w-full bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 font-bold py-3 rounded-xl text-xs transition">رجوع إلى بيانات الطلب</button>
         </div>
     </div>
 
@@ -1599,6 +1668,13 @@ body.english-mode #accountModal > div > button {
             el.textContent = customText || s.text;
             el.className = 'font-bold text-left leading-relaxed ' + s.cls;
             el.dataset.state = key;
+            const pg = usdtEl('usdtPayPage'); if (pg) pg.dataset.state = key;
+            const m = usdtEl('usdtStep1Msg');
+            if (m) {
+                const show = (key === 'error' || key === 'expired');
+                m.textContent = show ? (customText || s.text) : '';
+                m.className = show ? ('text-[11px] leading-relaxed font-bold ' + s.cls) : 'hidden text-[11px] leading-relaxed font-bold';
+            }
         }
         function usdtStopTimer() {
             if (usdtState.timer) { clearInterval(usdtState.timer); usdtState.timer = null; }
@@ -1611,9 +1687,15 @@ body.english-mode #accountModal > div > button {
         function usdtUpdateButtons() {
             const hasOrder = !!usdtState.order;
             const btn = usdtEl('usdtCreateOrderBtn');
-            btn.disabled = usdtState.busy || hasOrder;
+            btn.disabled = usdtState.busy;   // مع وجود طلب قائم يعيد الزر فتح صفحة الدفع (usdtProceed)؛ usdtCreateOrder نفسه يرفض التكرار
             usdtEl('usdtNetworkSelect').disabled = usdtState.busy || hasOrder;
             usdtEl('usdtCopyBtn').disabled = !hasOrder;
+            usdtEl('usdtCopyAmountBtn').disabled = !hasOrder;
+            usdtEl('usdtCreateOrderLabel').textContent = usdtState.busy ? 'جاري إنشاء الطلب...' : (hasOrder ? 'العودة إلى صفحة الدفع' : 'انتقل لإكمال الدفع');
+            document.querySelectorAll('input[name="usdtNet"]').forEach(r => {
+                r.disabled = usdtState.busy || hasOrder;
+                if (r.parentElement) r.parentElement.classList.toggle('opacity-60', r.disabled && !r.checked);
+            });
             // أثناء انتظار طلب USDT نُقفل تبديل طريقة الدفع حتى لا يُنشأ طلب ثانٍ بالخطأ.
             const lock = usdtState.busy || hasOrder;
             document.querySelectorAll('input[name="payment"]').forEach(r => {
@@ -1638,7 +1720,9 @@ body.english-mode #accountModal > div > button {
             usdtState.qrToken++;
             usdtEl('usdtOrderNumberRow').classList.add('hidden');
             usdtEl('usdtGraceRow').classList.add('hidden');
+            usdtHidePayPage();
             const key = usdtEl('usdtNetworkSelect').value;
+            document.querySelectorAll('input[name="usdtNet"]').forEach(r => { r.checked = (r.value === key); });   // البطاقات تتبع قيمة الـ select
             const net = USDT_NETWORKS[key] || USDT_NETWORKS.trc20;
             usdtEl('usdtNetwork').textContent = net.label;
             usdtEl('usdtAmount').textContent = '—';   // المبلغ الحقيقي يأتي من الخادم بعد إنشاء الطلب
@@ -1669,6 +1753,50 @@ body.english-mode #accountModal > div > button {
         function usdtCopyAddress(btn) {
             if (!usdtState.order) return;
             copyText(usdtEl('usdtAddress').textContent, btn);
+        }
+        // ينسخ رقم المبلغ فقط (بدون كلمة USDT) كما عرضه الخادم بالضبط.
+        function usdtCopyAmount(btn) {
+            if (!usdtState.order) return;
+            const t = usdtEl('usdtAmount').textContent.replace(/\s*USDT\s*$/i, '').trim();
+            if (!t || t === '—') return;
+            copyText(t, btn);
+        }
+        // بطاقات الشبكات تغيّر قيمة الـ select الأصلي فقط ثم تستدعي المنطق نفسه.
+        function usdtPickNetwork(key) {
+            const sel = usdtEl('usdtNetworkSelect');
+            if (usdtState.order || usdtState.busy) {   // الشبكة مقفلة أثناء وجود طلب
+                document.querySelectorAll('input[name="usdtNet"]').forEach(r => { r.checked = (r.value === sel.value); });
+                return;
+            }
+            if (!USDT_NETWORKS[key]) return;
+            sel.value = key;
+            usdtOnNetworkChange();
+        }
+        // صفحة الدفع (واجهة فقط): تُفتح بعد نجاح إنشاء الطلب من الخادم.
+        function usdtShowPayPage() {
+            const p = usdtEl('usdtPayPage');
+            p.classList.remove('hidden'); p.classList.add('flex');
+            p.scrollTop = 0;
+        }
+        function usdtHidePayPage() {
+            const p = usdtEl('usdtPayPage');
+            if (!p) return;
+            p.classList.add('hidden'); p.classList.remove('flex');
+        }
+        // الطلب القائم يبقى قيد المتابعة عند الرجوع؛ إن انتهى الطلب نعيد العرض للإنشاء من جديد.
+        function usdtBackToCheckout() {
+            usdtHidePayPage();
+            if (!usdtState.order && !usdtState.busy) {
+                const wasExpired = usdtEl('usdtPaymentStatus').dataset.state === 'expired';
+                usdtResetView();
+                if (wasExpired) usdtSetStatus('expired');
+            }
+        }
+        // زر "انتقل لإكمال الدفع": ينشئ الطلب بالمنطق الأصلي ثم يفتح صفحة الدفع إذا نجح.
+        async function usdtProceed() {
+            if (usdtState.order) { usdtShowPayPage(); return; }
+            await usdtCreateOrder();
+            if (usdtState.order) usdtShowPayPage();
         }
         function usdtRenderQr(address) {
             const box = usdtEl('usdtQr');
@@ -3367,6 +3495,11 @@ body.english-mode #accountModal > div > button {
 /* ================= ONCE HUMAN STORE: Arabic / English ================= */
 (() => {
   const translations = {
+    'إكمال الدفع عبر USDT':'Complete USDT Payment','انتقل لإكمال الدفع':'Continue to Payment','العودة إلى صفحة الدفع':'Back to Payment Page',
+    'رجوع إلى بيانات الطلب':'Back to Order Details','رقم الطلب:':'Order Number:','يُراقَب التحويل حتى:':'Transfer monitored until:',
+    'امسح الرمز للحصول على عنوان الإيداع':'Scan the code to get the deposit address',
+    'يتم التحقق من التحويل تلقائياً أثناء بقاء هذه الصفحة مفتوحة.':'The transfer is checked automatically while this page stays open.',
+    'اختر الشبكة التي ستحوّل منها بدقة؛ بعد المتابعة تظهر لك صفحة الدفع برمز QR وعنوان الإيداع والمبلغ.':'Choose the exact network you will send from; after continuing, a payment page shows the QR code, deposit address and amount.',
     'عنوان الإيداع:':'Deposit Address:','الوقت المتبقي للدفع:':'Time left to pay:','حالة الدفع:':'Payment Status:',
     'لم يتم إنشاء الطلب بعد':'Order not created yet','جاري إنشاء الطلب...':'Creating order...','بانتظار التحويل':'Awaiting transfer',
     'وصلت بيانات دفع تحتاج إلى مراجعة الإدارة. لا ترسل دفعة أخرى.':'Payment details require admin review. Do not send another payment.',
@@ -3792,7 +3925,7 @@ body.english-mode #accountModal > div > button {
           <a class="help-contact" href="https://discord.gg/vbRgT4vvc" target="_blank" rel="noopener noreferrer" onclick="closeFloatingHelpMenu()"><i class="fa-solid fa-headset"></i><span id="helpContactText">تواصل مع الدعم المباشر</span></a>
         </footer>
       </section>
-      <button id="floatingHelpButton" type="button" aria-label="فتح مركز المساعدة" aria-expanded="false" aria-controls="floatingHelpMenu" onclick="toggleFloatingHelpMenu()"><i class="fa-solid fa-earth-americas" aria-hidden="true"></i></button>
+      <button id="floatingHelpButton" type="button" aria-label="فتح مركز المساعدة" aria-expanded="false" aria-controls="floatingHelpMenu" onclick="toggleFloatingHelpMenu()"><i class="fa-solid fa-comments" aria-hidden="true"></i></button>
     </div>
     <script id="floating-help-widget-script">
     (function(){
@@ -3938,7 +4071,7 @@ body.english-mode #accountModal > div > button {
       .help-rating-thanks{min-height:16px;color:#67e8f9;font-size:10px}
 
       #floatingHelpWidget{position:fixed;right:22px;bottom:22px;z-index:80;direction:rtl}html[dir="ltr"] #floatingHelpWidget{right:auto;left:22px;direction:ltr}
-      #floatingHelpButton{width:58px;height:58px;border-radius:50%;display:grid;place-items:center;color:#06131b;background:linear-gradient(145deg,#a5f3fc,#22d3ee 55%,#0891b2);border:2px solid rgba(207,250,254,.9);box-shadow:0 8px 28px rgba(6,182,212,.35),0 0 0 5px rgba(34,211,238,.10)}#floatingHelpButton i{font-size:27px;animation:help-globe-spin 12s linear infinite}@keyframes help-globe-spin{to{transform:rotate(360deg)}}
+      #floatingHelpButton{width:58px;height:58px;border-radius:50%;display:grid;place-items:center;color:#06131b;background:linear-gradient(145deg,#a5f3fc,#22d3ee 55%,#0891b2);border:2px solid rgba(207,250,254,.9);box-shadow:0 8px 28px rgba(6,182,212,.35),0 0 0 5px rgba(34,211,238,.10)}#floatingHelpButton i{font-size:25px}@keyframes help-globe-spin{to{transform:rotate(360deg)}}
       #floatingHelpMenu{position:absolute;bottom:72px;right:0;width:min(370px,calc(100vw - 28px));max-height:min(75vh,650px);overflow:auto;padding:16px;border:1px solid rgba(100,116,139,.5);border-radius:20px;background:rgba(2,6,23,.98);color:#e2e8f0;box-shadow:0 18px 55px rgba(0,0,0,.6);backdrop-filter:blur(16px)}html[dir="ltr"] #floatingHelpMenu{right:auto;left:0}
       .help-center-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;padding-bottom:13px;border-bottom:1px solid rgba(148,163,184,.18)}.help-center-kicker{font-size:10px;font-weight:900;letter-spacing:.12em;color:#67e8f9}.help-center-head h3{font-size:18px;font-weight:900;color:white;margin:4px 0}.help-center-head p{font-size:11px;color:#94a3b8;margin:0}.help-close{flex:0 0 38px;width:38px;height:38px;display:grid;place-items:center;border-radius:50%;font-size:18px;line-height:1;color:#e2e8f0;background:rgba(51,65,85,.7);border:1px solid rgba(148,163,184,.35);transition:.18s;cursor:pointer}.help-close:hover{background:#ef4444;border-color:#ef4444;color:#fff;transform:rotate(90deg)}.help-close:focus-visible{outline:2px solid #22d3ee;outline-offset:2px}.help-breadcrumb{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:10px;color:#94a3b8;padding:10px 0}.help-breadcrumb:empty{display:none}.help-breadcrumb button{color:#67e8f9;font-weight:800}.help-content{display:grid;gap:8px;padding-top:12px}.help-option{display:flex;align-items:center;gap:10px;width:100%;padding:11px;border:1px solid rgba(71,85,105,.5);border-radius:13px;background:rgba(15,23,42,.8);text-align:start;transition:.18s}.help-option:hover{border-color:rgba(34,211,238,.6);background:rgba(8,47,73,.55)}.help-option-icon{width:36px;height:36px;flex:0 0 36px;display:grid;place-items:center;border-radius:11px;background:rgba(34,211,238,.12);color:#67e8f9}.help-option-copy{display:grid;gap:3px;min-width:0;flex:1}.help-option-copy strong{font-size:12px;color:#f1f5f9}.help-option-copy small{font-size:10px;color:#94a3b8}.help-option-arrow{font-size:11px;color:#64748b}.help-issue-form{display:grid;gap:9px;padding:13px;border:1px solid rgba(34,211,238,.25);border-radius:15px;background:rgba(8,47,73,.25)}.help-issue-form label{font-size:12px;font-weight:800;color:#e2e8f0}.help-issue-form textarea{width:100%;resize:vertical;min-height:105px;padding:11px;border:1px solid rgba(100,116,139,.6);border-radius:11px;background:#0f172a;color:#f8fafc;font:inherit;font-size:12px;line-height:1.7;outline:none}.help-issue-form textarea:focus{border-color:#22d3ee}.help-issue-send{padding:11px;border-radius:11px;background:#4f46e5;color:white;font-size:12px;font-weight:900}.help-answer{padding:16px 12px;border:1px solid rgba(34,211,238,.25);border-radius:15px;background:rgba(8,47,73,.3)}.help-answer-icon{color:#67e8f9;font-size:21px;margin-bottom:9px}.help-answer-text{font-size:13px;line-height:1.9;color:#e2e8f0;white-space:pre-wrap}.help-footer{display:grid;gap:8px;margin-top:14px}.help-footer button,.help-footer a{display:flex;align-items:center;justify-content:center;gap:8px;padding:12px;border-radius:12px;font-size:12px;font-weight:900}.help-satisfied{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:12px;border-radius:12px;font-size:12px;font-weight:900;background:#0f766e;color:white}.help-satisfied:hover{filter:brightness(1.12)}.help-contact{background:#4f46e5;color:white}.help-footer button:hover,.help-footer a:hover{filter:brightness(1.12)}
       @media(max-width:480px){#floatingHelpWidget{right:14px;bottom:15px}html[dir="ltr"] #floatingHelpWidget{left:14px;right:auto}#floatingHelpButton{width:54px;height:54px}#floatingHelpMenu{bottom:66px;width:min(370px,calc(100vw - 28px));max-height:72vh}}
