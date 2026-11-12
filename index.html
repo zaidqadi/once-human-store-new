@@ -4119,7 +4119,12 @@ body.english-mode #accountModal > div > button {
       };
       function escapeHelp(v){return String(v||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
       window.toggleFloatingHelpMenu=function(){const m=$('floatingHelpMenu'),b=$('floatingHelpButton');if(!m||!b)return;const opening=m.classList.contains('help-hidden');m.classList.toggle('help-hidden',!opening);b.setAttribute('aria-expanded',String(opening));if(opening){path=[];render();}};
-      window.closeFloatingHelpMenu=function(){const m=$('floatingHelpMenu'),b=$('floatingHelpButton');if(m)m.classList.add('help-hidden');if(b)b.setAttribute('aria-expanded','false');};
+      window.closeFloatingHelpMenu=function(){
+        const m=$('floatingHelpMenu'),b=$('floatingHelpButton');
+        // Idempotent updates prevent observers from being retriggered unnecessarily.
+        if(m && !m.classList.contains('help-hidden')) m.classList.add('help-hidden');
+        if(b && b.getAttribute('aria-expanded') !== 'false') b.setAttribute('aria-expanded','false');
+      };
       window.helpGoBack=function(){if(path.length)path.pop();render();};
       window.finishHelp=function(){window.closeFloatingHelpMenu();path=[];};
       document.addEventListener('click',e=>{const w=$('floatingHelpWidget');if(!w)return;const inside=(e.composedPath?e.composedPath():[]).includes(w)||w.contains(e.target);if(!inside)window.closeFloatingHelpMenu();});
@@ -4145,7 +4150,12 @@ body.english-mode #accountModal > div > button {
         if (hide) window.closeFloatingHelpMenu();
       };
       if (helpWidget) {
-        const viewObserver = new MutationObserver(syncHelpVisibility);
+        // Ignore mutations inside the widget itself: changing its display/menu state
+        // must never cause the observer to observe and process its own changes again.
+        const viewObserver = new MutationObserver(records => {
+          if (records.every(record => helpWidget.contains(record.target))) return;
+          syncHelpVisibility();
+        });
         viewObserver.observe(document.body, {subtree:true, attributes:true, attributeFilter:['class','style']});
         syncHelpVisibility();
       }
