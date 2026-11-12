@@ -171,15 +171,55 @@
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     
-        /* English layout adjustments */
+        /* Direction-aware layout parity: keep the same visual scale in both languages,
+           while mirroring only directional alignment and spacing for RTL/LTR. */
+        html[dir="rtl"] body { font-family: 'Tajawal', Arial, sans-serif; }
         html[dir="ltr"] body { font-family: 'Montserrat', Arial, sans-serif; }
+
+        /* Text alignment follows the reading direction, not the language's layout width. */
+        html[dir="rtl"] .text-left { text-align: right !important; }
         html[dir="ltr"] .text-right { text-align: left !important; }
-        html[dir="ltr"] #searchInput, html[dir="ltr"] #mobileSearchInput { direction:ltr; text-align:left; padding-left:2.5rem; padding-right:1rem; }
-        html[dir="ltr"] #searchInput + div, html[dir="ltr"] #mobileSearchInput + div { left:0; right:auto; padding-left:.75rem; padding-right:0; }
-        html[dir="ltr"] .english-mode { direction:ltr; }
-        html[dir="ltr"] .ml-1 { margin-left:0; margin-right:.25rem; }
-        html[dir="ltr"] .mr-1 { margin-right:0; margin-left:.25rem; }
-        html[dir="ltr"] #dbStatus { right:auto !important; left:8px !important; }
+
+        /* Search field: icon and inner spacing stay on the reading-start side. */
+        html[dir="rtl"] #searchInput,
+        html[dir="rtl"] #mobileSearchInput {
+            direction: rtl;
+            text-align: right;
+            padding-right: 2.5rem;
+            padding-left: 1rem;
+        }
+        html[dir="rtl"] #mobileSearchInput { padding-right: 2.25rem; padding-left: .75rem; }
+        html[dir="rtl"] #searchInput + div,
+        html[dir="rtl"] #mobileSearchInput + div {
+            left: auto;
+            right: 0;
+            padding-left: 0;
+            padding-right: .75rem;
+        }
+        html[dir="ltr"] #searchInput,
+        html[dir="ltr"] #mobileSearchInput {
+            direction: ltr;
+            text-align: left;
+            padding-left: 2.5rem;
+            padding-right: 1rem;
+        }
+        html[dir="ltr"] #mobileSearchInput { padding-left: 2.25rem; padding-right: .75rem; }
+        html[dir="ltr"] #searchInput + div,
+        html[dir="ltr"] #mobileSearchInput + div {
+            left: 0;
+            right: auto;
+            padding-left: .75rem;
+            padding-right: 0;
+        }
+
+        /* Mirror small directional margins without changing component order. */
+        html[dir="rtl"] .ml-1 { margin-left: 0; margin-right: .25rem; }
+        html[dir="rtl"] .mr-1 { margin-right: 0; margin-left: .25rem; }
+        html[dir="ltr"] .ml-1 { margin-left: 0; margin-right: .25rem; }
+        html[dir="ltr"] .mr-1 { margin-right: 0; margin-left: .25rem; }
+        html[dir="ltr"] .english-mode { direction: ltr; }
+        html[dir="rtl"] #dbStatus { right: 8px !important; left: auto !important; }
+        html[dir="ltr"] #dbStatus { right: auto !important; left: 8px !important; }
 </style>
 <style>
 /* Close buttons: left in Arabic, right in English. Use physical sides to avoid RTL inversion. */
