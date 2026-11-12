@@ -726,8 +726,8 @@ body.english-mode #accountModal > div > button {
     <div id="usdtPayPage" class="fixed inset-0 z-[60] hidden flex-col bg-slate-950 overflow-y-auto overscroll-contain" role="dialog" aria-modal="true" aria-label="إكمال الدفع عبر USDT">
         <div class="sticky top-0 z-10 bg-slate-950/95 backdrop-blur border-b border-slate-800">
             <div class="max-w-md w-full mx-auto flex items-center gap-3 px-4 py-3">
-                <button type="button" onclick="usdtBackToCheckout()" aria-label="رجوع" class="w-9 h-9 flex-none rounded-full bg-slate-900 border border-slate-700 text-slate-300 hover:text-white hover:border-starlight transition flex items-center justify-center">
-                    <i class="fa-solid fa-arrow-right ltr:rotate-180"></i>
+                <button type="button" onclick="usdtRequestClose()" aria-label="إغلاق" class="w-9 h-9 flex-none rounded-full bg-slate-900 border border-slate-700 text-slate-300 hover:text-white hover:border-red-400 transition flex items-center justify-center">
+                    <i class="fa-solid fa-xmark text-lg"></i>
                 </button>
                 <h3 class="text-base font-black text-white flex items-center gap-2"><i class="fa-solid fa-coins text-emerald-400"></i> إكمال الدفع عبر USDT</h3>
             </div>
@@ -781,7 +781,21 @@ body.english-mode #accountModal > div > button {
 
             <p id="usdtWarn" class="text-[10px] text-amber-400 leading-relaxed"><i class="fa-solid fa-triangle-exclamation ml-1"></i> أرسل عملة USDT فقط وعلى الشبكة المذكورة بالضبط. الإرسال على شبكة أخرى أو بعملة مختلفة قد يضيّع المبلغ.</p>
 
-            <button type="button" onclick="usdtBackToCheckout()" class="w-full bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 font-bold py-3 rounded-xl text-xs transition">رجوع إلى بيانات الطلب</button>
+            <button type="button" onclick="usdtRequestClose()" class="w-full bg-slate-900 hover:bg-red-500/10 border border-slate-700 hover:border-red-500/40 text-slate-300 hover:text-red-300 font-bold py-3 rounded-xl text-xs transition"><i class="fa-solid fa-xmark ml-1"></i> إغلاق صفحة الدفع</button>
+        </div>
+
+        <div id="usdtCloseConfirm" class="hidden fixed inset-0 z-[70] items-center justify-center p-4 bg-black/85 backdrop-blur-sm" role="alertdialog" aria-modal="true" aria-label="تنبيه">
+            <div class="bg-slate-950 border border-red-500/40 rounded-3xl max-w-sm w-full p-6 text-center shadow-2xl">
+                <div class="w-14 h-14 bg-red-500/10 text-red-300 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-red-500/30 text-2xl"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                <h3 class="text-lg font-black text-white mb-2">إغلاق صفحة الدفع؟</h3>
+                <p class="text-sm text-slate-300 leading-relaxed mb-2">إذا أغلقت صفحة الدفع سيتم إلغاء الطلب وإعادة المخزون.</p>
+                <p class="text-[11px] text-amber-400 leading-relaxed mb-4">لا ترسل أي مبلغ إلى عنوان الإيداع بعد إلغاء الطلب.</p>
+                <p id="usdtCloseError" class="hidden text-[11px] text-red-400 font-bold leading-relaxed mb-3"></p>
+                <div class="flex flex-col gap-2">
+                    <button type="button" id="usdtCloseStayBtn" onclick="usdtCloseDismiss()" class="w-full bg-starlight hover:bg-cyan-400 text-slate-950 font-black py-3 rounded-xl text-sm transition">متابعة الدفع</button>
+                    <button type="button" id="usdtCloseConfirmBtn" onclick="usdtConfirmClose()" class="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-3 rounded-xl text-sm transition disabled:opacity-60 disabled:cursor-not-allowed">إغلاق وإلغاء الطلب</button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -1782,6 +1796,43 @@ body.english-mode #accountModal > div > button {
             const p = usdtEl('usdtPayPage');
             if (!p) return;
             p.classList.add('hidden'); p.classList.remove('flex');
+            const d = usdtEl('usdtCloseConfirm'); if (d) { d.classList.add('hidden'); d.classList.remove('flex'); }
+        }
+        // إغلاق صفحة الدفع = إلغاء الطلب (بعد تأكيد المستخدم). الإلغاء يتم عبر cancel_my_order نفسها المستخدمة في "طلباتي".
+        function usdtCloseDialog(show) {
+            const d = usdtEl('usdtCloseConfirm');
+            d.classList.toggle('hidden', !show); d.classList.toggle('flex', show);
+        }
+        function usdtRequestClose() {
+            if (!usdtState.order) { usdtBackToCheckout(); return; }   // لا طلب قائم (انتهى مثلاً): إغلاق مباشر
+            usdtEl('usdtCloseError').classList.add('hidden');
+            usdtEl('usdtCloseConfirmBtn').disabled = false;
+            usdtCloseDialog(true);
+        }
+        function usdtCloseDismiss() { usdtCloseDialog(false); }
+        async function usdtConfirmClose() {
+            const order = usdtState.order;
+            if (!order) { usdtCloseDialog(false); usdtBackToCheckout(); return; }
+            const btn = usdtEl('usdtCloseConfirmBtn'), err = usdtEl('usdtCloseError');
+            btn.disabled = true; err.classList.add('hidden');
+            try {
+                const { error } = await supabaseClient.rpc('cancel_my_order', { p_order_id: order.order_id });
+                if (error) throw error;
+            } catch (e) {
+                // فشل الإلغاء (مثلاً تم الدفع أو تغيّرت الحالة): يبقى الطلب كما هو ولا نغلق الصفحة.
+                err.textContent = friendlyError(e);
+                err.classList.remove('hidden');
+                btn.disabled = false;
+                return;
+            }
+            if (usdtState.order !== order) { usdtCloseDialog(false); return; }
+            usdtStopTimer(); usdtStopPolling();
+            usdtState.order = null; usdtState.snapshot = null; usdtState.ownerId = null;
+            idemSig = null;
+            usdtCloseDialog(false);
+            usdtResetView();
+            usdtSetStatus('expired', 'تم إلغاء الطلب وإعادة المخزون.');
+            if (typeof loadCatalog === 'function') loadCatalog();
         }
         // الطلب القائم يبقى قيد المتابعة عند الرجوع؛ إن انتهى الطلب نعيد العرض للإنشاء من جديد.
         function usdtBackToCheckout() {
@@ -3495,6 +3546,10 @@ body.english-mode #accountModal > div > button {
 /* ================= ONCE HUMAN STORE: Arabic / English ================= */
 (() => {
   const translations = {
+    'إغلاق صفحة الدفع':'Close Payment Page','إغلاق صفحة الدفع؟':'Close the payment page?',
+    'إذا أغلقت صفحة الدفع سيتم إلغاء الطلب وإعادة المخزون.':'If you close the payment page, the order will be cancelled and the stock released.',
+    'لا ترسل أي مبلغ إلى عنوان الإيداع بعد إلغاء الطلب.':'Do not send any funds to the deposit address after the order is cancelled.',
+    'متابعة الدفع':'Continue Payment','إغلاق وإلغاء الطلب':'Close & Cancel Order','تم إلغاء الطلب وإعادة المخزون.':'Order cancelled and stock released.',
     'إكمال الدفع عبر USDT':'Complete USDT Payment','انتقل لإكمال الدفع':'Continue to Payment','العودة إلى صفحة الدفع':'Back to Payment Page',
     'رجوع إلى بيانات الطلب':'Back to Order Details','رقم الطلب:':'Order Number:','يُراقَب التحويل حتى:':'Transfer monitored until:',
     'امسح الرمز للحصول على عنوان الإيداع':'Scan the code to get the deposit address',
