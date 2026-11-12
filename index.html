@@ -171,91 +171,43 @@
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     
-        /* Direction-aware layout parity: keep the same visual scale in both languages,
-           while mirroring only directional alignment and spacing for RTL/LTR. */
-        html[dir="rtl"] body { font-family: 'Tajawal', Arial, sans-serif; }
+        /* English layout adjustments */
         html[dir="ltr"] body { font-family: 'Montserrat', Arial, sans-serif; }
-
-        /* Text alignment follows the reading direction, not the language's layout width. */
-        html[dir="rtl"] .text-left { text-align: right !important; }
         html[dir="ltr"] .text-right { text-align: left !important; }
-
-        /* Search field: icon and inner spacing stay on the reading-start side. */
-        html[dir="rtl"] #searchInput,
-        html[dir="rtl"] #mobileSearchInput {
-            direction: rtl;
-            text-align: right;
-            padding-right: 2.5rem;
-            padding-left: 1rem;
-        }
-        html[dir="rtl"] #mobileSearchInput { padding-right: 2.25rem; padding-left: .75rem; }
-        html[dir="rtl"] #searchInput + div,
-        html[dir="rtl"] #mobileSearchInput + div {
-            left: auto;
-            right: 0;
-            padding-left: 0;
-            padding-right: .75rem;
-        }
-        html[dir="ltr"] #searchInput,
-        html[dir="ltr"] #mobileSearchInput {
-            direction: ltr;
-            text-align: left;
-            padding-left: 2.5rem;
-            padding-right: 1rem;
-        }
-        html[dir="ltr"] #mobileSearchInput { padding-left: 2.25rem; padding-right: .75rem; }
-        html[dir="ltr"] #searchInput + div,
-        html[dir="ltr"] #mobileSearchInput + div {
-            left: 0;
-            right: auto;
-            padding-left: .75rem;
-            padding-right: 0;
-        }
-
-        /* Mirror small directional margins without changing component order. */
-        html[dir="rtl"] .ml-1 { margin-left: 0; margin-right: .25rem; }
-        html[dir="rtl"] .mr-1 { margin-right: 0; margin-left: .25rem; }
-        html[dir="ltr"] .ml-1 { margin-left: 0; margin-right: .25rem; }
-        html[dir="ltr"] .mr-1 { margin-right: 0; margin-left: .25rem; }
-        html[dir="ltr"] .english-mode { direction: ltr; }
-        html[dir="rtl"] #dbStatus { right: 8px !important; left: auto !important; }
-        html[dir="ltr"] #dbStatus { right: auto !important; left: 8px !important; }
+        html[dir="ltr"] #searchInput, html[dir="ltr"] #mobileSearchInput { direction:ltr; text-align:left; padding-left:2.5rem; padding-right:1rem; }
+        html[dir="ltr"] #searchInput + div, html[dir="ltr"] #mobileSearchInput + div { left:0; right:auto; padding-left:.75rem; padding-right:0; }
+        html[dir="ltr"] .english-mode { direction:ltr; }
+        html[dir="ltr"] .ml-1 { margin-left:0; margin-right:.25rem; }
+        html[dir="ltr"] .mr-1 { margin-right:0; margin-left:.25rem; }
+        html[dir="ltr"] #dbStatus { right:auto !important; left:8px !important; }
 </style>
-<style>
-/* Close buttons: left in Arabic, right in English. Use physical sides to avoid RTL inversion. */
-#deliveryModal button[aria-label],
-#refundModal button[aria-label],
+<style id="bilingual-close-button-position-fix">
+/* Requested placement: English (LTR) = right; Arabic (RTL) = left. */
+#deliveryModal > div > button[aria-label],
+#refundModal > div > button[aria-label],
 #productModal > div > button,
 #checkoutModal > div > button,
-#authModal > div > button,
-#accountModal > div > button,
-#pendingPaymentModal button[aria-label] {
-  left: 1rem !important;
-  right: auto !important;
+#authModal > div > button[aria-label],
+#accountModal > div > button[aria-label],
+#pendingPaymentModal > div > button,
+#adminModal > div > button {
+  left: auto !important;
+  right: 1rem !important;
   inset-inline-start: auto !important;
-  inset-inline-end: auto !important;
+  inset-inline-end: 1rem !important;
 }
-html[dir="ltr"] #deliveryModal button[aria-label],
-html[dir="ltr"] #refundModal button[aria-label],
-html[dir="ltr"] #productModal > div > button,
-html[dir="ltr"] #checkoutModal > div > button,
-html[dir="ltr"] #authModal > div > button,
-html[dir="ltr"] #accountModal > div > button,
-html[dir="ltr"] #pendingPaymentModal button[aria-label] {
-  left: auto !important;
-  right: 1rem !important;
-}
-/* USDT payment page close control: left in Arabic, right in English. */
-#usdtPayPage .sticky > div { position: relative; }
-#usdtPayPage .sticky > div > button:first-child {
-  position: absolute;
+html[dir="rtl"] #deliveryModal > div > button[aria-label],
+html[dir="rtl"] #refundModal > div > button[aria-label],
+html[dir="rtl"] #productModal > div > button,
+html[dir="rtl"] #checkoutModal > div > button,
+html[dir="rtl"] #authModal > div > button[aria-label],
+html[dir="rtl"] #accountModal > div > button[aria-label],
+html[dir="rtl"] #pendingPaymentModal > div > button,
+html[dir="rtl"] #adminModal > div > button {
   left: 1rem !important;
   right: auto !important;
-  z-index: 2;
-}
-html[dir="ltr"] #usdtPayPage .sticky > div > button:first-child {
-  left: auto !important;
-  right: 1rem !important;
+  inset-inline-start: 1rem !important;
+  inset-inline-end: auto !important;
 }
 </style>
 
@@ -896,7 +848,7 @@ html[dir="ltr"] #usdtPayPage .sticky > div > button:first-child {
     <!-- Pending Order Payment Modal -->
     <div id="pendingPaymentModal" class="fixed inset-0 z-[70] hidden items-center justify-center p-4 bg-black/85 backdrop-blur-sm">
         <div class="bg-slate-950 border border-amber-500/40 rounded-3xl max-w-md w-full p-6 text-center shadow-2xl relative">
-            <button type="button" onclick="closePendingPaymentModal()" aria-label="إغلاق" class="absolute top-3 w-9 h-9 rounded-full bg-slate-900 text-slate-300 hover:text-white" style="inset-inline-start:12px"><span aria-hidden="true">×</span></button>
+            <button type="button" onclick="closePendingPaymentModal()" aria-label="إغلاق" class="absolute top-3 w-9 h-9 rounded-full bg-slate-900 text-slate-300 hover:text-white" style="right:1rem;left:auto"><span aria-hidden="true">×</span></button>
             <div class="w-14 h-14 bg-amber-500/10 text-amber-300 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-amber-500/30 text-2xl">
                 <i class="fa-regular fa-clock"></i>
             </div>
@@ -1251,7 +1203,7 @@ html[dir="ltr"] #usdtPayPage .sticky > div > button:first-child {
                                 ${product.badge}
                             </span>
                             <span class="absolute bottom-3 left-3 bg-darkBg/90 backdrop-blur-md text-slate-300 text-[10px] font-mono px-2 py-0.5 rounded border border-slate-700">
-                                <i class="fa-solid fa-server text-[9px] text-starlight ml-1"></i> ${window.storeRegionLabel ? window.storeRegionLabel(product.region) : (product.region === 'all' ? 'جميع السيرفرات' : product.region)}
+                                <i class="fa-solid fa-server text-[9px] text-starlight ml-1"></i> ${product.region === 'all' ? 'جميع السيرفرات' : product.region}
                             </span>
                         </div>
 
@@ -1528,7 +1480,7 @@ html[dir="ltr"] #usdtPayPage .sticky > div > button:first-child {
                         <div class="space-y-4">
                             <div class="flex items-center justify-between border-t border-slate-800 pt-3">
                                 <span class="text-xs text-slate-500">السيرفرات المدعومة:</span>
-                                <span class="text-xs text-slate-200 font-bold">${window.storeRegionLabel ? window.storeRegionLabel(p.region) : (p.region === 'all' ? 'جميع السيرفرات (Global)' : p.region)}</span>
+                                <span class="text-xs text-slate-200 font-bold">${p.region === 'all' ? 'جميع السيرفرات (Global)' : p.region}</span>
                             </div>
                             <div class="flex items-center justify-between">
                                 <span class="text-xs text-slate-500">السعر النهائي:</span>
@@ -4207,51 +4159,6 @@ html[dir="ltr"] #usdtPayPage .sticky > div > button:first-child {
     });
   }
 
-  function storeRegionLabel(value) {
-    const raw = String(value == null ? '' : value).trim();
-    if (!raw) return raw;
-    const isEn = lang === 'en';
-    const labels = {
-      all: isEn ? 'All Servers' : 'جميع السيرفرات',
-      global: isEn ? 'All Servers (Global)' : 'جميع السيرفرات (Global)',
-      na: isEn ? 'North America (NA)' : 'أمريكا الشمالية (NA)',
-      eu: isEn ? 'Europe (EU)' : 'أوروبا (EU)',
-      sea: isEn ? 'Southeast Asia (SEA)' : 'جنوب شرق آسيا (SEA)'
-    };
-    const key = raw.toLowerCase();
-    if (labels[key]) return labels[key];
-    return raw.split(/\\s*[,/+]\\s*/).map(part => {
-      const k = part.trim().toLowerCase();
-      return labels[k] || part.trim();
-    }).join(', ');
-  }
-
-  function updateServerRegionLabels() {
-    const isEn = lang === 'en';
-    const label = document.querySelector('label[for="serverRegion"]');
-    if (label) {
-      const textNode = Array.from(label.childNodes).find(n => n.nodeType === Node.TEXT_NODE && n.nodeValue.trim());
-      if (textNode) textNode.nodeValue = isEn ? ' Server:' : ' السيرفر:';
-    }
-    const options = {
-      all: isEn ? 'All Regions (ALL)' : 'جميع المناطق (ALL)',
-      NA: isEn ? 'North America (NA)' : 'أمريكا الشمالية (NA)',
-      EU: isEn ? 'Europe (EU)' : 'أوروبا (EU)',
-      SEA: isEn ? 'Southeast Asia (SEA)' : 'جنوب شرق آسيا (SEA)'
-    };
-    ['serverRegion', 'checkoutRegion'].forEach(id => {
-      const select = document.getElementById(id);
-      if (!select) return;
-      Array.from(select.options).forEach(option => {
-        if (Object.prototype.hasOwnProperty.call(options, option.value)) {
-          option.textContent = options[option.value];
-        }
-      });
-    });
-  }
-
-  window.storeRegionLabel = storeRegionLabel;
-
   function setLanguage(next, persist=true) {
     lang = next === 'en' ? 'en' : 'ar';
     document.documentElement.lang = lang;
@@ -4262,7 +4169,6 @@ html[dir="ltr"] #usdtPayPage .sticky > div > button:first-child {
     const selector=document.getElementById('languageSelector');
     if (selector) selector.value=lang;
     translateElement(document.body,lang);
-    updateServerRegionLabels();
     try { if (typeof window.renderProducts === 'function') window.renderProducts(); } catch(e) { console.warn('Product localization refresh:', e); }
     try { if (typeof window.updateCartUI === 'function') window.updateCartUI(); } catch(e) { console.warn('Cart localization refresh:', e); }
     if (persist) { try { localStorage.setItem('onceHumanStoreLanguage',lang); } catch(e){} }
