@@ -1186,7 +1186,7 @@
         // المخزون المتاح للعرض = مخزون قاعدة البيانات ناقص الكمية الموجودة في سلة هذا الزائر.
         // الحجز الفعلي المشترك بين جميع الزوار يتم عند إنشاء الطلب والتحقق الخادمي، وليس بمجرد فتح الصفحة.
         function getCartQty(productId) {
-            const item = cart.find(i => i.id === productId);
+            const item = cart.find(i => String(i.id) === String(productId) || String(i.dbId) === String(productId));
             return item ? Math.max(0, Number(item.qty) || 0) : 0;
         }
         function getAvailableStock(p) {
@@ -1240,7 +1240,7 @@
                 const price = (product.priceUSD * rates[currentCurrency].rate).toFixed(2);
                 const soldOut = isOutOfStock(product);
                 return `
-                    <div onclick="openProductModal(${product.id})" class="cursor-pointer bg-cardBg border ${soldOut ? 'border-red-500/30' : 'border-slate-800 hover:border-starlight/50'} rounded-2xl overflow-hidden group flex flex-col justify-between transition-all duration-300 hover:-translate-y-1 shadow-lg">
+                    <div onclick="openProductModal('${product.id}')" class="cursor-pointer bg-cardBg border ${soldOut ? 'border-red-500/30' : 'border-slate-800 hover:border-starlight/50'} rounded-2xl overflow-hidden group flex flex-col justify-between transition-all duration-300 hover:-translate-y-1 shadow-lg">
                         <div class="relative overflow-hidden h-48">
                             <img src="${product.image}" alt="${product.name}" class="w-full h-full object-cover ${soldOut ? 'opacity-40 grayscale' : 'group-hover:scale-110 opacity-90 group-hover:opacity-100'} transition duration-500">
                             ${soldOut ? `
@@ -1272,10 +1272,10 @@
                                 </div>
                                 
                                 <div class="flex items-center gap-1.5">
-                                    <button onclick="event.stopPropagation(); openProductModal(${product.id})" class="p-2.5 bg-slate-900 hover:bg-slate-800 text-slate-300 rounded-xl border border-slate-700 transition" title="معاينة">
+                                    <button onclick="event.stopPropagation(); openProductModal('${product.id}')" class="p-2.5 bg-slate-900 hover:bg-slate-800 text-slate-300 rounded-xl border border-slate-700 transition" title="معاينة">
                                         <i class="fa-solid fa-eye text-xs"></i>
                                     </button>
-                                    <button ${soldOut ? 'disabled' : ''} onclick="event.stopPropagation(); openProductModal(${product.id})" class="${soldOut ? 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700' : 'bg-starlight hover:bg-cyan-400 text-slate-950 shadow-md'} font-extrabold px-3 py-2 rounded-xl text-xs flex items-center gap-1.5 transition clip-btn">
+                                    <button ${soldOut ? 'disabled' : ''} onclick="event.stopPropagation(); openProductModal('${product.id}')" class="${soldOut ? 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700' : 'bg-starlight hover:bg-cyan-400 text-slate-950 shadow-md'} font-extrabold px-3 py-2 rounded-xl text-xs flex items-center gap-1.5 transition clip-btn">
                                         <i class="${soldOut ? 'fa-solid fa-ban' : 'fa-solid fa-cart-plus'}"></i> ${soldOut ? 'غير متوفر' : 'إضافة'}
                                     </button>
                                 </div>
@@ -1316,11 +1316,11 @@
 
         // Cart Operations
         function addToCart(productId, sourceImg) {
-            const product = products.find(p => p.id === productId);
+            const product = products.find(p => String(p.id) === String(productId) || String(p.dbId) === String(productId));
             if(!product) return false;
             if(!catalogReady) { alert('جاري تحميل المخزون، حاول بعد لحظات.'); return false; }
             if(!product.dbId || !(product.stock > 0)) return false;
-            const item = cart.find(i => i.id === productId);
+            const item = cart.find(i => String(i.id) === String(productId) || String(i.dbId) === String(productId));
             if(item && item.qty >= product.stock) { alert('وصلت إلى أقصى كمية متاحة في المخزون (' + product.stock + ').'); return false; }
             if(item) {
                 item.qty++;
@@ -1332,7 +1332,7 @@
             // شغّل حركة الصورة قبل إعادة رسم البطاقات حتى يبقى عنصر المصدر متاحاً للحركة.
             flyToCart(sourceImg);
             renderProducts();
-            showCartToast(product.name, cart.find(i => i.id === productId).qty);
+            showCartToast(product.name, cart.find(i => String(i.id) === String(productId) || String(i.dbId) === String(productId)).qty);
             return true;
         }
 
@@ -1420,14 +1420,14 @@
         }
 
         function removeFromCart(productId) {
-            cart = cart.filter(i => i.id !== productId);
+            cart = cart.filter(i => String(i.id) !== String(productId) && String(i.dbId) !== String(productId));
             saveCartLocally();
             updateCartUI();
             renderProducts();
         }
 
         function updateQty(productId, delta) {
-            const item = cart.find(i => i.id === productId);
+            const item = cart.find(i => String(i.id) === String(productId) || String(i.dbId) === String(productId));
             if(item) {
                 if(delta > 0 && item.stock !== undefined && item.qty >= item.stock) { alert('وصلت إلى أقصى كمية متاحة في المخزون.'); return; }
                 item.qty += delta;
@@ -1504,7 +1504,7 @@
 
         // Quick View Modal Logic
         function openProductModal(productId) {
-            const p = products.find(item => item.id === productId);
+            const p = products.find(item => String(item.id) === String(productId) || String(item.dbId) === String(productId));
             if(!p) return;
 
             const price = (p.priceUSD * rates[currentCurrency].rate).toFixed(2);
@@ -1532,7 +1532,7 @@
                                 <span class="text-xs text-slate-500">السعر النهائي:</span>
                                 <span class="text-2xl font-black text-starlight">${rates[currentCurrency].symbol} ${price}</span>
                             </div>
-                            <button ${soldOut ? 'disabled' : ''} onclick="if (addToCart(${p.id}, document.querySelector('#modalContent img'))) { closeProductModal(); toggleCartDrawer(true); }" class="w-full ${soldOut ? 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700' : 'bg-starlight hover:bg-cyan-400 text-slate-950'} font-black py-3 rounded-xl transition clip-btn text-xs">
+                            <button ${soldOut ? 'disabled' : ''} onclick="if (addToCart('${p.id}', document.querySelector('#modalContent img'))) { closeProductModal(); toggleCartDrawer(true); }" class="w-full ${soldOut ? 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700' : 'bg-starlight hover:bg-cyan-400 text-slate-950'} font-black py-3 rounded-xl transition clip-btn text-xs">
                                 <i class="${soldOut ? 'fa-solid fa-ban' : 'fa-solid fa-cart-plus'} ml-1"></i> ${soldOut ? 'نفد المخزون' : 'إضافة لسلة الشراء الآن'}
                             </button>
                         </div>
