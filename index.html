@@ -374,7 +374,7 @@
                 </div>
                 <div class="flex items-center gap-2">
                     <i class="fa-solid fa-shield-halved text-emerald-400 text-base"></i>
-                    <span>حماية 100% بدون أي مخابرة حظر</span>
+                    <span>تسليم يدوي داخل اللعبة عبر مشرف على ديسكورد</span>
                 </div>
                 <div class="flex items-center gap-2">
                     <i class="fa-solid fa-headset text-amber-400 text-base"></i>
@@ -479,9 +479,9 @@
                 <div>
                     <h6 class="text-white font-bold text-xs uppercase tracking-wider mb-3">طرق الدفع المدعومة</h6>
                     <div class="flex flex-wrap gap-2 text-xl text-slate-300">
-                        <i class="fab fa-cc-visa" title="Visa"></i>
-                        <i class="fab fa-cc-mastercard" title="MasterCard"></i>
-                        <i class="fab fa-cc-paypal" title="PayPal"></i>
+                        <i class="pp-only fab fa-cc-visa" title="Visa"></i>
+                        <i class="pp-only fab fa-cc-mastercard" title="MasterCard"></i>
+                        <i class="pp-only fab fa-cc-paypal" title="PayPal"></i>
                         <i class="fab fa-bitcoin" title="Crypto"></i>
                     </div>
                 </div>
@@ -559,7 +559,7 @@
             </li>
             <li class="flex gap-3">
                 <span class="w-6 h-6 shrink-0 rounded-full bg-starlight/10 border border-starlight/40 text-starlight text-xs font-black flex items-center justify-center">3</span>
-                <span>ادفع عبر PayPal، أو اختر شبكة USDT وأنشئ الطلب ثم حوّل المبلغ إلى عنوان الإيداع الظاهر لك.</span>
+                <span>اختر شبكة USDT وأنشئ الطلب ثم حوّل المبلغ إلى عنوان الإيداع الظاهر لك.</span>
             </li>
             <li class="flex gap-3">
                 <span class="w-6 h-6 shrink-0 rounded-full bg-starlight/10 border border-starlight/40 text-starlight text-xs font-black flex items-center justify-center">4</span>
@@ -675,6 +675,8 @@
                         </label>
                     </div>
                 </div>
+
+                <p class="text-[10px] text-slate-500 leading-relaxed">بإتمامك الدفع فإنك توافق على سياسة الاسترجاع والضمان: جميع المبيعات نهائية ولا يوجد استرجاع بعد الدفع.</p>
 
                 <div id="paypalSection">
                     <div id="paypal-button-container"></div>
@@ -1059,6 +1061,20 @@
 
         // ===== Payment settings (edit these) =====
         const PAYPAL_CLIENT_ID = 'YOUR_PAYPAL_CLIENT_ID';
+        // PayPal يظهر تلقائياً فقط عند وضع معرّف حقيقي بدل YOUR_PAYPAL_CLIENT_ID. حالياً طريقة الدفع الوحيدة: USDT.
+        const PAYPAL_ON = !PAYPAL_CLIENT_ID.startsWith('YOUR_');
+        function applyPaymentAvailability() {
+            const pp = document.querySelector('input[name="payment"][value="paypal"]');
+            const us = document.querySelector('input[name="payment"][value="usdt"]');
+            if (!pp || !us) return;
+            pp.parentElement.classList.toggle('hidden', !PAYPAL_ON);
+            const grid = us.parentElement.parentElement;
+            grid.classList.toggle('grid-cols-2', PAYPAL_ON);
+            grid.classList.toggle('grid-cols-1', !PAYPAL_ON);
+            if (!PAYPAL_ON) us.checked = true;
+            document.querySelectorAll('.pp-only').forEach(el => el.classList.toggle('hidden', !PAYPAL_ON));
+        }
+        document.addEventListener('DOMContentLoaded', applyPaymentAvailability);
         // شبكات USDT المدعومة: تسميات للعرض فقط. عناوين الإيداع تأتي من الخادم (Supabase) بعد إنشاء الطلب ولا تُكتب هنا.
         const USDT_NETWORKS = {
             trc20:   { label: 'TRC20 (TRON)' },
@@ -1081,9 +1097,9 @@
                 const raw = localStorage.getItem(CART_STORAGE_KEY);
                 const saved = raw ? JSON.parse(raw) : [];
                 if (!Array.isArray(saved)) return;
-                cart = saved.filter(x => x && typeof x.id === 'string' && Number.isFinite(Number(x.qty)) && Number(x.qty) > 0)
+                cart = saved.filter(x => x && x.id !== undefined && x.id !== null && Number.isFinite(Number(x.qty)) && Number(x.qty) > 0)
                     .map(x => {
-                        const p = products.find(y => y.id === x.id);
+                        const p = products.find(y => String(y.id) === String(x.id));
                         return p ? { ...p, qty: Math.floor(Number(x.qty)) } : null;
                     }).filter(Boolean);
             } catch (e) { console.warn('[Cart] تعذّر استعادة السلة:', e); cart = []; }
@@ -1541,6 +1557,7 @@
             }
             toggleCartDrawer();
             document.getElementById('checkoutTotal').innerText = '$' + getCartTotalUSD().toFixed(2) + ' USD';
+            applyPaymentAvailability();
             selectPayment();
             document.getElementById('checkoutModal').classList.remove('hidden');
             document.getElementById('checkoutModal').classList.add('flex');
@@ -3806,7 +3823,7 @@
     'سيطر على العالم الملوث بـ':'Conquer the contaminated world of',
     'احصل على أفضل الأسلحة، مخططات البناء (Blueprints)، الطاقة الكهرومغناطيسية Energy Links، والمساعدين الرقميين Deviants بأعلى المقاييس وأسرع تسليم داخل السيرفر الخاص بك.':'Get the best weapons, blueprints, Energy Links, and Deviants with premium quality and fast delivery on your server.',
     'تصفح العروض الحصرية':'Browse Exclusive Offers','اطلب عبر الديسكورد':'Order via Discord',
-    'تسليم آمن وفوري خلال 15 دقيقة':'Safe delivery within 15 minutes','حماية 100% بدون أي مخابرة حظر':'100% safe service with no ban risk',
+    'تسليم آمن وفوري خلال 15 دقيقة':'Safe delivery within 15 minutes','تسليم يدوي داخل اللعبة عبر مشرف على ديسكورد':'Manual in-game delivery by a Discord moderator',
     'دعم فني مباشر 24/7 على ديسكورد':'24/7 live support on Discord','يدعم جميع السيرفرات (NA, EU, SEA)':'Supports all regions (NA, EU, SEA)',
     'أقسام المتجر':'Store Categories','السيرفر:':'Server:','جميع المناطق (ALL)':'All Regions (ALL)','جميع السيرفرات (Global)':'All Servers (Global)','جميع السيرفرات':'All Servers','أمريكا الشمالية':'North America','أوروبا':'Europe','آسيا':'Asia','أمريكا الجنوبية':'South America','الشرق الأوسط':'Middle East',
     'شمال أمريكا (NA)':'North America (NA)','أوروبا (EU)':'Europe (EU)','جنوب شرق آسيا (SEA)':'Southeast Asia (SEA)',
@@ -3823,7 +3840,7 @@
     'متابعة عملية الشراء':'Proceed to Checkout','خطوات بسيطة من الشراء حتى استلام الطلب داخل اللعبة.':'A few simple steps from purchase to in-game delivery.',
     'أضف المنتجات التي تريدها إلى سلة الشراء، ثم اضغط «متابعة عملية الشراء».':'Add your products to the cart, then click “Proceed to Checkout”.',
     'اكتب اسم حسابك في الديسكورد، واسم شخصيتك في اللعبة، واختر منطقة السيرفر الصحيحة.':'Enter your Discord username and in-game character name, then select your server region.',
-    'ادفع عبر PayPal، أو اختر شبكة USDT وأنشئ الطلب ثم حوّل المبلغ إلى عنوان الإيداع الظاهر لك.':'Pay with PayPal, or choose a USDT network, create the order, then send the amount to the deposit address shown.',
+    'اختر شبكة USDT وأنشئ الطلب ثم حوّل المبلغ إلى عنوان الإيداع الظاهر لك.':'Choose a USDT network, create the order, then send the amount to the deposit address shown.',
     'بعد إتمام الطلب تظهر لك تفاصيله. انسخها وادخل إلى سيرفر الديسكورد وافتح تذكرة (Ticket) وأرسلها هناك.':'After placing your order, copy its details, join our Discord server, open a ticket, and send them there.',
     'يتواصل معك المشرف في التذكرة ويسلّمك طلبك داخل اللعبة. التسليم عادةً خلال 15 دقيقة من تأكيد الدفع، وفي حالة USDT بعد التحقق من التحويل يدوياً.':'A moderator will contact you in the ticket and deliver your order in-game. Delivery usually takes 15 minutes after payment confirmation. USDT transfers require manual verification.',
     'لتسريع التسليم، تأكد من كتابة اسم الشخصية ومنطقة السيرفر بشكل صحيح، وكن متواجداً على الديسكورد بعد الدفع.':'For faster delivery, enter your character name and server region correctly, and stay available on Discord after payment.',
@@ -3837,7 +3854,7 @@
     'لأي استفسار قبل الشراء، تواصل معنا عبر الديسكورد.':'For questions before purchasing, contact us on Discord.',
     'إتمام الطلب والتحقق من الحساب':'Checkout & Account Verification','اسم حسابك في الديسكورد (Discord Username) *':'Your Discord Username *',
     'ضروري لفتح تذكرة وتكليف المشرف بتسليمك الطلب داخل اللعبة.':'Required to open a ticket and arrange in-game delivery.',
-    'منطقة السيرفر (Region) *':'Server Region *','اختر طريقة الدفع المناسبة':'Choose a Payment Method','PayPal / بطاقة':'PayPal / Card',
+    'منطقة السيرفر (Region) *':'Server Region *','اختر طريقة الدفع المناسبة':'Choose a Payment Method','بإتمامك الدفع فإنك توافق على سياسة الاسترجاع والضمان: جميع المبيعات نهائية ولا يوجد استرجاع بعد الدفع.':'By completing payment you agree to the Refund & Warranty Policy: all sales are final and non-refundable after payment.','PayPal / بطاقة':'PayPal / Card',
     'المبلغ الاجمالي للشراء:':'Order Total:','يتم الدفع بالدولار الأمريكي (USD) عبر PayPal، ويمكنك الدفع بالبطاقة البنكية من نفس النافذة.':'Payment is processed in USD via PayPal. You can also pay by bank card in the same window.',
     'اختر شبكة التحويل':'Choose Transfer Network','الشبكة:':'Network:','المبلغ:':'Amount:','عنوان المحفظة:':'Wallet Address:',
     'نسخ':'Copy','أرسل عملة USDT فقط وعلى الشبكة المذكورة بالضبط. الإرسال على شبكة أخرى أو بعملة مختلفة قد يضيّع المبلغ.':'Send USDT only on the exact network shown. Using another network or currency may result in lost funds.',
@@ -4023,7 +4040,7 @@
     'سلة الشراء فارغة حالياً':'Your cart is currently empty','تصفح المنتجات وأضف ما تحتاجه للبدء':'Browse products and add what you need to get started',
     'إضافة لسلة الشراء الآن':'Add to Cart Now','لم يتم إدخال PAYPAL_CLIENT_ID في إعدادات الدفع بعد.':'PAYPAL_CLIENT_ID has not been configured in payment settings yet.',
     'جاري تحميل PayPal...':'Loading PayPal...','تعذر تحميل PayPal. تأكد من الاتصال وحاول مرة أخرى.':'Could not load PayPal. Check your connection and try again.',
-    'حماية 100% بدون أي مخابرة حظر':'100% safe service with no ban risk',
+    'تسليم يدوي داخل اللعبة عبر مشرف على ديسكورد':'Manual in-game delivery by a Discord moderator',
 
     'الموسم الجديد: Stardust Apocalypse':'NEW SEASON: Stardust Apocalypse','اطلب عبر الديسكورد':'Order via Discord',
     'يدعم جميع السيرفرات (NA, EU, SEA)':'Supports all regions (NA, EU, SEA)','السيرفر:':'Server:',
@@ -4157,7 +4174,7 @@
     };
     const key = raw.toLowerCase();
     if (labels[key]) return labels[key];
-    return raw.split(/\\s*[,/+]\\s*/).map(part => {
+    return raw.split(/\s*[,/+]\s*/).map(part => {
       const k = part.trim().toLowerCase();
       return labels[k] || part.trim();
     }).join(', ');
@@ -4284,7 +4301,7 @@
               ['status','كيف أعرف طلباتي وحالتها؟','يمكنك مراجعة طلباتك ومعرفة حالتها من الملف الشخصي:\n1. اضغط على زر حسابك في أعلى المتجر (سجّل الدخول أولًا إن لم تكن مسجّلًا).\n2. افتح الملف الشخصي.\n3. ستجد قسم «طلباتي» يعرض جميع طلباتك، وحالة كل طلب وتفاصيله.']
             ]},
             {id:'payment',icon:'fa-wallet',label:'الدفع',desc:'طرق الدفع ومراجعة التحويل',items:[
-              ['methods','ما طرق الدفع المتاحة؟','الطرق المتاحة حاليًا:\n• PayPal / بطاقة بنكية: الدفع بالدولار الأمريكي (USD) ويتم تأكيده تلقائيًا.\n• USDT على شبكات TRC20 (TRON) وBSC (BEP20) وPolygon POS وSolana.\n\nاختر طريقة الدفع في صفحة إتمام الطلب. وعند الدفع بـ USDT أنشئ الطلب ثم أرسل المبلغ إلى عنوان الإيداع الظاهر على الشبكة المحددة فقط.'],
+              ['methods','ما طرق الدفع المتاحة؟','الطرق المتاحة حاليًا:\n'+(PAYPAL_ON?'• PayPal / بطاقة بنكية: الدفع بالدولار الأمريكي (USD) ويتم تأكيده تلقائيًا.\n':'')+'• USDT على شبكات TRC20 (TRON) وBSC (BEP20) وPolygon POS وSolana.\n\nاختر طريقة الدفع في صفحة إتمام الطلب. وعند الدفع بـ USDT أنشئ الطلب ثم أرسل المبلغ إلى عنوان الإيداع الظاهر على الشبكة المحددة فقط.'],
               ['review','كيف تتم مراجعة التحويل؟','تتم مراجعة التحويل عن طريق Discord. ادخل سيرفر الديسكورد وافتح تذكرة (Ticket)، ثم أرسل رقم الطلب ورقم العملية (TXID) أو إثبات التحويل ليتم التحقق منه. لا ترسل تحويلًا ثانيًا قبل التواصل مع الدعم.'],
               ['rejected','تم رفض عملية الدفع','تواصل مع الدعم عبر Discord وأرسل رقم الطلب وإثبات التحويل ومرجعه لمعرفة سبب الرفض ومراجعته.'],
               ['notupdated','حوّلت المبلغ لكن الحالة لم تتغير','أرسل رقم الطلب وإثبات التحويل إلى الدعم عبر Discord ليتم التحقق من العملية.']
@@ -4307,7 +4324,7 @@
           title:'Frequently Asked Questions',subtitle:'Choose a question to view its answer',kicker:'HELP CENTER',back:'Back',faq:'Frequently Asked Questions',faqDesc:'Choose a topic and then a question to see its answer',discord:'Contact support on Discord',discordDesc:'Open the support server to talk to our team',satisfied:'This helped me',rating:'Rate this answer',ratingThanks:'Thanks for your rating',contact:'Contact support on Discord',
           categories:[
             {id:'orders',icon:'fa-receipt',label:'Orders',desc:'View your orders and their status',items:[['status','How can I view my orders and their status?','You can review your orders and their status from your Profile:\n1. Tap your account button at the top of the store (sign in first if needed).\n2. Open your Profile.\n3. Under “My Orders” you will see all your orders, the status of each one, and its details.']]},
-            {id:'payment',icon:'fa-wallet',label:'Payments',desc:'Payment methods and verification',items:[['methods','Which payment methods are available?','Currently available methods:\n• PayPal / bank card: paid in USD and confirmed automatically.\n• USDT on TRC20 (TRON), BSC (BEP20), Polygon POS and Solana.\n\nChoose your method on the checkout page. For USDT, create the order, then send the amount to the deposit address shown, only on the selected network.'],['review','How is a transfer reviewed?','Transfers are reviewed through Discord. Join our Discord server and open a ticket, then send your order number and the transaction ID (TXID) or transfer receipt for verification. Do not send a second transfer before contacting support.'],['rejected','My payment was rejected','Contact support on Discord and provide your order number, transfer receipt, and transaction reference so the team can review it.'],['notupdated','I paid but the status has not changed','Send your order number and transfer receipt to support on Discord so the payment can be checked.']]},
+            {id:'payment',icon:'fa-wallet',label:'Payments',desc:'Payment methods and verification',items:[['methods','Which payment methods are available?','Currently available methods:\n'+(PAYPAL_ON?'• PayPal / bank card: paid in USD and confirmed automatically.\n':'')+'• USDT on TRC20 (TRON), BSC (BEP20), Polygon POS and Solana.\n\nChoose your method on the checkout page. For USDT, create the order, then send the amount to the deposit address shown, only on the selected network.'],['review','How is a transfer reviewed?','Transfers are reviewed through Discord. Join our Discord server and open a ticket, then send your order number and the transaction ID (TXID) or transfer receipt for verification. Do not send a second transfer before contacting support.'],['rejected','My payment was rejected','Contact support on Discord and provide your order number, transfer receipt, and transaction reference so the team can review it.'],['notupdated','I paid but the status has not changed','Send your order number and transfer receipt to support on Discord so the payment can be checked.']]},
             {id:'delivery',icon:'fa-gamepad',label:'In-game delivery',desc:'Delivery steps and requirements',items:[['how','How do I receive my products?','Products are received through Discord. After placing your order, copy its details, join our Discord server, and open a ticket to send them. A moderator will contact you and deliver your order in-game.'],['data','How do I prepare my delivery details?','Contact the delivery team on Discord. They will tell you which details are needed to complete the in-game delivery.'],['late','My product delivery is delayed','Contact the delivery team on Discord and provide your order number to check and follow up on delivery.'],['wrong','I sent incorrect delivery details','Contact the delivery team on Discord immediately with your order number and the corrected details.']]},
             {id:'account',icon:'fa-user',label:'Account and sign-in',desc:'Open your profile or sign in',action:'account'},
             {id:'technical',icon:'fa-lightbulb',label:'Suggestions & Errors',desc:'Send a suggestion or describe an issue',form:'issue'},
