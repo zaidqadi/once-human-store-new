@@ -191,8 +191,8 @@
 #accountModal > div > button {
   left: auto !important;
   right: auto !important;
-  inset-inline-start: 1rem !important;
-  inset-inline-end: auto !important;
+  inset-inline-end: 1rem !important;
+  inset-inline-start: auto !important;
 }
 </style>
 
@@ -541,7 +541,7 @@
     <!-- Delivery Info Modal -->
     <div id="deliveryModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onclick="if(event.target===this) closeDelivery()">
         <div class="bg-slate-950 border border-slate-800 rounded-3xl max-w-lg w-full p-6 relative shadow-2xl overflow-y-auto overscroll-contain max-h-[90vh]">
-            <button type="button" onclick="closeDelivery()" class="absolute top-4 [inset-inline-start:1rem] text-slate-400 hover:text-white p-2" aria-label="إغلاق">
+            <button type="button" onclick="closeDelivery()" class="absolute top-4 [inset-inline-end:1rem] text-slate-400 hover:text-white p-2" aria-label="إغلاق">
                 <i class="fa-solid fa-xmark text-xl"></i>
             </button>
             <h3 class="text-xl font-bold text-white mb-1 flex items-center gap-2">
@@ -580,7 +580,7 @@
     <!-- Refund Policy Modal -->
     <div id="refundModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onclick="if(event.target===this) closeRefundPolicy()">
         <div class="bg-slate-950 border border-red-500/30 rounded-3xl max-w-lg w-full p-6 relative shadow-2xl overflow-y-auto overscroll-contain max-h-[90vh]">
-            <button type="button" onclick="closeRefundPolicy()" class="absolute top-4 [inset-inline-start:1rem] text-slate-400 hover:text-white p-2" aria-label="إغلاق">
+            <button type="button" onclick="closeRefundPolicy()" class="absolute top-4 [inset-inline-end:1rem] text-slate-400 hover:text-white p-2" aria-label="إغلاق">
                 <i class="fa-solid fa-xmark text-xl"></i>
             </button>
             <h3 class="text-xl font-bold text-white mb-1 flex items-center gap-2">
@@ -626,7 +626,7 @@
     <!-- Checkout Modal -->
     <div id="checkoutModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
         <div class="bg-slate-950 border border-slate-800 rounded-3xl max-w-lg w-full p-6 relative shadow-2xl overflow-y-auto max-h-[90vh]">
-            <button onclick="closeCheckoutModal()" class="absolute top-4 [inset-inline-start:1rem] text-slate-400 hover:text-white p-2">
+            <button onclick="closeCheckoutModal()" class="absolute top-4 [inset-inline-end:1rem] text-slate-400 hover:text-white p-2">
                 <i class="fa-solid fa-xmark text-xl"></i>
             </button>
             
@@ -833,7 +833,7 @@
     <!-- Pending Order Payment Modal -->
     <div id="pendingPaymentModal" class="fixed inset-0 z-[70] hidden items-center justify-center p-4 bg-black/85 backdrop-blur-sm">
         <div class="bg-slate-950 border border-amber-500/40 rounded-3xl max-w-md w-full p-6 text-center shadow-2xl relative">
-            <button type="button" onclick="closePendingPaymentModal()" aria-label="إغلاق" class="absolute top-3 w-9 h-9 rounded-full bg-slate-900 text-slate-300 hover:text-white" style="inset-inline-start:12px"><span aria-hidden="true">×</span></button>
+            <button type="button" onclick="closePendingPaymentModal()" aria-label="إغلاق" class="absolute top-3 w-9 h-9 rounded-full bg-slate-900 text-slate-300 hover:text-white" style="inset-inline-end:12px"><span aria-hidden="true">×</span></button>
             <div class="w-14 h-14 bg-amber-500/10 text-amber-300 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-amber-500/30 text-2xl">
                 <i class="fa-regular fa-clock"></i>
             </div>
@@ -864,7 +864,7 @@
     <!-- Auth Modal (Google / Discord / Email & Password / Magic Link) -->
     <div id="authModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onclick="if(event.target===this) closeAuthModal()">
         <div class="bg-slate-950 border border-slate-800 rounded-3xl max-w-sm w-full p-6 relative shadow-2xl overflow-y-auto overscroll-contain max-h-[90vh]">
-            <button type="button" onclick="closeAuthModal()" class="absolute top-4 [inset-inline-start:1rem] text-slate-400 hover:text-white p-2" aria-label="إغلاق">
+            <button type="button" onclick="closeAuthModal()" class="absolute top-4 [inset-inline-end:1rem] text-slate-400 hover:text-white p-2" aria-label="إغلاق">
                 <i class="fa-solid fa-xmark text-xl"></i>
             </button>
             <h3 id="authTitle" class="text-xl font-bold text-white mb-1 flex items-center gap-2">
@@ -925,7 +925,7 @@
     <!-- Account Modal -->
     <div id="accountModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onclick="if(event.target===this) closeAccountModal()">
         <div class="bg-slate-950 border border-slate-800 rounded-3xl max-w-md w-full p-6 relative shadow-2xl overflow-y-auto overscroll-contain max-h-[90vh]">
-            <button type="button" onclick="closeAccountModal()" class="absolute top-4 [inset-inline-start:1rem] text-slate-400 hover:text-white p-2" aria-label="إغلاق">
+            <button type="button" onclick="closeAccountModal()" class="absolute top-4 [inset-inline-end:1rem] text-slate-400 hover:text-white p-2" aria-label="إغلاق">
                 <i class="fa-solid fa-xmark text-xl"></i>
             </button>
             <div id="accountInfo" class="flex items-center gap-4 mb-5"></div>
@@ -3209,7 +3209,7 @@
         const m = $('adminModal'); m.innerHTML = '';
         const box = mk('div', 'bg-slate-950 border border-slate-800 rounded-3xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-5 relative');
         box.appendChild(mk('h3', 'text-white font-bold mb-3 pl-8', title));
-        const x = mk('button', 'absolute top-4 [inset-inline-start:1rem] text-slate-400 hover:text-white'); x.type = 'button';
+        const x = mk('button', 'absolute top-4 [inset-inline-end:1rem] text-slate-400 hover:text-white'); x.type = 'button';
         x.appendChild(mk('i', 'fa-solid fa-xmark text-xl')); x.onclick = closeModal; box.appendChild(x);
         box.appendChild(body);
         if (buttons) { const f = mk('div', 'flex gap-2 mt-4'); buttons.forEach(b => f.appendChild(b)); box.appendChild(f); }
