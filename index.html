@@ -409,22 +409,10 @@
             </div>
         </div>
 
-        <!-- Filter Buttons Scrollable Area -->
-        <div class="flex gap-2 overflow-x-auto pb-4 mb-8 no-scrollbar">
-            <button onclick="filterCategory('all')" class="cat-btn active px-4 py-2 rounded-xl text-xs sm:text-sm font-bold border transition whitespace-nowrap bg-starlight text-slate-950 border-starlight" data-cat="all">
+        <!-- Category filters are loaded from Supabase categories -->
+        <div id="categoryFilters" class="flex gap-2 overflow-x-auto pb-4 mb-8 no-scrollbar" aria-label="تصنيفات المنتجات">
+            <button type="button" onclick="filterCategory('all')" class="cat-btn active px-4 py-2 rounded-xl text-xs sm:text-sm font-bold border transition whitespace-nowrap bg-starlight text-slate-950 border-starlight" data-cat="all">
                 <i class="fa-solid fa-border-all ml-1"></i> جميع المنتجات
-            </button>
-            <button onclick="filterCategory('weapons')" class="cat-btn px-4 py-2 rounded-xl text-xs sm:text-sm font-bold border transition whitespace-nowrap bg-slate-900 text-slate-300 border-slate-800 hover:border-slate-600" data-cat="weapons">
-                <i class="fa-solid fa-gun ml-1 text-starlight"></i> مخططات أسلحة ودروع
-            </button>
-            <button onclick="filterCategory('currency')" class="cat-btn px-4 py-2 rounded-xl text-xs sm:text-sm font-bold border transition whitespace-nowrap bg-slate-900 text-slate-300 border-slate-800 hover:border-slate-600" data-cat="currency">
-                <i class="fa-solid fa-coins ml-1 text-amber-400"></i> Energy Links & عملات
-            </button>
-            <button onclick="filterCategory('deviants')" class="cat-btn px-4 py-2 rounded-xl text-xs sm:text-sm font-bold border transition whitespace-nowrap bg-slate-900 text-slate-300 border-slate-800 hover:border-slate-600" data-cat="deviants">
-                <i class="fa-solid fa-ghost ml-1 text-purple-400"></i> مرافقين Deviants (Level 5)
-            </button>
-            <button onclick="filterCategory('boosting')" class="cat-btn px-4 py-2 rounded-xl text-xs sm:text-sm font-bold border transition whitespace-nowrap bg-slate-900 text-slate-300 border-slate-800 hover:border-slate-600" data-cat="boosting">
-                <i class="fa-solid fa-bolt-lightning ml-1 text-emerald-400"></i> التلفيل وقتل البوسات
             </button>
         </div>
 
@@ -463,8 +451,8 @@
                 <div>
                     <h6 class="text-white font-bold text-xs uppercase tracking-wider mb-3">روابط سريعة</h6>
                     <ul class="space-y-2">
-                        <li><a href="#productsSection" onclick="filterCategory('weapons')" class="hover:text-starlight transition">مخطط الأسلحة</a></li>
-                        <li><a href="#productsSection" onclick="filterCategory('currency')" class="hover:text-starlight transition">Energy Links</a></li>
+                        <li><a href="#productsSection" onclick="filterCategory('farming-help')" class="hover:text-starlight transition">المساعدة في التفريم</a></li>
+                        <li><a href="#productsSection" onclick="filterCategory('energy-links-currency')" class="hover:text-starlight transition">Energy Links & العملات</a></li>
                         <li><a href="#productsSection" onclick="filterCategory('deviants')" class="hover:text-starlight transition">مرافقين Deviants</a></li>
                     </ul>
                 </div>
@@ -1005,18 +993,6 @@
         // Sample Products Database
         const products = [
             {
-                id: 1,
-                slug: "socr-outsider-blueprint-t5",
-                name: "SOCR - Outsider Blueprint (Tier 5)",
-                category: "weapons",
-                priceUSD: 14.99,
-                badge: "Hot",
-                badgeColor: "bg-amber-500",
-                image: "https://images.unsplash.com/photo-1595590424283-b8f17842773f?auto=format&fit=crop&w=600&q=80",
-                description: "بندقية هجومية فتاكة تعتمد على دمج الـ Shrapnel العالي. تجميع كامل Tier 5 ومجربة في أعتى مناطق الـ Hard Zones.",
-                region: "all"
-            },
-            {
                 id: 2,
                 slug: "energy-links-1m",
                 name: "1,000,000 Energy Links (حزمة طاقة ضخمة)",
@@ -1051,18 +1027,6 @@
                 image: "https://images.unsplash.com/photo-1579373903781-fd5c0c30c4cd?auto=format&fit=crop&w=600&q=80",
                 description: "إنهاء طور Prime War بمستوى صعوبة Nightmare مع فريق محترف واستلام كامل الـ Mod Chests الفاخرة.",
                 region: "EU"
-            },
-            {
-                id: 5,
-                slug: "kvd-boom-boom-lmg",
-                name: "KVD - Boom! Boom! LMG (Legendary)",
-                category: "weapons",
-                priceUSD: 18.50,
-                badge: "تخفيض",
-                badgeColor: "bg-red-600",
-                image: "https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=600&q=80",
-                description: "رشاش ثقيل أسطوري يقدم دمج الحرق (Burn Status Effect) المستمر. مثالي للقضاء على مجموعات الوحوش.",
-                region: "NA"
             },
             {
                 id: 6,
@@ -1142,47 +1106,82 @@
                 localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart.map(i => ({ id: i.id, qty: Math.max(1, Number(i.qty) || 1) }))));
             } catch (e) { console.warn('[Cart] تعذّر حفظ السلة محلياً:', e); }
         }
+        let pendingCartRestore = [];
         function restoreCartLocally() {
             try {
                 const raw = localStorage.getItem(CART_STORAGE_KEY);
                 const saved = raw ? JSON.parse(raw) : [];
-                if (!Array.isArray(saved)) return;
-                cart = saved.filter(x => x && x.id !== undefined && x.id !== null && Number.isFinite(Number(x.qty)) && Number(x.qty) > 0)
-                    .map(x => {
-                        const p = products.find(y => String(y.id) === String(x.id));
-                        return p ? { ...p, qty: Math.floor(Number(x.qty)) } : null;
-                    }).filter(Boolean);
-            } catch (e) { console.warn('[Cart] تعذّر استعادة السلة:', e); cart = []; }
+                pendingCartRestore = Array.isArray(saved) ? saved.filter(x => x && x.id !== undefined && x.id !== null && Number.isFinite(Number(x.qty)) && Number(x.qty) > 0) : [];
+                cart = [];
+            } catch (e) { console.warn('[Cart] تعذّر استعادة السلة:', e); cart = []; pendingCartRestore = []; }
         }
 
-        // الكتالوج: السعر والمخزون والمعرّف تأتي من قاعدة البيانات (ربط بالـ slug).
-        // الواجهة تعرض فقط؛ السعر الذي يُحاسَب به العميل يُحسب على الخادم داخل create_order.
+        // الكتالوج والتصنيفات من Supabase؛ الأسعار والمخزون المعتمدان للدفع يبقيان خادميين.
         let catalogReady = false;
+        let storeCategories = [];
+        function categoryLabel(category) {
+            const english = document.documentElement.lang === 'en';
+            return english && category.name_en ? category.name_en : category.name;
+        }
+        function renderCategoryFilters() {
+            const box = document.getElementById('categoryFilters');
+            if (!box) return;
+            box.innerHTML = '';
+            if (currentCategory !== 'all' && !storeCategories.some(c => c.slug === currentCategory)) currentCategory = 'all';
+            const makeButton = (slug, label, icon) => {
+                const active = currentCategory === slug;
+                const b = document.createElement('button');
+                b.type = 'button'; b.dataset.cat = slug;
+                b.className = 'cat-btn px-4 py-2 rounded-xl text-xs sm:text-sm font-bold border transition whitespace-nowrap ' + (active ? 'active bg-starlight text-slate-950 border-starlight' : 'bg-slate-900 text-slate-300 border-slate-800 hover:border-slate-600');
+                const i = document.createElement('i'); i.className = 'fa-solid ' + icon + ' ml-1';
+                b.appendChild(i); b.appendChild(document.createTextNode(label));
+                b.addEventListener('click', () => filterCategory(slug)); box.appendChild(b);
+            };
+            makeButton('all', document.documentElement.lang === 'en' ? 'All Products' : 'جميع المنتجات', 'fa-border-all');
+            storeCategories.forEach(c => {
+                const icon = c.slug === 'energy-links-currency' ? 'fa-coins text-amber-400' : (c.slug === 'deviants' ? 'fa-ghost text-purple-400' : 'fa-bolt-lightning text-emerald-400');
+                makeButton(c.slug, categoryLabel(c), icon);
+            });
+        }
+        window.renderCategoryFilters = renderCategoryFilters;
         async function loadCatalog() {
-            if(!supabaseClient) return;
+            if (!supabaseClient) return;
             try {
-                const { data, error } = await supabaseClient.from('products')
-                    .select('id,slug,price,currency,stock_quantity,status');
-                if(error) { console.error('[Catalog]', error.message); return; }
-                const bySlug = {};
-                (data || []).forEach(r => { bySlug[r.slug] = r; });
-                products.forEach(p => {
-                    const r = bySlug[p.slug];
-                    if(r && r.currency === 'USD') {
-                        p.dbId = r.id; p.priceUSD = Number(r.price); p.stock = Number(r.stock_quantity) || 0;
-                    } else { p.dbId = null; p.stock = 0; }
+                const [catRes, productRes] = await Promise.all([
+                    supabaseClient.from('categories').select('id,name,name_en,slug,is_active,sort_order').eq('is_active', true).order('sort_order', { ascending: true }),
+                    supabaseClient.from('products').select('id,category_id,name,slug,description,image_url,price,currency,status,stock_quantity,is_featured,delivery_type,sort_order,max_per_order').eq('status', 'active').order('sort_order', { ascending: true })
+                ]);
+                if (catRes.error) { console.error('[Categories]', catRes.error.message); return; }
+                if (productRes.error) { console.error('[Catalog]', productRes.error.message); return; }
+                storeCategories = catRes.data || [];
+                const categoriesById = new Map(storeCategories.map(c => [c.id, c]));
+                const templates = new Map(products.map(p => [p.slug, p]));
+                const fallbackImage = 'https://images.unsplash.com/photo-1511512578047-dfb367046420?auto=format&fit=crop&w=600&q=80';
+                const nextProducts = (productRes.data || []).filter(r => r.currency === 'USD' && r.category_id && categoriesById.has(r.category_id)).map(r => {
+                    const template = templates.get(r.slug) || {};
+                    const category = categoriesById.get(r.category_id);
+                    return { ...template, id: template.id !== undefined ? template.id : r.id, dbId: r.id, slug: r.slug,
+                        name: r.name, description: r.description || template.description || '', category: category.slug,
+                        categoryId: r.category_id, priceUSD: Number(r.price), stock: Number(r.stock_quantity) || 0,
+                        image: r.image_url || template.image || fallbackImage,
+                        badge: template.badge || (r.is_featured ? 'Featured' : 'Once Human'),
+                        badgeColor: template.badgeColor || 'bg-cyan-600', region: template.region || 'all' };
                 });
+                products.splice(0, products.length, ...nextProducts);
                 catalogReady = true;
-                cart.forEach(i => {
-                    const p = products.find(x => x.id === i.id);
-                    if(p) { i.dbId = p.dbId; i.priceUSD = p.priceUSD; i.stock = p.stock; }
-                });
+                if (pendingCartRestore.length) {
+                    cart = pendingCartRestore.map(saved => {
+                        const p = products.find(x => String(x.id) === String(saved.id) || String(x.dbId) === String(saved.id));
+                        return p ? { ...p, qty: Math.floor(Number(saved.qty) || 1) } : null;
+                    }).filter(Boolean);
+                    pendingCartRestore = [];
+                } else {
+                    cart = cart.map(i => { const p = products.find(x => String(x.id) === String(i.id) || String(x.dbId) === String(i.dbId)); return p ? { ...p, qty: i.qty } : null; }).filter(Boolean);
+                }
                 cart = cart.filter(i => i.dbId && i.stock > 0);
-                cart.forEach(i => { if(i.qty > i.stock) i.qty = i.stock; });
-                saveCartLocally();
-                renderProducts();
-                updateCartUI();
-            } catch(e) { console.error('[Catalog]', e); }
+                cart.forEach(i => { if (i.qty > i.stock) i.qty = i.stock; });
+                renderCategoryFilters(); saveCartLocally(); renderProducts(); updateCartUI();
+            } catch (e) { console.error('[Catalog]', e); }
         }
         // المخزون المتاح للعرض = مخزون قاعدة البيانات ناقص الكمية الموجودة في سلة هذا الزائر.
         // الحجز الفعلي المشترك بين جميع الزوار يتم عند إنشاء الطلب والتحقق الخادمي، وليس بمجرد فتح الصفحة.
@@ -1216,12 +1215,13 @@
         // Render Products Grid
         function renderProducts() {
             const grid = document.getElementById('productsGrid');
+            if (!catalogReady) { grid.innerHTML = '<div class="col-span-full py-12 text-center text-slate-500"><i class="fa-solid fa-spinner fa-spin text-2xl mb-3"></i><p class="text-sm font-bold">جاري تحميل المنتجات…</p></div>'; return; }
             const searchVal = (document.getElementById('searchInput').value || document.getElementById('mobileSearchInput').value || '').toLowerCase();
             const regionVal = document.getElementById('serverRegion').value;
 
             const filtered = products.filter(p => {
                 const matchCat = (currentCategory === 'all' || p.category === currentCategory);
-                const matchSearch = p.name.toLowerCase().includes(searchVal) || p.description.toLowerCase().includes(searchVal);
+                const matchSearch = String(p.name || '').toLowerCase().includes(searchVal) || String(p.description || '').toLowerCase().includes(searchVal);
                 const matchRegion = (regionVal === 'all' || p.region === 'all' || p.region === regionVal);
                 return matchCat && matchSearch && matchRegion;
             });
@@ -1288,16 +1288,11 @@
 
         // Category Filter Handling
         function filterCategory(category) {
-            currentCategory = category;
-            document.querySelectorAll('.cat-btn').forEach(btn => {
-                if(btn.dataset.cat === category) {
-                    btn.className = "cat-btn active px-4 py-2 rounded-xl text-xs sm:text-sm font-bold border transition whitespace-nowrap bg-starlight text-slate-950 border-starlight";
-                } else {
-                    btn.className = "cat-btn px-4 py-2 rounded-xl text-xs sm:text-sm font-bold border transition whitespace-nowrap bg-slate-900 text-slate-300 border-slate-800 hover:border-slate-600";
-                }
-            });
+            currentCategory = category || 'all';
+            renderCategoryFilters();
             renderProducts();
         }
+        window.renderProducts = renderProducts;
 
         function filterProducts() {
             renderProducts();
@@ -3221,7 +3216,8 @@
     const CLS = 'w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-2.5 text-xs focus:border-starlight outline-none';
     const BTN = 'px-3 py-1.5 rounded-lg border text-[11px] font-bold transition ';
     const SECTIONS = [
-        { id: 'products', label: 'المنتجات', icon: 'fa-box', tables: ['products'], add: 1, edit: 1, del: 1 },
+        { id: 'products', label: 'إدارة المنتجات', icon: 'fa-box', tables: ['products'], add: 1, edit: 1, del: 1, status: ['draft', 'active', 'inactive', 'out_of_stock', 'archived'] },
+        { id: 'categories', label: 'إدارة الأقسام', icon: 'fa-layer-group', tables: ['categories'], add: 1, edit: 1, del: 1 },
         { id: 'orders', label: 'الطلبات', icon: 'fa-receipt', tables: ['orders'], status: ['pending_payment', 'paid', 'processing', 'completed', 'cancelled', 'refunded'], items: 1 },
         { id: 'customers', label: 'العملاء', icon: 'fa-users', tables: ['profiles'] },
         { id: 'payments', label: 'المدفوعات والشحن', icon: 'fa-wallet', tables: ['payments', 'payment_requests', 'topup_requests', 'recharge_requests', 'charge_requests', 'deposits'], status: ['pending', 'approved', 'paid', 'completed', 'rejected', 'failed', 'cancelled', 'refunded'] },
@@ -3330,7 +3326,8 @@
         if (found[t]) return found[t];
         const { data, error } = await supabaseClient.from(t).select('*').limit(1);
         if (error) return (found[t] = isMissing(error) ? { ok: false } : { ok: true, keys: [], err: error.message });
-        return (found[t] = { ok: true, keys: data && data[0] ? Object.keys(data[0]) : [] });
+        const keys = data && data[0] ? Object.keys(data[0]) : (t === 'categories' ? ['name', 'name_en', 'slug', 'description', 'image_url', 'is_active', 'sort_order'] : []);
+        return (found[t] = { ok: true, keys });
     }
     async function selectSection(id) {
         S.sec = id; S.q = ''; if (id === 'payments') S.payFilter = 'all'; $('adminSearch').value = '';
@@ -3528,6 +3525,7 @@
                 : await supabaseClient.from(S.tbl).update({ status: s.value }).eq('id', row.id).select();
             if (r.error || !r.data || !r.data.length) { msg('تعذّر تحديث الحالة: ' + (r.error ? r.error.message : 'لم يُعدَّل أي سجل (تحقق من الصلاحيات).'), 'err'); s.value = row.status || ''; return; }
             row.status = s.value; msg('تم تحديث الحالة ✅', 'ok');
+            if (S.tbl === 'products') await loadCatalog();
         };
         return s;
     }
@@ -3702,20 +3700,37 @@
             its.forEach(it => { const line = Object.keys(it).filter(k => !HID.test(k) && !/(^id$|_id$|_at$)/.test(k)).map(k => k + ': ' + (it[k] ?? '—')).join(' • '); holder.appendChild(mk('div', 'bg-slate-900 border border-slate-800 rounded-lg p-2 mb-1.5 text-slate-200 break-words', line)); });
         }
     }
-    function openForm(row) {
+    async function openForm(row) {
         const info = found[S.tbl], tpl = row || S.rows[0] || null, form = mk('div', 'space-y-3'), inputs = [];
         const keys = info.keys.length ? info.keys : (tpl ? Object.keys(tpl) : []);
+        const productCategories = S.tbl === 'products' ? await supabaseClient.from('categories').select('id,name,name_en,slug,is_active').order('sort_order', { ascending: true }) : null;
+        if (productCategories && productCategories.error) { msg('تعذّر تحميل الأقسام: ' + productCategories.error.message, 'err'); return; }
         if (!keys.length) {   // جدول فارغ لا نعرف أعمدته: إدخال JSON
             const ta = mk('textarea', CLS + ' font-mono h-40'); ta.placeholder = '{"column": "value"}'; form.appendChild(mk('p', 'text-[11px] text-slate-500', 'لا أعرف أعمدة هذا الجدول (فارغ). أدخل السجل بصيغة JSON بأسماء أعمدته الفعلية.')); form.appendChild(ta); inputs.push({ json: ta });
         }
-        keys.filter(k => !NOFORM.has(k) && !(S.tbl === 'products' && row && k === 'stock_quantity')).forEach(k => {
+        keys.filter(k => !NOFORM.has(k) && !(S.tbl === 'products' && k === 'currency') && !(S.tbl === 'products' && row && k === 'stock_quantity')).forEach(k => {
             const secret = HID.test(k), v = row && !secret ? row[k] : (tpl && !secret ? tpl[k] : null), lab = mk('label', 'block');
             lab.appendChild(mk('span', 'block text-[11px] text-slate-400 font-bold mb-1', k + (secret ? ' (سرّي — اتركه فارغاً لعدم التغيير)' : '')));
             let el, t = 's';
-            if (typeof v === 'boolean') { el = mk('input', 'w-5 h-5 accent-cyan-400'); el.type = 'checkbox'; el.checked = !!v; t = 'b'; /* في الإضافة: القيمة الافتراضية من سجل موجود وتظهر للمدير صراحةً */ }
+            if (S.tbl === 'products' && !row && k === 'stock_quantity') {
+                el = mk('input', CLS); el.type = 'number'; el.min = '0'; el.step = '1'; el.value = '0'; t = 'n';
+            }
+            else if (S.tbl === 'products' && !row && k === 'price') {
+                el = mk('input', CLS); el.type = 'number'; el.min = '0'; el.step = '0.01'; el.value = ''; t = 'n';
+            }
+            else if (S.tbl === 'products' && k === 'category_id') {
+                el = mk('select', CLS);
+                (productCategories.data || []).forEach(c => { const op = mk('option', '', c.name + (c.name_en ? ' / ' + c.name_en : '') + (c.is_active ? '' : ' (غير نشط)')); op.value = c.id; el.appendChild(op); });
+                if (!productCategories.data || !productCategories.data.length) { msg('أنشئ قسماً أولاً قبل إضافة المنتجات.', 'warn'); return; }
+                const empty = mk('option', '', 'اختر القسم'); empty.value = ''; el.insertBefore(empty, el.firstChild); el.value = row && row[k] ? row[k] : '';
+            }
+            else if (S.tbl === 'products' && k === 'status') {
+                el = mk('select', CLS); ['draft','active','inactive','out_of_stock','archived'].forEach(x => { const op = mk('option', '', x); op.value = x; el.appendChild(op); }); el.value = row ? (row[k] || 'draft') : 'active';
+            }
+            else if (typeof v === 'boolean' || (S.tbl === 'categories' && k === 'is_active')) { el = mk('input', 'w-5 h-5 accent-cyan-400'); el.type = 'checkbox'; el.checked = row ? !!v : (S.tbl === 'categories' ? k === 'is_active' : false); t = 'b'; }
             else if (v !== null && typeof v === 'object') { el = mk('textarea', CLS + ' font-mono h-24'); el.value = row ? JSON.stringify(row[k], null, 2) : ''; t = 'j'; }
             else if (secret || String(v ?? '').length > 80) { el = mk('textarea', CLS + ' h-24'); el.value = row && !secret ? (row[k] ?? '') : ''; t = secret ? 'h' : 's'; }
-            else { el = mk('input', CLS); el.value = row ? (row[k] ?? '') : ''; if (typeof v === 'number') t = 'n'; }
+            else { el = mk('input', CLS); el.value = row ? (row[k] ?? '') : (S.tbl === 'categories' && k === 'sort_order' ? '0' : ''); if (typeof v === 'number' || (S.tbl === 'categories' && k === 'sort_order')) { t = 'n'; if (k === 'sort_order') el.type = 'number'; } }
             lab.appendChild(el); form.appendChild(lab); inputs.push({ k, el, t });
         });
         const save = btn(row ? 'حفظ التعديلات' : 'إضافة', 'bg-starlight border-starlight text-slate-950 flex-1', async () => {
@@ -3731,11 +3746,12 @@
                     if (!row || JSON.stringify(v) !== JSON.stringify(orig)) out[i.k] = v;
                 });
             } catch (e) { msg('قيمة JSON غير صالحة: ' + e.message, 'err'); return; }
+            if (S.tbl === 'products' && !(row && row.category_id) && !out.category_id) { msg('اختر قسماً للمنتج قبل الحفظ.', 'err'); return; }
             if (!Object.keys(out).length) { closeModal(); return; }
             if (!(await guard())) return;
             const r = row ? await supabaseClient.from(S.tbl).update(out).eq('id', row.id).select() : await supabaseClient.from(S.tbl).insert(out).select();
             if (r.error || !r.data || !r.data.length) { msg('فشل الحفظ: ' + (r.error ? r.error.message : 'لم يُحفظ أي سجل (تحقق من الصلاحيات).'), 'err'); return; }
-            closeModal(); msg('تم الحفظ ✅', 'ok'); delete found[S.tbl]; await probe(S.tbl); load();
+            closeModal(); msg('تم الحفظ ✅', 'ok'); const changedTable = S.tbl; delete found[changedTable]; await probe(changedTable); await load(); if (changedTable === 'products' || changedTable === 'categories') await loadCatalog();
         });
         modal(row ? 'تعديل سجل' : 'إضافة سجل', form, [save, btn('إلغاء', 'bg-slate-900 border-slate-700 text-slate-300', closeModal)]);
     }
@@ -3841,11 +3857,53 @@
         load();
     }
     async function remove(row) {
-        if (!confirm('حذف هذا السجل نهائياً؟ لا يمكن التراجع.')) return;
         if (!(await guard())) return;
+        if (S.tbl === 'categories') {
+            const [used, others] = await Promise.all([
+                supabaseClient.from('products').select('id', { count: 'exact', head: true }).eq('category_id', row.id),
+                supabaseClient.from('categories').select('id,name,name_en').eq('is_active', true).neq('id', row.id).order('sort_order', { ascending: true })
+            ]);
+            if (used.error || others.error) { msg('تعذّر فحص ارتباطات القسم: ' + (used.error || others.error).message, 'err'); return; }
+            if ((used.count || 0) > 0) {
+                if (!others.data || !others.data.length) { msg('لا يمكن حذف القسم: يحتوي منتجات ولا يوجد قسم آخر لنقلها إليه.', 'err'); return; }
+                const body = mk('div', 'space-y-3');
+                body.appendChild(mk('p', 'text-xs text-slate-300', 'هذا القسم يحتوي على ' + used.count + ' منتج. اختر القسم الذي ستُنقل إليه المنتجات قبل الحذف.'));
+                const select = mk('select', CLS);
+                others.data.forEach(c => { const op = mk('option', '', c.name + (c.name_en ? ' / ' + c.name_en : '')); op.value = c.id; select.appendChild(op); }); body.appendChild(select);
+                const go = btn('نقل المنتجات ثم حذف القسم', 'bg-red-500/10 border-red-500/40 text-red-300 flex-1', async () => {
+                    if (!confirm('تأكيد نقل جميع منتجات هذا القسم ثم حذفه؟')) return;
+                    go.disabled = true;
+                    const moved = await supabaseClient.from('products').update({ category_id: select.value }).eq('category_id', row.id);
+                    if (moved.error) { go.disabled = false; msg('فشل نقل المنتجات: ' + moved.error.message, 'err'); return; }
+                    const deleted = await supabaseClient.from('categories').delete().eq('id', row.id).select('id');
+                    if (deleted.error || !deleted.data || !deleted.data.length) { go.disabled = false; msg('تم نقل المنتجات لكن تعذّر حذف القسم: ' + (deleted.error ? deleted.error.message : 'لم يُحذف القسم'), 'err'); return; }
+                    closeModal(); msg('تم نقل المنتجات وحذف القسم بأمان ✅', 'ok'); delete found.categories; await probe('categories'); await load(); await loadCatalog();
+                });
+                modal('حذف قسم ونقل منتجاته', body, [go, btn('إلغاء', 'bg-slate-900 border-slate-700 text-slate-300', closeModal)]); return;
+            }
+            if (!confirm('حذف القسم الفارغ «' + row.name + '»؟')) return;
+        } else if (S.tbl === 'products') {
+            const checks = await Promise.all([
+                supabaseClient.from('order_items').select('id', { count: 'exact', head: true }).eq('product_id', row.id),
+                supabaseClient.from('reviews').select('id', { count: 'exact', head: true }).eq('product_id', row.id),
+                supabaseClient.from('digital_assets').select('id', { count: 'exact', head: true }).eq('product_id', row.id),
+                supabaseClient.from('inventory_movements').select('id', { count: 'exact', head: true }).eq('product_id', row.id),
+                supabaseClient.from('order_fulfillments').select('id', { count: 'exact', head: true }).eq('product_id', row.id)
+            ]);
+            const err = checks.find(x => x.error);
+            if (err) { msg('تعذّر فحص ارتباطات المنتج: ' + err.error.message, 'err'); return; }
+            const linked = checks.reduce((n, x) => n + (x.count || 0), 0);
+            if (linked > 0) {
+                if (!confirm('هذا المنتج مرتبط بسجلات سابقة. سيتم أرشفته بدلاً من حذفه لحماية الطلبات والتقييمات. متابعة؟')) return;
+                const archived = await supabaseClient.from('products').update({ status: 'archived' }).eq('id', row.id).select('id');
+                if (archived.error || !archived.data || !archived.data.length) { msg('تعذرت أرشفة المنتج: ' + (archived.error ? archived.error.message : 'لم يتم التعديل'), 'err'); return; }
+                msg('تمت أرشفة المنتج وحفظ سجلاته السابقة ✅', 'ok'); await load(); await loadCatalog(); return;
+            }
+            if (!confirm('حذف المنتج «' + row.name + '» نهائياً؟')) return;
+        } else if (!confirm('حذف هذا السجل نهائياً؟ لا يمكن التراجع.')) return;
         const r = await supabaseClient.from(S.tbl).delete().eq('id', row.id).select();
         if (r.error || !r.data || !r.data.length) { msg('تعذّر الحذف: ' + (r.error ? r.error.message : 'لم يُحذف أي سجل (تحقق من الصلاحيات).'), 'err'); return; }
-        msg('تم الحذف ✅', 'ok'); load();
+        msg('تم الحذف ✅', 'ok'); await load(); if (S.tbl === 'products' || S.tbl === 'categories') await loadCatalog();
     }
     async function reveal(row) {
         if (!(await guard())) return;
@@ -4307,6 +4365,7 @@
     if (selector) selector.value=lang;
     translateElement(document.body,lang);
     updateServerRegionLabels();
+    try { if (typeof window.renderCategoryFilters === 'function') window.renderCategoryFilters(); } catch(e) { console.warn('Category localization refresh:', e); }
     try { if (typeof window.renderProducts === 'function') window.renderProducts(); } catch(e) { console.warn('Product localization refresh:', e); }
     try { if (typeof window.updateCartUI === 'function') window.updateCartUI(); } catch(e) { console.warn('Cart localization refresh:', e); }
     if (persist) { try { localStorage.setItem('onceHumanStoreLanguage',lang); } catch(e){} }
